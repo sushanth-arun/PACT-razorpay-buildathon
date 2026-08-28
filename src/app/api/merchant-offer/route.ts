@@ -157,18 +157,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Check if buyer intent is completely outside ErgoSpace catalog domain (e.g., ice cream)
+    // Check if buyer intent is completely outside ErgoSpace catalog domain (e.g., cars, ice cream)
+    const reqNeedLower = buyerIntent.productIntent.toLowerCase();
     const isOutofDomain = !allActiveProducts.some((p) =>
-      buyerIntent.productIntent.toLowerCase().includes(p.category.toLowerCase()) ||
-      p.name.toLowerCase().includes(buyerIntent.productIntent.toLowerCase()) ||
-      p.description?.toLowerCase().includes(buyerIntent.productIntent.toLowerCase())
+      reqNeedLower.includes(p.category.toLowerCase()) ||
+      p.name.toLowerCase().includes(reqNeedLower) ||
+      p.description?.toLowerCase().includes(reqNeedLower)
     );
 
     // Determine Merchant Offer Status & Fallbacks
     let offerStatus: MerchantOfferStatus = "OFFER_GENERATED";
 
-    if (isOutofDomain && selectedItems.length === 0) {
+    if (isOutofDomain || selectedItems.length === 0) {
       offerStatus = "NO_VALID_OFFER";
+      // Clear any forced selections when out of domain
+      if (isOutofDomain) {
+        selectedItems.length = 0;
+        alternativeItems.length = 0;
+      }
     } else if (selectedItems.length === 0) {
       if (alternativeItems.length > 0) {
         offerStatus = "ALTERNATIVE_FOUND";
@@ -176,6 +182,7 @@ export async function POST(req: NextRequest) {
         offerStatus = "NO_VALID_OFFER";
       }
     }
+
 
 
     // 6. Deterministic Arithmetic Calculations (Line Total, Subtotal, Discount, Final Amount)

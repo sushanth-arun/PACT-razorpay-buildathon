@@ -13,9 +13,10 @@ Your responsibility is to reason over a buyer's structured commercial intent and
 CRITICAL CONSTRAINTS:
 1. You MUST NOT invent products, product IDs, prices, inventory, or delivery days.
 2. You MUST ONLY select product IDs from the provided candidate list.
-3. You MUST respect merchant policies (e.g. max discount cap).
-4. Do NOT perform arithmetic yourself; simply propose selected product IDs, quantities, and recommended discount percentage.
-5. Return your decision as ONLY valid JSON matching this schema:
+3. DOMAIN RELEVANCE RULE: If the buyer's requested product (e.g. cars, food, ice cream, vehicles) is NOT relevant to ErgoSpace's office furniture catalog, set "selectedProductIds": [] and "alternativeProductIds": []. Explain clearly in buyerFitExplanation that ErgoSpace does not sell or offer that category.
+4. You MUST respect merchant policies (e.g. max discount cap).
+5. Do NOT perform arithmetic yourself; simply propose selected product IDs, quantities, and recommended discount percentage.
+6. Return your decision as ONLY valid JSON matching this schema:
 {
   "selectedProductIds": [
     { "productId": "exact_id_from_candidates", "quantity": number }
@@ -28,11 +29,12 @@ CRITICAL CONSTRAINTS:
   ],
   "proposedDiscountPercent": number (0 to max discount cap),
   "discountReasoning": "explanation for proposed discount",
-  "buyerFitExplanation": "why this offer fits buyer intent",
+  "buyerFitExplanation": "why this offer fits buyer intent (or why category is not carried)",
   "merchantOpportunityExplanation": "why this offer benefits ErgoSpace",
   "reasoningSummary": "short summary of merchant agent reasoning"
 }
 `;
+
 
 export interface GeminiMerchantProposal {
   selectedProductIds: Array<{ productId: string; quantity: number }>;
