@@ -7,8 +7,7 @@ import { StatusBadge, StatusType } from "@/components/ui/StatusBadge";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { ShieldCheck } from "lucide-react";
-import BorderGlow from "@/components/BorderGlow";
-
+import SpotlightCard from "@/components/SpotlightCard";
 
 interface Scenario {
   title: string;
@@ -99,17 +98,10 @@ export default function EvaluationPage() {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {evaluationScenarios.map((sc, idx) => (
-            <BorderGlow
+            <SpotlightCard
               key={idx}
-              edgeSensitivity={20}
-              glowColor="40 80 80"
-              backgroundColor="#090d16"
-              borderRadius={12}
-              glowRadius={25}
-              glowIntensity={0.5}
-              coneSpread={20}
-              animated={false}
-              colors={['#38bdf8', '#818cf8', '#34d399']}
+              spotlightColor="rgba(56, 189, 248, 0.15)"
+              className="bg-slate-950/80 border border-slate-800 p-0 rounded-xl hover:border-slate-700 transition-colors"
             >
               <div className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
@@ -127,10 +119,11 @@ export default function EvaluationPage() {
                   </span>
                 </div>
               </div>
-            </BorderGlow>
+            </SpotlightCard>
           ))}
         </div>
       </SectionCard>
+
     </PageContainer>
   );
 }

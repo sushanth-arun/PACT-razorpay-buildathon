@@ -8,7 +8,8 @@ import { MetricCard } from "@/components/ui/MetricCard";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ProductEditModal } from "@/components/ui/ProductEditModal";
-import BorderGlow from "@/components/BorderGlow";
+import SpotlightCard from "@/components/SpotlightCard";
+
 import { 
   Store, 
   Package, 
@@ -374,24 +375,17 @@ export default function MerchantPage() {
                   const isOutOfStock = product.stock === 0;
 
                   return (
-                    <BorderGlow
+                    <SpotlightCard
                       key={product.id}
-                      edgeSensitivity={20}
-                      glowColor="40 80 80"
-                      backgroundColor="#090d16"
-                      borderRadius={12}
-                      glowRadius={25}
-                      glowIntensity={0.5}
-                      coneSpread={20}
-                      animated={false}
-                      colors={['#38bdf8', '#818cf8', '#34d399']}
+                      spotlightColor="rgba(56, 189, 248, 0.12)"
+                      className="bg-slate-950/80 border border-slate-800 p-0 rounded-xl transition-colors hover:border-slate-700"
                     >
                       <motion.div
                         layout
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        whileHover={{ y: -2 }}
+                        whileHover={{ y: -1 }}
                         className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
                       >
                         <div className="space-y-1 flex-1 min-w-0">
@@ -468,7 +462,8 @@ export default function MerchantPage() {
                           </div>
                         </div>
                       </motion.div>
-                    </BorderGlow>
+                    </SpotlightCard>
+
                   );
                 })}
               </div>
@@ -497,16 +492,9 @@ export default function MerchantPage() {
               )}
 
               {/* Group 1: Discount Governance Card */}
-              <BorderGlow
-                edgeSensitivity={25}
-                glowColor="40 80 80"
-                backgroundColor="#090d16"
-                borderRadius={12}
-                glowRadius={25}
-                glowIntensity={0.6}
-                coneSpread={20}
-                animated={false}
-                colors={['#38bdf8', '#a855f7']}
+              <SpotlightCard
+                spotlightColor="rgba(56, 189, 248, 0.15)"
+                className="bg-slate-950/80 border border-slate-800 p-0 rounded-xl"
               >
                 <div className="p-3.5 space-y-3">
                   <div className="flex items-center gap-2 pb-2 border-b border-slate-800/60">
@@ -540,19 +528,12 @@ export default function MerchantPage() {
                     </div>
                   </div>
                 </div>
-              </BorderGlow>
+              </SpotlightCard>
 
               {/* Group 2: Transaction Governance Card */}
-              <BorderGlow
-                edgeSensitivity={25}
-                glowColor="40 80 80"
-                backgroundColor="#090d16"
-                borderRadius={12}
-                glowRadius={25}
-                glowIntensity={0.6}
-                coneSpread={20}
-                animated={false}
-                colors={['#22c55e', '#38bdf8']}
+              <SpotlightCard
+                spotlightColor="rgba(34, 197, 94, 0.15)"
+                className="bg-slate-950/80 border border-slate-800 p-0 rounded-xl"
               >
                 <div className="p-3.5 space-y-3">
                   <div className="flex items-center gap-2 pb-2 border-b border-slate-800/60">
@@ -584,19 +565,12 @@ export default function MerchantPage() {
                     </div>
                   </div>
                 </div>
-              </BorderGlow>
+              </SpotlightCard>
 
               {/* Group 3: Inventory Strategy Card */}
-              <BorderGlow
-                edgeSensitivity={25}
-                glowColor="40 80 80"
-                backgroundColor="#090d16"
-                borderRadius={12}
-                glowRadius={25}
-                glowIntensity={0.6}
-                coneSpread={20}
-                animated={false}
-                colors={['#a855f7', '#22c55e']}
+              <SpotlightCard
+                spotlightColor="rgba(168, 85, 247, 0.15)"
+                className="bg-slate-950/80 border border-slate-800 p-0 rounded-xl"
               >
                 <div className="p-3.5 space-y-3">
                   <div className="flex items-center justify-between">
@@ -619,7 +593,8 @@ export default function MerchantPage() {
                     </button>
                   </div>
                 </div>
-              </BorderGlow>
+              </SpotlightCard>
+
 
               {/* Firewall Policy Guard Explainer */}
               <div className="p-3 rounded-lg bg-blue-950/30 border border-blue-800/40 flex items-start gap-2.5 text-[11px] text-slate-400">

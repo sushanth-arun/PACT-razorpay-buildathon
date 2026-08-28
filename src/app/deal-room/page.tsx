@@ -5,7 +5,8 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import BorderGlow from "@/components/BorderGlow";
+import SpotlightCard from "@/components/SpotlightCard";
+
 import { 
   Bot, 
   Send, 
@@ -150,16 +151,9 @@ export default function DealRoomPage() {
 
 
       {/* Top Main Section: Stage 1 Natural Language Input & Sample Chips */}
-      <BorderGlow
-        edgeSensitivity={25}
-        glowColor="40 80 80"
-        backgroundColor="#090d16"
-        borderRadius={16}
-        glowRadius={30}
-        glowIntensity={0.6}
-        coneSpread={20}
-        animated={false}
-        colors={['#38bdf8', '#818cf8', '#22c55e']}
+      <SpotlightCard
+        spotlightColor="rgba(56, 189, 248, 0.15)"
+        className="bg-slate-950/80 border border-slate-800 p-0 rounded-2xl"
       >
         <div className="p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
@@ -203,7 +197,6 @@ export default function DealRoomPage() {
                   &quot;{chip}&quot;
                 </button>
               ))}
-
             </div>
 
             {/* Action Bar */}
@@ -256,7 +249,6 @@ export default function DealRoomPage() {
             </div>
           )}
 
-
           {/* Visual Processing Sequence */}
           {loading && (
             <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
@@ -278,7 +270,7 @@ export default function DealRoomPage() {
             </div>
           )}
         </div>
-      </BorderGlow>
+      </SpotlightCard>
 
       {/* Deal Pipeline 3 Columns Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
@@ -286,16 +278,9 @@ export default function DealRoomPage() {
         {/* Column 1: BUYER INTENT DISPLAY */}
         <div className="space-y-4">
           {intentResult ? (
-            <BorderGlow
-              edgeSensitivity={25}
-              glowColor="40 80 80"
-              backgroundColor="#090d16"
-              borderRadius={16}
-              glowRadius={30}
-              glowIntensity={0.7}
-              coneSpread={25}
-              animated={false}
-              colors={['#38bdf8', '#818cf8']}
+            <SpotlightCard
+              spotlightColor="rgba(56, 189, 248, 0.15)"
+              className="bg-slate-950/80 border border-slate-800 p-0 rounded-2xl"
             >
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
@@ -428,18 +413,11 @@ export default function DealRoomPage() {
                   </div>
                 </div>
               </motion.div>
-            </BorderGlow>
+            </SpotlightCard>
           ) : (
-            <BorderGlow
-              edgeSensitivity={25}
-              glowColor="40 80 80"
-              backgroundColor="#090d16"
-              borderRadius={12}
-              glowRadius={25}
-              glowIntensity={0.6}
-              coneSpread={20}
-              animated={false}
-              colors={['#38bdf8', '#a855f7']}
+            <SpotlightCard
+              spotlightColor="rgba(56, 189, 248, 0.15)"
+              className="bg-slate-950/80 border border-slate-800 p-0 rounded-2xl"
             >
               <div className="p-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -452,21 +430,14 @@ export default function DealRoomPage() {
                   description="Submit a purchase prompt above to extract structured commercial intent."
                 />
               </div>
-            </BorderGlow>
+            </SpotlightCard>
           )}
         </div>
 
         {/* Column 2: MERCHANT OFFER (Standby for Phase 4) */}
-        <BorderGlow
-          edgeSensitivity={25}
-          glowColor="40 80 80"
-          backgroundColor="#090d16"
-          borderRadius={12}
-          glowRadius={25}
-          glowIntensity={0.6}
-          coneSpread={20}
-          animated={false}
-          colors={['#22c55e', '#38bdf8']}
+        <SpotlightCard
+          spotlightColor="rgba(34, 197, 94, 0.15)"
+          className="bg-slate-950/80 border border-slate-800 p-0 rounded-2xl"
         >
           <div className="p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -479,19 +450,12 @@ export default function DealRoomPage() {
               description="The Merchant Agent will construct valid commercial offers using real catalog data in Phase 4."
             />
           </div>
-        </BorderGlow>
+        </SpotlightCard>
 
         {/* Column 3: PACT DEAL CONTRACT (Standby for Phase 5) */}
-        <BorderGlow
-          edgeSensitivity={25}
-          glowColor="40 80 80"
-          backgroundColor="#090d16"
-          borderRadius={12}
-          glowRadius={25}
-          glowIntensity={0.6}
-          coneSpread={20}
-          animated={false}
-          colors={['#a855f7', '#22c55e']}
+        <SpotlightCard
+          spotlightColor="rgba(168, 85, 247, 0.15)"
+          className="bg-slate-950/80 border border-slate-800 p-0 rounded-2xl"
         >
           <div className="p-5 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -504,9 +468,10 @@ export default function DealRoomPage() {
               description="The Deal Compiler will create deterministic commercial contracts in Phase 5."
             />
           </div>
-        </BorderGlow>
+        </SpotlightCard>
 
       </div>
+
     </PageContainer>
   );
 }

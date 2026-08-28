@@ -3,7 +3,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import BorderGlow from "@/components/BorderGlow";
+import SpotlightCard from "@/components/SpotlightCard";
 
 interface MetricCardProps {
   title: string;
@@ -28,25 +28,16 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   className,
 }) => {
   return (
-    <BorderGlow
-      edgeSensitivity={30}
-      glowColor="40 80 80"
-      backgroundColor="#090d16"
-      borderRadius={12}
-      glowRadius={30}
-      glowIntensity={0.7}
-      coneSpread={25}
-      animated={false}
-      colors={['#22c55e', '#38bdf8', '#a855f7']}
-      className={className}
+    <SpotlightCard
+      spotlightColor="rgba(56, 189, 248, 0.15)"
+      className={cn("bg-slate-950/80 border border-slate-800 p-0 rounded-xl transition-all duration-200 hover:border-slate-700", className)}
     >
       <motion.div
-        whileHover={{ scale: 1.03, y: -4 }}
-        whileTap={{ scale: 0.99 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        className="group relative p-5 space-y-2.5 outline-none cursor-default"
-        tabIndex={0}
+        whileHover={{ y: -2 }}
+        transition={{ duration: 0.2 }}
+        className="group p-5 space-y-2.5 outline-none cursor-default"
       >
+
         <div className="flex items-center justify-between">
           <span className="text-xs font-mono font-bold text-slate-300 group-hover:text-slate-100 transition-colors uppercase tracking-wider">
             {title}
@@ -85,10 +76,10 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           )}
         </div>
       </motion.div>
-
-    </BorderGlow>
+    </SpotlightCard>
   );
 };
+
 
 
 

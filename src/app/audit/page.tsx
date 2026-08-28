@@ -5,7 +5,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SectionCard } from "@/components/ui/SectionCard";
-import BorderGlow from "@/components/BorderGlow";
+import SpotlightCard from "@/components/SpotlightCard";
 import { 
   User, 
   Bot, 
@@ -89,16 +89,9 @@ export default function AuditPage() {
                   {idx + 1}
                 </div>
                 <div className="flex-1">
-                  <BorderGlow
-                    edgeSensitivity={20}
-                    glowColor="40 80 80"
-                    backgroundColor="#090d16"
-                    borderRadius={12}
-                    glowRadius={25}
-                    glowIntensity={0.5}
-                    coneSpread={20}
-                    animated={false}
-                    colors={['#38bdf8', '#818cf8', '#34d399']}
+                  <SpotlightCard
+                    spotlightColor="rgba(56, 189, 248, 0.15)"
+                    className="bg-slate-950/80 border border-slate-800 p-0 rounded-xl hover:border-slate-700 transition-colors"
                   >
                     <div className="p-4 space-y-2">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -114,7 +107,8 @@ export default function AuditPage() {
                         {evt.example}
                       </div>
                     </div>
-                  </BorderGlow>
+                  </SpotlightCard>
+
                 </div>
               </div>
             );

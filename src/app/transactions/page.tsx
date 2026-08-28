@@ -5,7 +5,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SectionCard } from "@/components/ui/SectionCard";
-import BorderGlow from "@/components/BorderGlow";
+import SpotlightCard from "@/components/SpotlightCard";
 
 const staticPlaceholderTransactions = [
   {
@@ -45,16 +45,9 @@ export default function TransactionsPage() {
         subtitle="Static placeholder demonstration of validated order executions"
         badge={<StatusBadge status="neutral" label="PHASE 7 PREVIEW" />}
       >
-        <BorderGlow
-          edgeSensitivity={20}
-          glowColor="40 80 80"
-          backgroundColor="#090d16"
-          borderRadius={12}
-          glowRadius={25}
-          glowIntensity={0.5}
-          coneSpread={20}
-          animated={false}
-          colors={['#22c55e', '#38bdf8']}
+        <SpotlightCard
+          spotlightColor="rgba(56, 189, 248, 0.12)"
+          className="bg-slate-950/80 border border-slate-800 p-0 rounded-xl"
         >
           <div className="p-3">
             <table className="w-full text-left text-sm">
@@ -80,7 +73,8 @@ export default function TransactionsPage() {
               </tbody>
             </table>
           </div>
-        </BorderGlow>
+        </SpotlightCard>
+
       </SectionCard>
     </PageContainer>
   );
