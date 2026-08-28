@@ -37,13 +37,14 @@ export default function RootLayout({
           sparkCount={8}
           duration={400}
         >
-          <div className="flex min-h-screen w-full">
+          <div className="flex min-h-screen w-full pl-64">
             <AppSidebar />
             <div className="flex-1 flex flex-col min-w-0">
               <TopHeader />
               <main className="flex-1 bg-slate-950/50">{children}</main>
             </div>
           </div>
+
         </ClickSpark>
       </body>
     </html>

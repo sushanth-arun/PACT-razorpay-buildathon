@@ -45,7 +45,8 @@ export const AppSidebar: React.FC = () => {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col h-screen sticky top-0">
+    <aside className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col h-screen fixed top-0 left-0 bottom-0 z-30 shrink-0">
+
       <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-800">
         <div className="h-8 w-8 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold">
           <Cpu className="w-5 h-5 text-blue-400" />
