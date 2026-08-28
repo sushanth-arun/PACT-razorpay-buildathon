@@ -46,11 +46,21 @@ export default function DealRoomPage() {
   const [processingStep, setProcessingStep] = useState(0);
   const [intentResult, setIntentResult] = useState<SavedBuyerIntent | null>(null);
   const [isFallbackMode, setIsFallbackMode] = useState(false);
-  const [aiProvider, setAiProvider] = useState<string>("");
+  const [isGeminiConnected, setIsGeminiConnected] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
 
-  const handleSubmitRequest = async (e: React.FormEvent) => {
+  // Check Gemini server-side health on mount
+  React.useEffect(() => {
+    fetch("/api/buyer-intent")
+      .then((res) => res.json())
+      .then((data) => {
+        setIsGeminiConnected(Boolean(data.configured));
+      })
+      .catch(() => setIsGeminiConnected(false));
+  }, []);
+
+  const handleSubmitRequest = async (e: React.FormEvent, forceFallback = false) => {
     e.preventDefault();
     if (!requestText.trim() || loading) return;
 
@@ -59,7 +69,6 @@ export default function DealRoomPage() {
     setIntentResult(null);
     setProcessingStep(0);
 
-    // Simulate animated processing sequence
     const stepInterval = setInterval(() => {
       setProcessingStep((prev) => (prev < 3 ? prev + 1 : prev));
     }, 400);
@@ -68,7 +77,10 @@ export default function DealRoomPage() {
       const res = await fetch("/api/buyer-intent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ request: requestText.trim() }),
+        body: JSON.stringify({
+          request: requestText.trim(),
+          useDevFallback: forceFallback,
+        }),
       });
 
       const data = await res.json();
@@ -81,7 +93,6 @@ export default function DealRoomPage() {
       setProcessingStep(4);
       setIntentResult(data.intent);
       setIsFallbackMode(Boolean(data.isFallback));
-      setAiProvider(data.aiProvider || "gemini");
     } catch (err: unknown) {
       clearInterval(stepInterval);
       const msg = err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -89,6 +100,23 @@ export default function DealRoomPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Status Badge Logic
+  const getHeaderStatusBadge = () => {
+    if (loading) {
+      return <StatusBadge status="validating" label="PROCESSING" />;
+    }
+    if (intentResult) {
+      return <StatusBadge status="validated" label="AI PARSED" />;
+    }
+    if (error) {
+      return <StatusBadge status="rejected" label="ERROR" />;
+    }
+    if (isGeminiConnected) {
+      return <StatusBadge status="active" label="CONNECTED" />;
+    }
+    return <StatusBadge status="neutral" label="STANDBY" />;
   };
 
   // Helper for confidence badge colors
@@ -117,13 +145,9 @@ export default function DealRoomPage() {
       <PageHeader
         title="PACT DEAL ROOM"
         description="Turn natural language commercial requirements into validated structured purchase intent."
-        badge={
-          <StatusBadge
-            status={intentResult ? "validated" : "active"}
-            label={intentResult ? "INTENT READY" : "BUYER AI STANDBY"}
-          />
-        }
+        badge={getHeaderStatusBadge()}
       />
+
 
       {/* Top Main Section: Stage 1 Natural Language Input & Sample Chips */}
       <BorderGlow
@@ -176,9 +200,10 @@ export default function DealRoomPage() {
                   onClick={() => setRequestText(chip)}
                   className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 hover:text-slate-100 hover:border-slate-700 transition-colors"
                 >
-                  "{chip}"
+                  &quot;{chip}&quot;
                 </button>
               ))}
+
             </div>
 
             {/* Action Bar */}
@@ -208,19 +233,29 @@ export default function DealRoomPage() {
 
           {/* Error Alert */}
           {error && (
-            <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-800/60 text-xs text-rose-300 flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-800/60 text-xs text-rose-300 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>{error}</span>
               </div>
-              <button
-                onClick={() => setError(null)}
-                className="px-3 py-1 bg-rose-900/60 border border-rose-700/50 rounded font-mono text-[11px] hover:bg-rose-800 transition-colors"
-              >
-                Dismiss
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={(e) => handleSubmitRequest(e, false)}
+                  className="px-3 py-1 bg-blue-900/60 border border-blue-700/50 rounded font-mono text-[11px] text-blue-200 hover:bg-blue-800 transition-colors flex items-center gap-1"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Retry Gemini
+                </button>
+                <button
+                  onClick={() => setError(null)}
+                  className="px-2.5 py-1 bg-slate-900 border border-slate-800 rounded font-mono text-[11px] text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           )}
+
 
           {/* Visual Processing Sequence */}
           {loading && (

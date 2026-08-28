@@ -1,13 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGeminiApiKey, callGeminiRaw } from "@/lib/ai/gemini";
+import { getGeminiApiKey, isGeminiConfigured, callGeminiRaw } from "@/lib/ai/gemini";
 import { parseBuyerIntentFallback } from "@/lib/ai/buyer-intent";
 import { BuyerIntentSchema } from "@/lib/ai/schemas";
 import { saveBuyerIntent, recordAuditEvent } from "@/services/buyer-intent-service";
+
+// GET endpoint to return Gemini configuration status without exposing API key
+export async function GET() {
+  const configured = isGeminiConfigured();
+  return NextResponse.json({
+    configured,
+    provider: "gemini",
+    model: process.env.AI_MODEL || "gemini-3.6-flash",
+    message: configured
+      ? "Gemini API is configured server-side."
+      : "GEMINI_API_KEY is missing from server environment.",
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rawUserRequest = body?.request;
+    const useDevFallback = Boolean(body?.useDevFallback);
 
     // 1. Input Validation
     if (!rawUserRequest || typeof rawUserRequest !== "string" || !rawUserRequest.trim()) {
@@ -38,11 +52,27 @@ export async function POST(req: NextRequest) {
     let aiProvider: "gemini" | "fallback_parser" = "gemini";
     let isFallback = false;
 
-    // 2. Process with Gemini API or Fallback
-    if (apiKey) {
+    // Explicit fallback requested
+    if (useDevFallback) {
+      const fallbackRes = parseBuyerIntentFallback(requestText);
+      parsedIntent = fallbackRes.intent;
+      aiProvider = "fallback_parser";
+      isFallback = true;
+    } else {
+      if (!apiKey) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "GEMINI_API_KEY is missing in server configuration.",
+            errorType: "GEMINI_API_KEY_MISSING",
+          },
+          { status: 500 }
+        );
+      }
+
       try {
         const rawAiOutput = await callGeminiRaw(requestText);
-        
+
         // Sanitize markdown fences if present
         let cleanedJsonStr = rawAiOutput.trim();
         if (cleanedJsonStr.startsWith("```json")) {
@@ -51,7 +81,22 @@ export async function POST(req: NextRequest) {
           cleanedJsonStr = cleanedJsonStr.replace(/^```\s*/, "").replace(/\s*```$/, "");
         }
 
-        const jsonObj = JSON.parse(cleanedJsonStr);
+        let jsonObj: Record<string, unknown>;
+        try {
+          jsonObj = JSON.parse(cleanedJsonStr) as Record<string, unknown>;
+        } catch {
+          console.error("Gemini returned non-JSON response:", rawAiOutput);
+
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Gemini response could not be parsed as valid JSON.",
+              errorType: "INVALID_JSON_RESPONSE",
+            },
+            { status: 502 }
+          );
+        }
+
         jsonObj.rawRequest = requestText;
         jsonObj.createdAt = new Date().toISOString();
 
@@ -63,36 +108,22 @@ export async function POST(req: NextRequest) {
         await recordAuditEvent(
           "BUYER_INTENT_PARSED",
           "BUYER_AGENT",
-          `Gemini 2.5 Flash parsed buyer intent with ${(validated.confidence * 100).toFixed(0)}% confidence.`,
+          `Gemini 3.6 Flash parsed buyer intent with ${(validated.confidence * 100).toFixed(0)}% confidence.`,
           { productIntent: validated.productIntent, confidence: validated.confidence }
         );
       } catch (geminiErr: unknown) {
-        console.warn("Gemini processing failed, activating development fallback parser:", geminiErr);
-        const fallbackRes = parseBuyerIntentFallback(requestText);
-        parsedIntent = fallbackRes.intent;
-        aiProvider = "fallback_parser";
-        isFallback = true;
+        const errMessage = geminiErr instanceof Error ? geminiErr.message : "Gemini API request failed.";
+        console.error("Gemini API server-side execution error:", errMessage);
 
-        await recordAuditEvent(
-          "BUYER_INTENT_PARSED",
-          "BUYER_AGENT",
-          `Development fallback parser extracted commercial intent (Gemini API unavailable).`,
-          { fallbackReason: geminiErr instanceof Error ? geminiErr.message : "API_ERROR" }
+        return NextResponse.json(
+          {
+            success: false,
+            error: errMessage,
+            errorType: "GEMINI_API_ERROR",
+          },
+          { status: 502 }
         );
       }
-    } else {
-      console.warn("GEMINI_API_KEY is not configured. Using development fallback parser.");
-      const fallbackRes = parseBuyerIntentFallback(requestText);
-      parsedIntent = fallbackRes.intent;
-      aiProvider = "fallback_parser";
-      isFallback = true;
-
-      await recordAuditEvent(
-        "BUYER_INTENT_PARSED",
-        "BUYER_AGENT",
-        `Development fallback parser extracted intent (GEMINI_API_KEY missing).`,
-        { fallbackReason: "GEMINI_API_KEY_MISSING" }
-      );
     }
 
     // 3. Final Zod Verification & Firestore Persistence
@@ -123,3 +154,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

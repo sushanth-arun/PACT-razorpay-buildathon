@@ -63,21 +63,21 @@ Output:
 `;
 
 export function getGeminiApiKey(): string | undefined {
-  return (
-    process.env.GEMINI_API_KEY ||
-    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
-    process.env.GOOGLE_API_KEY
-  );
+  return process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+}
+
+export function isGeminiConfigured(): boolean {
+  return Boolean(getGeminiApiKey());
 }
 
 export async function callGeminiRaw(userPrompt: string): Promise<string> {
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY_MISSING");
+    throw new Error("GEMINI_API_KEY_MISSING: GEMINI_API_KEY environment variable is not configured.");
   }
 
-  // Use standard REST fetch to Gemini 2.5 Flash / 1.5 Flash server-side endpoint
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const model = process.env.AI_MODEL || "gemini-3.6-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const payload = {
     system_instruction: {
@@ -101,16 +101,36 @@ export async function callGeminiRaw(userPrompt: string): Promise<string> {
   });
 
   if (!response.ok) {
-    const errBody = await response.text();
-    console.error("Gemini API Error Response:", response.status, errBody);
-    throw new Error(`GEMINI_API_ERROR: ${response.status} ${response.statusText}`);
+    const errBodyText = await response.text();
+    let errDetail = response.statusText;
+    try {
+      const errJson = JSON.parse(errBodyText);
+      errDetail = errJson?.error?.message || response.statusText;
+    } catch {
+      // keep fallback
+    }
+
+    console.error(`Gemini API call failed [HTTP ${response.status}]:`, errDetail);
+
+    if (response.status === 429) {
+      throw new Error(`Gemini API Quota Exceeded (HTTP 429): ${errDetail}`);
+    }
+    if (response.status === 404) {
+      throw new Error(`Gemini Model Not Found (HTTP 404): ${errDetail}`);
+    }
+    if (response.status === 400 || response.status === 401 || response.status === 403) {
+      throw new Error(`Gemini Authentication/Request Error (HTTP ${response.status}): ${errDetail}`);
+    }
+
+    throw new Error(`Gemini API Error (HTTP ${response.status}): ${errDetail}`);
   }
 
   const data = await response.json();
   const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!rawText) {
-    throw new Error("GEMINI_EMPTY_RESPONSE");
+    throw new Error("Gemini returned an empty response candidate.");
   }
 
   return rawText;
 }
+
