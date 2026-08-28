@@ -136,19 +136,19 @@ const ClickSpark = ({
 
   return (
     <div
-      className="flex-1 flex min-w-0 w-full min-h-screen relative"
+      className="w-full min-h-screen relative"
       onClick={handleClick}
     >
       <canvas
         ref={canvasRef}
         style={{
-          width: '100%',
-          height: '100%',
-          display: 'block',
-          userSelect: 'none',
-          position: 'absolute',
+          position: 'fixed',
           top: 0,
           left: 0,
+          width: '100vw',
+          height: '100vh',
+          display: 'block',
+          userSelect: 'none',
           pointerEvents: 'none',
           zIndex: 9999
         }}
@@ -157,6 +157,7 @@ const ClickSpark = ({
     </div>
   );
 };
+
 
 
 export default ClickSpark;

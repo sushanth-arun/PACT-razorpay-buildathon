@@ -28,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 text-slate-100 flex min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 text-slate-100 flex min-h-screen relative overflow-x-hidden`}
       >
         <ClickSpark
           sparkColor="#ffffff"
@@ -44,12 +44,12 @@ export default function RootLayout({
               <main className="flex-1 bg-slate-950/50">{children}</main>
             </div>
           </div>
-
         </ClickSpark>
       </body>
     </html>
   );
 }
+
 
 
 
