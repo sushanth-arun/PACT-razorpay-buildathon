@@ -24,6 +24,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { SavedBuyerIntent } from "@/services/buyer-intent-service";
+import { MerchantOffer } from "@/lib/ai/merchant-offer-schema";
 import { motion, AnimatePresence } from "framer-motion";
 
 const SAMPLE_PROMPT_CHIPS = [
@@ -41,6 +42,15 @@ const PROCESSING_STEPS = [
   "BUYER INTENT READY",
 ];
 
+const MERCHANT_PROCESSING_STEPS = [
+  "ANALYZING BUYER INTENT",
+  "SEARCHING FIRESTORE CATALOG",
+  "CHECKING AUTHORITATIVE INVENTORY",
+  "EVALUATING COMMERCIAL OPTIONS",
+  "CONSTRUCTING OFFER",
+  "OFFER READY",
+];
+
 export default function DealRoomPage() {
   const [requestText, setRequestText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -50,6 +60,12 @@ export default function DealRoomPage() {
   const [isGeminiConnected, setIsGeminiConnected] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
+
+  // Merchant Offer state
+  const [offerLoading, setOfferLoading] = useState(false);
+  const [offerProcessingStep, setOfferProcessingStep] = useState(0);
+  const [offerResult, setOfferResult] = useState<MerchantOffer | null>(null);
+  const [offerError, setOfferError] = useState<string | null>(null);
 
   // Check Gemini server-side health on mount
   React.useEffect(() => {
@@ -68,6 +84,7 @@ export default function DealRoomPage() {
     setLoading(true);
     setError(null);
     setIntentResult(null);
+    setOfferResult(null);
     setProcessingStep(0);
 
     const stepInterval = setInterval(() => {
@@ -111,15 +128,63 @@ export default function DealRoomPage() {
     }
   };
 
+  const handleGenerateOffer = async () => {
+    if (!intentResult?.id || offerLoading) return;
+
+    setOfferLoading(true);
+    setOfferError(null);
+    setOfferProcessingStep(0);
+
+    const stepInterval = setInterval(() => {
+      setOfferProcessingStep((prev) => (prev < 4 ? prev + 1 : prev));
+    }, 450);
+
+    try {
+      const res = await fetch("/api/merchant-offer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyerIntentId: intentResult.id,
+        }),
+      });
+
+      const data = await res.json();
+      clearInterval(stepInterval);
+
+      if (!res.ok || !data.success) {
+        const errObj = data.error;
+        let errMsg = "Failed to generate merchant offer.";
+        if (typeof errObj === "string") {
+          errMsg = errObj;
+        } else if (errObj && typeof errObj === "object") {
+          errMsg = errObj.message || errObj.code || JSON.stringify(errObj);
+        }
+        throw new Error(errMsg);
+      }
+
+      setOfferProcessingStep(5);
+      setOfferResult(data.offer);
+    } catch (err: unknown) {
+      clearInterval(stepInterval);
+      const msg = err instanceof Error ? err.message : "Failed to generate merchant offer.";
+      setOfferError(msg);
+    } finally {
+      setOfferLoading(false);
+    }
+  };
+
   // Status Badge Logic
   const getHeaderStatusBadge = () => {
-    if (loading) {
+    if (loading || offerLoading) {
       return <StatusBadge status="validating" label="PROCESSING" />;
+    }
+    if (offerResult) {
+      return <StatusBadge status="validated" label="OFFER GENERATED" />;
     }
     if (intentResult) {
       return <StatusBadge status="validated" label="AI PARSED" />;
     }
-    if (error) {
+    if (error || offerError) {
       return <StatusBadge status="rejected" label="REQUEST FAILED" />;
     }
     if (isGeminiConnected) {
@@ -222,70 +287,49 @@ export default function DealRoomPage() {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    PARSING INTENT...
+                    <span>{PROCESSING_STEPS[processingStep]}...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 text-blue-200" />
-                    PARSE BUYER INTENT
+                    <span>PARSE BUYER INTENT</span>
                   </>
                 )}
               </button>
             </div>
           </form>
 
-          {/* Error Alert */}
+          {/* Error Message Alert */}
           {error && (
-            <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-800/60 text-xs text-rose-300 flex items-center justify-between gap-3">
+            <div className="p-4 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs font-mono flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
                 <span>{error}</span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={(e) => handleSubmitRequest(e, false)}
-                  className="px-3 py-1 bg-blue-900/60 border border-blue-700/50 rounded font-mono text-[11px] text-blue-200 hover:bg-blue-800 transition-colors flex items-center gap-1"
+                  className="px-3 py-1 rounded bg-rose-900/80 border border-rose-700 hover:bg-rose-800 transition-colors text-white font-mono text-[11px] flex items-center gap-1"
                 >
-                  <RefreshCw className="w-3 h-3" />
-                  Retry Gemini
+                  <RefreshCw className="w-3 h-3" /> Retry Gemini
                 </button>
                 <button
+                  type="button"
                   onClick={() => setError(null)}
-                  className="px-2.5 py-1 bg-slate-900 border border-slate-800 rounded font-mono text-[11px] text-slate-400 hover:text-slate-200 transition-colors"
+                  className="text-slate-400 hover:text-slate-200 text-xs"
                 >
                   Dismiss
                 </button>
               </div>
             </div>
           )}
-
-          {/* Visual Processing Sequence */}
-          {loading && (
-            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between text-xs font-mono text-slate-300">
-                <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-                  {PROCESSING_STEPS[processingStep]}
-                </span>
-                <span>STEP {processingStep + 1} / 5</span>
-              </div>
-              <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
-                <motion.div
-                  className="bg-blue-500 h-1.5 rounded-full"
-                  initial={{ width: "0%" }}
-                  animate={{ width: `${((processingStep + 1) / 5) * 100}%` }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
-            </div>
-          )}
         </div>
       </SpotlightCard>
 
-      {/* Deal Pipeline 3 Columns Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
-
-        {/* Column 1: BUYER INTENT DISPLAY */}
+      {/* 3-Column Lifecycle Pipeline View */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+        {/* Column 1: BUYER INTENT */}
         <div className="space-y-4">
           {intentResult ? (
             <SpotlightCard
@@ -293,57 +337,58 @@ export default function DealRoomPage() {
               className="bg-slate-950/80 border border-slate-800 p-0 rounded-2xl"
             >
               <motion.div
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-5 space-y-4"
+                className="p-5 space-y-4 font-mono"
               >
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400" />
-                    <h3 className="text-base font-bold text-slate-100 font-mono">1. BUYER INTENT</h3>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <h2 className="text-sm font-bold text-slate-100 uppercase">1. BUYER INTENT</h2>
                   </div>
                   <StatusBadge status="validated" label="PARSED & SAVED" />
                 </div>
 
-                <div className="space-y-3 font-mono text-xs">
+                <div className="space-y-3">
                   {/* Product Need */}
                   <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
-                    <span className="text-[11px] text-slate-400 font-medium uppercase">PRODUCT NEED</span>
-                    <div className="font-bold text-slate-100 text-sm">{intentResult.productIntent}</div>
+                    <span className="text-[10px] text-slate-400 uppercase">PRODUCT NEED</span>
+                    <p className="text-sm font-bold text-slate-100">{intentResult.productIntent}</p>
                   </div>
 
-                  {/* Key Metrics Grid */}
+                  {/* Quantity & Budget */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
                       <span className="text-[10px] text-slate-400 uppercase">QUANTITY</span>
-                      <div className="font-bold text-slate-100 text-sm">
-                        {intentResult.quantity !== null ? `${intentResult.quantity} units` : <span className="text-slate-500 font-normal italic">Not specified</span>}
-                      </div>
+                      <p className="text-sm font-bold text-slate-100">
+                        {intentResult.quantity !== null ? `${intentResult.quantity} units` : <span className="text-slate-500 italic font-normal">Not specified</span>}
+                      </p>
                     </div>
-
                     <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
                       <span className="text-[10px] text-slate-400 uppercase">BUDGET</span>
-                      <div className="font-bold text-slate-100 text-sm">
-                        {intentResult.budget !== null ? `₹${intentResult.budget.toLocaleString("en-IN")}` : <span className="text-slate-500 font-normal italic">Not specified</span>}
-                      </div>
+                      <p className="text-sm font-bold text-slate-100">
+                        {intentResult.budget !== null ? `₹${intentResult.budget.toLocaleString("en-IN")}` : <span className="text-slate-500 italic font-normal">Not specified</span>}
+                      </p>
                     </div>
+                  </div>
 
+                  {/* Discount Request & Delivery SLA */}
+                  <div className="grid grid-cols-2 gap-2">
                     <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
                       <span className="text-[10px] text-slate-400 uppercase">DISCOUNT REQUEST</span>
-                      <div className="font-bold text-slate-100 text-xs">
+                      <p className="text-xs font-bold text-slate-100">
                         {intentResult.requestedDiscount !== null ? (
                           typeof intentResult.requestedDiscount === "number" ? `${intentResult.requestedDiscount}%` : intentResult.requestedDiscount
                         ) : (
-                          <span className="text-slate-500 font-normal italic">Not specified</span>
+                          <span className="text-slate-500 italic font-normal">Not specified</span>
                         )}
-                      </div>
+                      </p>
                     </div>
-
                     <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
                       <span className="text-[10px] text-slate-400 uppercase">DELIVERY SLA</span>
-                      <div className="font-bold text-slate-100 text-xs">
-                        {intentResult.deliveryMaxDays !== null ? `Within ${intentResult.deliveryMaxDays} days` : <span className="text-slate-500 font-normal italic">Not specified</span>}
-                      </div>
+                      <p className="text-xs font-bold text-slate-100">
+                        {intentResult.deliveryMaxDays !== null ? `${intentResult.deliveryMaxDays} days max` : <span className="text-slate-500 italic font-normal">Not specified</span>}
+                      </p>
                     </div>
                   </div>
 
@@ -397,6 +442,28 @@ export default function DealRoomPage() {
                     );
                   })()}
 
+                  {/* Generate Merchant Offer Action Button */}
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={handleGenerateOffer}
+                      disabled={offerLoading}
+                      className="w-full py-2.5 rounded-xl bg-emerald-600 text-white font-mono text-xs font-bold hover:bg-emerald-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 cursor-pointer"
+                    >
+                      {offerLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>{MERCHANT_PROCESSING_STEPS[offerProcessingStep]}...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Bot className="w-4 h-4" />
+                          <span>GENERATE MERCHANT OFFER</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
                   {/* View Raw JSON Accordion */}
                   <div className="pt-1">
                     <button
@@ -444,23 +511,117 @@ export default function DealRoomPage() {
           )}
         </div>
 
-        {/* Column 2: MERCHANT OFFER (Standby for Phase 4) */}
-        <SpotlightCard
-          spotlightColor="rgba(34, 197, 94, 0.15)"
-          className="bg-slate-950/80 border border-slate-800 p-0 rounded-2xl"
-        >
-          <div className="p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h2 className="text-base font-bold text-slate-100 font-mono">2. MERCHANT OFFER</h2>
-              <StatusBadge status="neutral" label="STANDBY" />
+        {/* Column 2: MERCHANT OFFER */}
+        <div className="space-y-4">
+          {offerResult ? (
+            <SpotlightCard
+              spotlightColor="rgba(34, 197, 94, 0.15)"
+              className="bg-slate-950/80 border border-slate-800 p-0 rounded-2xl"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-5 space-y-4 font-mono"
+              >
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <h2 className="text-sm font-bold text-slate-100 uppercase">2. MERCHANT OFFER</h2>
+                  </div>
+                  <StatusBadge status="validated" label={offerResult.status} />
+                </div>
+
+                {/* Selected Products Table */}
+                <div className="space-y-2">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold">SELECTED PRODUCTS</span>
+                  <div className="divide-y divide-slate-800/80 rounded-lg bg-slate-950 border border-slate-800 overflow-hidden">
+                    {offerResult.selectedItems.map((item, idx) => (
+                      <div key={idx} className="p-3 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-100">{item.productName}</span>
+                          <span className="text-xs font-bold text-emerald-400">₹{item.lineTotal.toLocaleString("en-IN")}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <span>{item.quantity} units @ ₹{item.unitPrice.toLocaleString("en-IN")}</span>
+                          <span className="text-[10px] text-emerald-500 font-bold font-mono">IN STOCK</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Totals Breakdown */}
+                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2 text-xs">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>Subtotal</span>
+                    <span className="font-bold text-slate-200">₹{offerResult.subtotal.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-amber-400">
+                    <span>Proposed Discount ({offerResult.proposedDiscount.percentage}%)</span>
+                    <span className="font-bold">-₹{offerResult.proposedDiscount.amount.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>Delivery SLA</span>
+                    <span className="font-bold text-slate-200">{offerResult.deliveryDays} days</span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-sm font-bold text-slate-100">
+                    <span>Estimated Total</span>
+                    <span className="text-emerald-400">₹{offerResult.estimatedFinalAmount.toLocaleString("en-IN")}</span>
+                  </div>
+                </div>
+
+                {/* Commercial Reasoning */}
+                <div className="space-y-2">
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                    <span className="text-[10px] text-blue-400 uppercase font-bold">BUYER FIT</span>
+                    <p className="text-[11px] text-slate-300 font-sans leading-snug">{offerResult.buyerFitExplanation}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                    <span className="text-[10px] text-purple-400 uppercase font-bold">MERCHANT OPPORTUNITY</span>
+                    <p className="text-[11px] text-slate-300 font-sans leading-snug">{offerResult.merchantOpportunityExplanation}</p>
+                  </div>
+                </div>
+
+                {/* Bundle Opportunities */}
+                {offerResult.bundleItems.length > 0 && (
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
+                    <span className="text-[10px] text-amber-400 uppercase font-bold">BUNDLE RECOMMENDATION</span>
+                    {offerResult.bundleItems.map((b, i) => (
+                      <div key={i} className="flex items-center justify-between text-[11px] text-slate-300">
+                        <span>+ {b.productName}</span>
+                        <span className="font-bold text-slate-200">₹{b.unitPrice.toLocaleString("en-IN")}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            </SpotlightCard>
+          ) : (
+            <SpotlightCard
+              spotlightColor="rgba(34, 197, 94, 0.15)"
+              className="bg-slate-950/80 border border-slate-800 p-0 rounded-2xl"
+            >
+              <div className="p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h2 className="text-base font-bold text-slate-100 font-mono">2. MERCHANT OFFER</h2>
+                  <StatusBadge status="neutral" label="STANDBY" />
+                </div>
+                <EmptyState
+                  icon={Handshake}
+                  title="No Offer Generated"
+                  description={intentResult ? "Click 'GENERATE MERCHANT OFFER' under Buyer Intent to construct a valid offer." : "The Merchant Agent will construct valid commercial offers using real catalog data."}
+                />
+              </div>
+            </SpotlightCard>
+          )}
+
+          {offerError && (
+            <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs font-mono flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{offerError}</span>
             </div>
-            <EmptyState
-              icon={Handshake}
-              title="No Offer Generated"
-              description="The Merchant Agent will construct valid commercial offers using real catalog data in Phase 4."
-            />
-          </div>
-        </SpotlightCard>
+          )}
+        </div>
 
         {/* Column 3: PACT DEAL CONTRACT (Standby for Phase 5) */}
         <SpotlightCard
