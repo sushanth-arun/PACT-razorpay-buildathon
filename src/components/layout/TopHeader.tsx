@@ -5,6 +5,8 @@ import { Store, ShieldCheck, Database } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { isFirebaseConfigured } from "@/lib/firebase/client";
 
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
+
 export const TopHeader: React.FC = () => {
   const [firebaseConfigured, setFirebaseConfigured] = useState<boolean>(false);
 
@@ -22,7 +24,9 @@ export const TopHeader: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        <ThemeToggle />
+
         <div className="flex items-center gap-2 text-xs font-mono bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-800">
           <Database className="w-3.5 h-3.5 text-emerald-400" />
           <span className="text-slate-400">FIRESTORE:</span>
@@ -46,6 +50,7 @@ export const TopHeader: React.FC = () => {
     </header>
   );
 };
+
 
 
 
