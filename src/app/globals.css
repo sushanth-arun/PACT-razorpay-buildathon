@@ -132,12 +132,16 @@
 /* Custom Sleek Dark Scrollbar Styles */
 ::-webkit-scrollbar {
   width: 6px;
-  height: 6px;
+  height: 0px; /* Hide horizontal scrollbar completely */
+}
+
+::-webkit-scrollbar:horizontal {
+  display: none !important;
+  height: 0px !important;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
-  border-radius: 4px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -147,4 +151,9 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(56, 189, 248, 0.6);
+}
+
+/* Hide horizontal scrollbar overflow globally */
+html, body {
+  overflow-x: hidden;
 }

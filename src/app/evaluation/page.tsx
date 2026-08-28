@@ -7,6 +7,8 @@ import { StatusBadge, StatusType } from "@/components/ui/StatusBadge";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { ShieldCheck } from "lucide-react";
+import BorderGlow from "@/components/BorderGlow";
+
 
 interface Scenario {
   title: string;
@@ -97,27 +99,41 @@ export default function EvaluationPage() {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {evaluationScenarios.map((sc, idx) => (
-            <div key={idx} className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">{sc.category}</span>
-                  <h3 className="text-sm font-bold text-slate-200 font-mono">{sc.title}</h3>
+            <BorderGlow
+              key={idx}
+              edgeSensitivity={20}
+              glowColor="40 80 80"
+              backgroundColor="#090d16"
+              borderRadius={12}
+              glowRadius={25}
+              glowIntensity={0.5}
+              coneSpread={20}
+              animated={false}
+              colors={['#38bdf8', '#818cf8', '#34d399']}
+            >
+              <div className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="space-y-1">
+                    <span className="text-xs font-mono text-slate-400 uppercase tracking-wider font-semibold">{sc.category}</span>
+                    <h3 className="text-base font-bold text-slate-100 font-mono">{sc.title}</h3>
+                  </div>
+                  <StatusBadge status={sc.status} label={sc.statusLabel} />
                 </div>
-                <StatusBadge status={sc.status} label={sc.statusLabel} />
+                <p className="text-xs text-slate-300 font-normal leading-relaxed">{sc.description}</p>
+                <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-xs font-mono">
+                  <span className="text-slate-400 font-medium">RISK SEVERITY</span>
+                  <span className={`px-2.5 py-0.5 rounded text-xs font-bold border ${sc.severityStyle}`}>
+                    {sc.severity}
+                  </span>
+                </div>
               </div>
-              <p className="text-xs text-slate-400">{sc.description}</p>
-              <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[11px] font-mono">
-                <span className="text-slate-500">RISK SEVERITY</span>
-                <span className={`px-2 py-0.5 rounded text-[10px] border ${sc.severityStyle}`}>
-                  {sc.severity}
-                </span>
-              </div>
-            </div>
+            </BorderGlow>
           ))}
         </div>
       </SectionCard>
     </PageContainer>
   );
 }
+
 
 
