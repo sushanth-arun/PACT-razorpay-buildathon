@@ -8,6 +8,7 @@ import { MetricCard } from "@/components/ui/MetricCard";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ProductEditModal } from "@/components/ui/ProductEditModal";
+import BorderGlow from "@/components/BorderGlow";
 import { 
   Store, 
   Package, 
@@ -23,7 +24,8 @@ import {
   AlertTriangle,
   Zap,
   SlidersHorizontal,
-  Info
+  Info,
+  XCircle
 } from "lucide-react";
 import { getMerchant, getMerchantProducts, updateMerchantPolicies, saveProduct } from "@/services/firestore";
 import { DEMO_MERCHANT_ID } from "@/services/seed";
@@ -98,11 +100,14 @@ export default function MerchantPage() {
     return ["ALL", ...Array.from(set)];
   }, [products]);
 
-  // Filtered Products
+  // Filtered Products (Case-insensitive product search)
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      const queryLower = searchQuery.toLowerCase().trim();
+      const matchesSearch = !queryLower || 
+        p.name.toLowerCase().includes(queryLower) ||
+        p.description?.toLowerCase().includes(queryLower) ||
+        p.category?.toLowerCase().includes(queryLower);
       const matchesCat = selectedCategory === "ALL" || p.category === selectedCategory;
       return matchesSearch && matchesCat;
     });
@@ -120,7 +125,6 @@ export default function MerchantPage() {
     try {
       await saveProduct(updated);
     } catch (err) {
-      // Revert on error
       setProducts((prev) => prev.map((p) => (p.id === product.id ? product : p)));
       setError("Failed to update product visibility in Firestore.");
     }
@@ -199,7 +203,7 @@ export default function MerchantPage() {
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
             <span>
               {error.includes("PERMISSION_DENIED") || error.toLowerCase().includes("permission")
-                ? "Catalog access is currently restricted by Firestore permissions."
+                ? "Firestore access needs permission. Please verify Firebase project credentials."
                 : error.includes("CONFIGURATION_ERROR")
                 ? "Firebase configuration error: environment variables or Admin SDK missing."
                 : `Unable to load merchant catalog: ${error}`}
@@ -214,7 +218,7 @@ export default function MerchantPage() {
         </div>
       )}
 
-      {/* Metric Cards Row with Staggered Entrance & Focus Pop Hover Effects */}
+      {/* Metric Cards Row with Staggered Entrance & BorderGlow */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {loading ? (
           Array.from({ length: 5 }).map((_, i) => (
@@ -277,7 +281,6 @@ export default function MerchantPage() {
         )}
       </div>
 
-
       {/* Main Grid: Left Catalog Management | Right Governance Policy Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
@@ -297,8 +300,16 @@ export default function MerchantPage() {
                   placeholder="Search catalog products by name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full pl-9 pr-8 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-2.5 text-slate-500 hover:text-slate-300"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               {/* Category Pills */}
@@ -319,19 +330,42 @@ export default function MerchantPage() {
               </div>
             </div>
 
-            {/* Product Table / Cards */}
+            {/* Product Table / Cards with BorderGlow & Empty States */}
             {loading ? (
               <div className="space-y-2 py-4">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="h-14 bg-slate-950/60 border border-slate-800 rounded-lg animate-pulse" />
                 ))}
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : error ? (
+              <EmptyState
+                icon={AlertCircle}
+                title="Firestore access needs permission"
+                description="Unable to query catalog items from Firestore. Check database connection or click Retry."
+              />
+            ) : products.length === 0 ? (
               <EmptyState
                 icon={Package}
-                title="No Catalog Items Found"
-                description={searchQuery ? `No products match "${searchQuery}"` : "Catalog is empty in Firestore. Run `npm run seed` to seed."}
+                title="No products in catalog"
+                description="Catalog is currently empty in Firestore. Run `npm run seed` in your terminal to populate ErgoSpace items."
               />
+            ) : filteredProducts.length === 0 ? (
+              <div className="py-8 text-center space-y-3">
+                <EmptyState
+                  icon={Search}
+                  title="No products match your search"
+                  description={`No items found matching "${searchQuery}".`}
+                />
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("ALL");
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-blue-950/60 border border-blue-800 text-xs font-mono text-blue-300 hover:bg-blue-900/80 transition-colors"
+                >
+                  Clear Search & Filters
+                </button>
+              </div>
             ) : (
               <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1">
                 {filteredProducts.map((product) => {
@@ -339,86 +373,99 @@ export default function MerchantPage() {
                   const isOutOfStock = product.stock === 0;
 
                   return (
-                    <motion.div
+                    <BorderGlow
                       key={product.id}
-                      layout
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                      edgeSensitivity={20}
+                      glowColor="40 80 80"
+                      backgroundColor="#090d16"
+                      borderRadius={12}
+                      glowRadius={25}
+                      glowIntensity={0.5}
+                      coneSpread={20}
+                      animated={false}
+                      colors={['#38bdf8', '#818cf8', '#34d399']}
                     >
-                      <div className="space-y-1 flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-xs text-slate-100 truncate">{product.name}</span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">
-                            {product.category}
-                          </span>
-                          {!product.active && (
-                            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-950/60 text-rose-400 border border-rose-900/40">
-                              INACTIVE
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        whileHover={{ y: -2 }}
+                        className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                      >
+                        <div className="space-y-1 flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-xs text-slate-100 truncate">{product.name}</span>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">
+                              {product.category}
                             </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-400 truncate max-w-md">{product.description}</p>
-                      </div>
-
-                      <div className="flex items-center gap-4 shrink-0 font-mono text-xs">
-                        {/* Price */}
-                        <div className="flex flex-col items-end">
-                          <span className="text-[10px] text-slate-500">PRICE</span>
-                          <span className="font-bold text-slate-100">₹{product.price.toLocaleString("en-IN")}</span>
+                            {!product.active && (
+                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-950/60 text-rose-400 border border-rose-900/40">
+                                INACTIVE
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-400 truncate max-w-md">{product.description}</p>
                         </div>
 
-                        {/* Stock Status Badge */}
-                        <div className="flex flex-col items-end min-w-[75px]">
-                          <span className="text-[10px] text-slate-500">STOCK</span>
-                          {isOutOfStock ? (
-                            <span className="text-[10px] font-bold text-rose-400 px-1.5 py-0.5 rounded bg-rose-950/60 border border-rose-800/50">
-                              OUT OF STOCK
-                            </span>
-                          ) : isLowStock ? (
-                            <span className="text-[10px] font-bold text-amber-400 px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-800/50">
-                              {product.stock} (LOW)
-                            </span>
-                          ) : (
-                            <span className="text-xs font-bold text-emerald-400">
-                              {product.stock} units
-                            </span>
-                          )}
-                        </div>
+                        <div className="flex items-center gap-4 shrink-0 font-mono text-xs">
+                          {/* Price */}
+                          <div className="flex flex-col items-end">
+                            <span className="text-[10px] text-slate-500">PRICE</span>
+                            <span className="font-bold text-slate-100">₹{product.price.toLocaleString("en-IN")}</span>
+                          </div>
 
-                        {/* Delivery SLA */}
-                        <div className="hidden sm:flex flex-col items-end">
-                          <span className="text-[10px] text-slate-500">SLA</span>
-                          <span className="text-slate-300 text-[11px]">{product.deliveryDays}d</span>
-                        </div>
+                          {/* Stock Status Badge */}
+                          <div className="flex flex-col items-end min-w-[75px]">
+                            <span className="text-[10px] text-slate-500">STOCK</span>
+                            {isOutOfStock ? (
+                              <span className="text-[10px] font-bold text-rose-400 px-1.5 py-0.5 rounded bg-rose-950/60 border border-rose-800/50">
+                                OUT OF STOCK
+                              </span>
+                            ) : isLowStock ? (
+                              <span className="text-[10px] font-bold text-amber-400 px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-800/50">
+                                {product.stock} (LOW)
+                              </span>
+                            ) : (
+                              <span className="text-xs font-bold text-emerald-400">
+                                {product.stock} units
+                              </span>
+                            )}
+                          </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-1 pl-2 border-l border-slate-800">
-                          <button
-                            onClick={() => handleToggleProductActive(product)}
-                            title={product.active ? "Deactivate Product" : "Activate Product"}
-                            className={`p-1.5 rounded-lg border transition-colors ${
-                              product.active
-                                ? "bg-slate-900 border-slate-800 text-emerald-400 hover:bg-slate-800"
-                                : "bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300"
-                            }`}
-                          >
-                            <Zap className="w-3.5 h-3.5" />
-                          </button>
+                          {/* Delivery SLA */}
+                          <div className="hidden sm:flex flex-col items-end">
+                            <span className="text-[10px] text-slate-500">SLA</span>
+                            <span className="text-slate-300 text-[11px]">{product.deliveryDays}d</span>
+                          </div>
 
-                          <button
-                            onClick={() => {
-                              setEditingProduct(product);
-                              setIsModalOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg bg-blue-950/40 border border-blue-800/50 text-blue-400 hover:bg-blue-900/60 transition-colors"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
+                          {/* Actions */}
+                          <div className="flex items-center gap-1 pl-2 border-l border-slate-800">
+                            <button
+                              onClick={() => handleToggleProductActive(product)}
+                              title={product.active ? "Deactivate Product" : "Activate Product"}
+                              className={`p-1.5 rounded-lg border transition-colors ${
+                                product.active
+                                  ? "bg-slate-900 border-slate-800 text-emerald-400 hover:bg-slate-800"
+                                  : "bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-300"
+                              }`}
+                            >
+                              <Zap className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setEditingProduct(product);
+                                setIsModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg bg-blue-950/40 border border-blue-800/50 text-blue-400 hover:bg-blue-900/60 transition-colors"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
+                      </motion.div>
+                    </BorderGlow>
                   );
                 })}
               </div>
@@ -446,94 +493,130 @@ export default function MerchantPage() {
                 </div>
               )}
 
-              {/* Group 1: Discount Governance */}
-              <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-800/60">
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
-                  <h3 className="text-xs font-mono font-bold text-slate-200">1. DISCOUNT GOVERNANCE</h3>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-mono text-slate-400 uppercase">Max Discount Cap (%)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={policyForm.maxDiscountPercent}
-                      onChange={(e) => setPolicyForm({ ...policyForm, maxDiscountPercent: Number(e.target.value) })}
-                      className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
-                    />
+              {/* Group 1: Discount Governance Card */}
+              <BorderGlow
+                edgeSensitivity={25}
+                glowColor="40 80 80"
+                backgroundColor="#090d16"
+                borderRadius={12}
+                glowRadius={25}
+                glowIntensity={0.6}
+                coneSpread={20}
+                animated={false}
+                colors={['#38bdf8', '#a855f7']}
+              >
+                <div className="p-3.5 space-y-3">
+                  <div className="flex items-center gap-2 pb-2 border-b border-slate-800/60">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
+                    <h3 className="text-xs font-mono font-bold text-slate-200">1. DISCOUNT GOVERNANCE</h3>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-mono text-slate-400 uppercase">Min Margin Floor (%)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={policyForm.minimumMarginPercent}
-                      onChange={(e) => setPolicyForm({ ...policyForm, minimumMarginPercent: Number(e.target.value) })}
-                      className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono text-slate-400 uppercase">Max Discount Cap (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={policyForm.maxDiscountPercent}
+                        onChange={(e) => setPolicyForm({ ...policyForm, maxDiscountPercent: Number(e.target.value) })}
+                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
 
-              {/* Group 2: Transaction Governance */}
-              <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-800/60">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <h3 className="text-xs font-mono font-bold text-slate-200">2. TRANSACTION GOVERNANCE</h3>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-mono text-slate-400 uppercase">Auto Approval Limit (₹)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={policyForm.maxAutoTransactionAmount}
-                      onChange={(e) => setPolicyForm({ ...policyForm, maxAutoTransactionAmount: Number(e.target.value) })}
-                      className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-mono text-slate-400 uppercase">Human Approval Above (₹)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={policyForm.approvalRequiredAbove}
-                      onChange={(e) => setPolicyForm({ ...policyForm, approvalRequiredAbove: Number(e.target.value) })}
-                      className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
-                    />
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono text-slate-400 uppercase">Min Margin Floor (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={policyForm.minimumMarginPercent}
+                        onChange={(e) => setPolicyForm({ ...policyForm, minimumMarginPercent: Number(e.target.value) })}
+                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              </BorderGlow>
 
-              {/* Group 3: Inventory Strategy */}
-              <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <h3 className="text-xs font-mono font-bold text-slate-200">3. INVENTORY STRATEGY</h3>
-                    <p className="text-[10px] text-slate-400">Allow extra discount flexibility on high/slow inventory</p>
+              {/* Group 2: Transaction Governance Card */}
+              <BorderGlow
+                edgeSensitivity={25}
+                glowColor="40 80 80"
+                backgroundColor="#090d16"
+                borderRadius={12}
+                glowRadius={25}
+                glowIntensity={0.6}
+                coneSpread={20}
+                animated={false}
+                colors={['#22c55e', '#38bdf8']}
+              >
+                <div className="p-3.5 space-y-3">
+                  <div className="flex items-center gap-2 pb-2 border-b border-slate-800/60">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    <h3 className="text-xs font-mono font-bold text-slate-200">2. TRANSACTION GOVERNANCE</h3>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setPolicyForm({ ...policyForm, allowSlowMovingInventoryDiscount: !policyForm.allowSlowMovingInventoryDiscount })}
-                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                      policyForm.allowSlowMovingInventoryDiscount ? "bg-emerald-500" : "bg-slate-700"
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        policyForm.allowSlowMovingInventoryDiscount ? "translate-x-4" : "translate-x-0"
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono text-slate-400 uppercase">Auto Approval Limit (₹)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={policyForm.maxAutoTransactionAmount}
+                        onChange={(e) => setPolicyForm({ ...policyForm, maxAutoTransactionAmount: Number(e.target.value) })}
+                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-mono text-slate-400 uppercase">Human Approval Above (₹)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={policyForm.approvalRequiredAbove}
+                        onChange={(e) => setPolicyForm({ ...policyForm, approvalRequiredAbove: Number(e.target.value) })}
+                        className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </BorderGlow>
+
+              {/* Group 3: Inventory Strategy Card */}
+              <BorderGlow
+                edgeSensitivity={25}
+                glowColor="40 80 80"
+                backgroundColor="#090d16"
+                borderRadius={12}
+                glowRadius={25}
+                glowIntensity={0.6}
+                coneSpread={20}
+                animated={false}
+                colors={['#a855f7', '#22c55e']}
+              >
+                <div className="p-3.5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <h3 className="text-xs font-mono font-bold text-slate-200">3. INVENTORY STRATEGY</h3>
+                      <p className="text-[10px] text-slate-400">Allow extra discount flexibility on high/slow inventory</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPolicyForm({ ...policyForm, allowSlowMovingInventoryDiscount: !policyForm.allowSlowMovingInventoryDiscount })}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                        policyForm.allowSlowMovingInventoryDiscount ? "bg-emerald-500" : "bg-slate-700"
                       }`}
-                    />
-                  </button>
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          policyForm.allowSlowMovingInventoryDiscount ? "translate-x-4" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </BorderGlow>
 
               {/* Firewall Policy Guard Explainer */}
               <div className="p-3 rounded-lg bg-blue-950/30 border border-blue-800/40 flex items-start gap-2.5 text-[11px] text-slate-400">
@@ -587,5 +670,6 @@ export default function MerchantPage() {
     </PageContainer>
   );
 }
+
 
 
