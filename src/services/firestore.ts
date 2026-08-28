@@ -37,41 +37,27 @@ export const COLLECTIONS = {
 
 // 1. Merchants Service
 export async function getMerchant(merchantId: string): Promise<Merchant | null> {
-  // Try Client SDK first
-  if (db) {
-    try {
-      const docRef = doc(db, COLLECTIONS.MERCHANTS, merchantId);
-      const snap = await getDoc(docRef);
-      if (snap.exists()) return snap.data() as Merchant;
-    } catch (err: unknown) {
-      // If client SDK hit permission error or rules block, fall back to Server API
-      console.warn("Client Firestore read failed, falling back to server API...", err);
+  // Always try Server API Route directly or fallback cleanly on client error
+  try {
+    const res = await fetch(`/api/merchant?id=${encodeURIComponent(merchantId)}`);
+    const data = await res.json();
+    if (res.ok && data.success) {
+      return data.merchant as Merchant;
     }
+  } catch (apiErr) {
+    console.warn("Server API read failed, attempting client SDK fallback...", apiErr);
   }
 
-  // Fallback to Server API Route
-  const res = await fetch(`/api/merchant?id=${encodeURIComponent(merchantId)}`);
-  const data = await res.json();
-  if (!res.ok) {
-    const errorMsg = data.error || "Failed to fetch merchant";
-    const err = new Error(errorMsg) as Error & { errorType?: string };
-    err.errorType = data.errorType || "SERVER_ERROR";
-    throw err;
+  if (db) {
+    const docRef = doc(db, COLLECTIONS.MERCHANTS, merchantId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) return snap.data() as Merchant;
   }
-  return data.merchant as Merchant;
+
+  return null;
 }
 
 export async function saveMerchant(merchant: Merchant): Promise<void> {
-  if (db) {
-    try {
-      const docRef = doc(db, COLLECTIONS.MERCHANTS, merchant.id);
-      await setDoc(docRef, { ...merchant, updatedAt: new Date().toISOString() }, { merge: true });
-      return;
-    } catch (err) {
-      console.warn("Client Firestore save failed, falling back to server API...", err);
-    }
-  }
-
   const res = await fetch("/api/merchant", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -87,19 +73,6 @@ export async function updateMerchantPolicies(
   merchantId: string,
   policies: Partial<Pick<Merchant, "maxDiscountPercent" | "minimumMarginPercent" | "maxAutoTransactionAmount" | "approvalRequiredAbove" | "allowSlowMovingInventoryDiscount" | "slowMovingInventoryFlexibility">>
 ): Promise<void> {
-  if (db) {
-    try {
-      const docRef = doc(db, COLLECTIONS.MERCHANTS, merchantId);
-      await updateDoc(docRef, {
-        ...policies,
-        updatedAt: new Date().toISOString(),
-      });
-      return;
-    } catch (err) {
-      console.warn("Client Firestore policy update failed, falling back to server API...", err);
-    }
-  }
-
   const res = await fetch("/api/merchant", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -113,32 +86,28 @@ export async function updateMerchantPolicies(
 
 // 2. Products Service
 export async function getMerchantProducts(merchantId: string): Promise<Product[]> {
-  if (db) {
-    try {
-      const q = query(
-        collection(db, COLLECTIONS.PRODUCTS),
-        where("merchantId", "==", merchantId)
-      );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        return snap.docs.map((d) => d.data() as Product);
-      }
-    } catch (err: unknown) {
-      console.warn("Client Firestore products query failed, falling back to server API...", err);
+  try {
+    const res = await fetch(`/api/products?merchantId=${encodeURIComponent(merchantId)}`);
+    const data = await res.json();
+    if (res.ok && data.success) {
+      return (data.products || []) as Product[];
     }
+  } catch (apiErr) {
+    console.warn("Server API products fetch failed, attempting client SDK fallback...", apiErr);
   }
 
-  // Fallback to Server API Route
-  const res = await fetch(`/api/products?merchantId=${encodeURIComponent(merchantId)}`);
-  const data = await res.json();
-  if (!res.ok) {
-    const errorMsg = data.error || "Failed to fetch products";
-    const err = new Error(errorMsg) as Error & { errorType?: string };
-    err.errorType = data.errorType || "SERVER_ERROR";
-    throw err;
+  if (db) {
+    const q = query(
+      collection(db, COLLECTIONS.PRODUCTS),
+      where("merchantId", "==", merchantId)
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map((d) => d.data() as Product);
   }
-  return (data.products || []) as Product[];
+
+  return [];
 }
+
 
 export async function getProduct(productId: string): Promise<Product | null> {
   if (db) {
