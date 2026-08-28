@@ -183,7 +183,8 @@ export default function MerchantPage() {
       <PageHeader
         title="Merchant Control Center"
         description="Catalog inventory management and autonomous governance policy configuration for ErgoSpace."
-        badge={<StatusBadge status={merchant ? "active" : "neutral"} label={merchant ? "STORE ACTIVE" : "FIRESTORE CONNECTING"} />}
+        badge={<StatusBadge status={merchant ? "active" : loading ? "validating" : "neutral"} label={merchant ? "STORE ACTIVE" : loading ? "CONNECTING..." : "DEMO MODE"} />}
+
         actions={
           <button
             onClick={fetchMerchantData}
