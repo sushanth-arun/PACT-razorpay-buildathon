@@ -134,13 +134,15 @@ export default function DealRoomPage() {
       setProcessingStep(4);
       setIntentResult(data.intent);
       setIsFallbackMode(Boolean(data.isFallback));
+      setRequestText(""); // Clear the input textarea box after submitting
       try {
-        sessionStorage.setItem("pact_request_text", requestText.trim());
+        sessionStorage.removeItem("pact_request_text");
         sessionStorage.setItem("pact_intent_result", JSON.stringify(data.intent));
         sessionStorage.removeItem("pact_offer_result");
       } catch {
         // ignore
       }
+
     } catch (err: unknown) {
       clearInterval(stepInterval);
       const msg = err instanceof Error ? err.message : "An unexpected error occurred.";
