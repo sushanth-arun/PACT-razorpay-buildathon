@@ -26,6 +26,8 @@ import {
 import { SavedBuyerIntent } from "@/services/buyer-intent-service";
 import { MerchantOffer } from "@/lib/ai/merchant-offer-schema";
 import { motion, AnimatePresence } from "framer-motion";
+import { Ripple } from "@/components/Ripple";
+
 
 const SAMPLE_PROMPT_CHIPS = [
   "5 developer setups under ₹60,000",
@@ -300,29 +302,34 @@ export default function DealRoomPage() {
 
             {/* Action Bar */}
             <div className="flex items-center justify-between pt-2">
+
+
               <span className="text-xs text-slate-400 font-mono flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${isGeminiConnected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
                 Google Gemini 3.1 Flash-Lite Server-Side Intent Parser
               </span>
-              <button
-                type="submit"
-                disabled={loading || !requestText.trim()}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-mono text-xs font-bold hover:bg-blue-500 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-blue-950/40 cursor-pointer"
-              >
+              <Ripple className="rounded-xl">
+                <button
+                  type="submit"
+                  disabled={loading || !requestText.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-mono text-xs font-bold hover:bg-blue-500 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-blue-950/40 cursor-pointer"
+                >
 
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>{PROCESSING_STEPS[processingStep]}...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4 text-blue-200" />
-                    <span>PARSE BUYER INTENT</span>
-                  </>
-                )}
-              </button>
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span>{PROCESSING_STEPS[processingStep]}...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-blue-200" />
+                      <span>PARSE BUYER INTENT</span>
+                    </>
+                  )}
+                </button>
+              </Ripple>
             </div>
+
           </form>
 
           {/* Error Message Alert */}
@@ -470,25 +477,28 @@ export default function DealRoomPage() {
 
                   {/* Generate Merchant Offer Action Button */}
                   <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={handleGenerateOffer}
-                      disabled={offerLoading}
-                      className="w-full py-2.5 rounded-xl bg-emerald-600 text-white font-mono text-xs font-bold hover:bg-emerald-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 cursor-pointer"
-                    >
-                      {offerLoading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>{MERCHANT_PROCESSING_STEPS[offerProcessingStep]}...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Bot className="w-4 h-4" />
-                          <span>GENERATE MERCHANT OFFER</span>
-                        </>
-                      )}
-                    </button>
+                    <Ripple className="w-full rounded-xl">
+                      <button
+                        type="button"
+                        onClick={handleGenerateOffer}
+                        disabled={offerLoading}
+                        className="w-full py-2.5 rounded-xl bg-emerald-600 text-white font-mono text-xs font-bold hover:bg-emerald-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 cursor-pointer"
+                      >
+                        {offerLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>{MERCHANT_PROCESSING_STEPS[offerProcessingStep]}...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Bot className="w-4 h-4" />
+                            <span>GENERATE MERCHANT OFFER</span>
+                          </>
+                        )}
+                      </button>
+                    </Ripple>
                   </div>
+
 
                   {/* View Raw JSON Accordion */}
                   <div className="pt-1">

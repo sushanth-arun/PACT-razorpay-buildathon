@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { Magnet } from "@/components/Magnet";
+
 const navigationItems = [
   {
     name: "Deal Room",
@@ -70,32 +72,34 @@ export const AppSidebar: React.FC = () => {
           const isActive = pathname.startsWith(item.href);
           const Icon = item.icon;
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors group relative",
-                isActive
-                  ? "bg-slate-800/90 text-slate-100 font-bold shadow-sm"
-                  : "text-slate-300 hover:text-slate-100 hover:bg-slate-900/80 font-medium"
-              )}
-            >
-              <Icon
+            <Magnet key={item.href} strength={6} className="w-full">
+              <Link
+                href={item.href}
                 className={cn(
-                  "w-4.5 h-4.5 shrink-0 transition-colors",
-                  isActive ? "text-blue-400" : "text-slate-400 group-hover:text-slate-200"
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors group relative w-full",
+                  isActive
+                    ? "bg-slate-800/90 text-slate-100 font-bold shadow-sm"
+                    : "text-slate-300 hover:text-slate-100 hover:bg-slate-900/80 font-medium"
                 )}
-              />
-              <div className="flex flex-col">
-                <span>{item.name}</span>
-              </div>
-              {isActive && (
-                <div className="absolute right-0 top-2 bottom-2 w-1 bg-blue-500 rounded-l" />
-              )}
-            </Link>
+              >
+                <Icon
+                  className={cn(
+                    "w-4.5 h-4.5 shrink-0 transition-colors",
+                    isActive ? "text-blue-400" : "text-slate-400 group-hover:text-slate-200"
+                  )}
+                />
+                <div className="flex flex-col">
+                  <span>{item.name}</span>
+                </div>
+                {isActive && (
+                  <div className="absolute right-0 top-2 bottom-2 w-1 bg-blue-500 rounded-l" />
+                )}
+              </Link>
+            </Magnet>
           );
         })}
       </nav>
+
 
 
       <div className="p-4 border-t border-slate-800 bg-slate-950/50">

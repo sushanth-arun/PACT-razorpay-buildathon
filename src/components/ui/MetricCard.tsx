@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import SpotlightCard from "@/components/SpotlightCard";
 
+import { CountUp } from "@/components/CountUp";
+
 interface MetricCardProps {
   title: string;
   value: string | number;
@@ -50,7 +52,10 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         </div>
 
         <div className="flex items-baseline justify-between">
-          <div className="text-3xl font-extrabold font-mono text-slate-100 tracking-tight">{value}</div>
+          <div className="text-3xl font-extrabold font-mono text-slate-100 tracking-tight">
+            <CountUp to={value} />
+          </div>
+
           {trend && (
             <span
               className={cn(
