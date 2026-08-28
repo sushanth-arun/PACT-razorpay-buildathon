@@ -48,25 +48,25 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         tabIndex={0}
       >
         <div className="flex items-center justify-between">
-          <span className="text-xs font-mono font-medium text-slate-400 group-hover:text-slate-200 transition-colors uppercase tracking-wider">
+          <span className="text-xs font-mono font-bold text-slate-300 group-hover:text-slate-100 transition-colors uppercase tracking-wider">
             {title}
           </span>
           {Icon && (
-            <div className="p-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-400 group-hover:text-blue-400 group-hover:border-blue-800/50 transition-colors">
-              <Icon className="w-4 h-4" />
+            <div className="p-2 rounded-lg bg-slate-800/60 border border-slate-700/60 text-slate-300 group-hover:text-blue-400 group-hover:border-blue-700/60 transition-colors">
+              <Icon className="w-4.5 h-4.5" />
             </div>
           )}
         </div>
 
         <div className="flex items-baseline justify-between">
-          <div className="text-2xl font-bold font-mono text-slate-100 tracking-tight">{value}</div>
+          <div className="text-3xl font-extrabold font-mono text-slate-100 tracking-tight">{value}</div>
           {trend && (
             <span
               className={cn(
-                "text-xs font-mono px-1.5 py-0.5 rounded",
+                "text-xs font-mono px-2 py-0.5 rounded font-bold",
                 trend.isPositive
-                  ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/40"
-                  : "bg-rose-950/60 text-rose-400 border border-rose-800/40"
+                  ? "bg-emerald-950/70 text-emerald-400 border border-emerald-800/50"
+                  : "bg-rose-950/70 text-rose-400 border border-rose-800/50"
               )}
             >
               {trend.isPositive ? "+" : ""}
@@ -76,15 +76,16 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         </div>
 
         {/* Subtitle & Contextual Hover Detail */}
-        <div className="space-y-0.5">
-          {subtitle && <p className="text-[11px] text-slate-500 font-normal transition-colors group-hover:text-slate-400">{subtitle}</p>}
+        <div className="space-y-1">
+          {subtitle && <p className="text-xs text-slate-400 font-medium transition-colors group-hover:text-slate-300">{subtitle}</p>}
           {hoverDetail && (
-            <p className="text-[10px] font-mono text-blue-400 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-200">
+            <p className="text-[11px] font-mono text-blue-400 opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity duration-200">
               {hoverDetail}
             </p>
           )}
         </div>
       </motion.div>
+
     </BorderGlow>
   );
 };

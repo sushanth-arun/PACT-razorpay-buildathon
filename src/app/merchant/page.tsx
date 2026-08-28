@@ -396,35 +396,35 @@ export default function MerchantPage() {
                       >
                         <div className="space-y-1 flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono font-bold text-xs text-slate-100 truncate">{product.name}</span>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 text-slate-400 border border-slate-800">
+                            <span className="font-mono font-bold text-sm text-slate-100 truncate">{product.name}</span>
+                            <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-slate-900 text-slate-300 border border-slate-800">
                               {product.category}
                             </span>
                             {!product.active && (
-                              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-950/60 text-rose-400 border border-rose-900/40">
+                              <span className="text-xs font-mono px-2 py-0.5 rounded bg-rose-950/60 text-rose-400 border border-rose-900/40">
                                 INACTIVE
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-slate-400 truncate max-w-md">{product.description}</p>
+                          <p className="text-xs text-slate-300 truncate max-w-md">{product.description}</p>
                         </div>
 
                         <div className="flex items-center gap-4 shrink-0 font-mono text-xs">
                           {/* Price */}
                           <div className="flex flex-col items-end">
-                            <span className="text-[10px] text-slate-500">PRICE</span>
-                            <span className="font-bold text-slate-100">₹{product.price.toLocaleString("en-IN")}</span>
+                            <span className="text-[11px] text-slate-400 font-medium">PRICE</span>
+                            <span className="font-bold text-sm text-slate-100">₹{product.price.toLocaleString("en-IN")}</span>
                           </div>
 
                           {/* Stock Status Badge */}
-                          <div className="flex flex-col items-end min-w-[75px]">
-                            <span className="text-[10px] text-slate-500">STOCK</span>
+                          <div className="flex flex-col items-end min-w-[85px]">
+                            <span className="text-[11px] text-slate-400 font-medium">STOCK</span>
                             {isOutOfStock ? (
-                              <span className="text-[10px] font-bold text-rose-400 px-1.5 py-0.5 rounded bg-rose-950/60 border border-rose-800/50">
+                              <span className="text-xs font-bold text-rose-400 px-2 py-0.5 rounded bg-rose-950/60 border border-rose-800/50">
                                 OUT OF STOCK
                               </span>
                             ) : isLowStock ? (
-                              <span className="text-[10px] font-bold text-amber-400 px-1.5 py-0.5 rounded bg-amber-950/60 border border-amber-800/50">
+                              <span className="text-xs font-bold text-amber-400 px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/50">
                                 {product.stock} (LOW)
                               </span>
                             ) : (
@@ -436,9 +436,10 @@ export default function MerchantPage() {
 
                           {/* Delivery SLA */}
                           <div className="hidden sm:flex flex-col items-end">
-                            <span className="text-[10px] text-slate-500">SLA</span>
-                            <span className="text-slate-300 text-[11px]">{product.deliveryDays}d</span>
+                            <span className="text-[11px] text-slate-400 font-medium">SLA</span>
+                            <span className="text-slate-200 text-xs font-semibold">{product.deliveryDays}d</span>
                           </div>
+
 
                           {/* Actions */}
                           <div className="flex items-center gap-1 pl-2 border-l border-slate-800">
