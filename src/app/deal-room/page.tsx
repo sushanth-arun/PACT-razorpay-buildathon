@@ -560,15 +560,18 @@ export default function DealRoomPage() {
                     <span>Proposed Discount ({offerResult.proposedDiscount.percentage}%)</span>
                     <span className="font-bold">-₹{offerResult.proposedDiscount.amount.toLocaleString("en-IN")}</span>
                   </div>
-                  <div className="flex items-center justify-between text-slate-400">
-                    <span>Delivery SLA</span>
-                    <span className="font-bold text-slate-200">{offerResult.deliveryDays} days</span>
-                  </div>
+                  {offerResult.status !== "NO_VALID_OFFER" && offerResult.selectedItems.length > 0 && (
+                    <div className="flex items-center justify-between text-slate-400">
+                      <span>Delivery SLA</span>
+                      <span className="font-bold text-slate-200">{offerResult.deliveryDays} days</span>
+                    </div>
+                  )}
                   <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-sm font-bold text-slate-100">
                     <span>Estimated Total</span>
                     <span className="text-emerald-400">₹{offerResult.estimatedFinalAmount.toLocaleString("en-IN")}</span>
                   </div>
                 </div>
+
 
                 {/* Commercial Reasoning */}
                 <div className="space-y-2">

@@ -116,29 +116,34 @@ const ClickSpark = ({
     };
   }, [sparkColor, sparkSize, sparkRadius, sparkCount, duration, easeFunc, extraScale]);
 
-  const handleClick = e => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+  useEffect(() => {
+    const handleGlobalClick = (e) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const now = performance.now();
-    const newSparks = Array.from({ length: sparkCount }, (_, i) => ({
-      x,
-      y,
-      angle: (2 * Math.PI * i) / sparkCount,
-      startTime: now
-    }));
+      const x = e.clientX;
+      const y = e.clientY;
 
-    sparksRef.current.push(...newSparks);
-  };
+      const now = performance.now();
+      const newSparks = Array.from({ length: sparkCount }, (_, i) => ({
+        x,
+        y,
+        angle: (2 * Math.PI * i) / sparkCount,
+        startTime: now,
+      }));
+
+      sparksRef.current.push(...newSparks);
+    };
+
+    window.addEventListener("click", handleGlobalClick, true);
+    return () => {
+      window.removeEventListener("click", handleGlobalClick, true);
+    };
+  }, [sparkCount]);
 
   return (
-    <div
-      className="w-full min-h-screen relative"
-      onClick={handleClick}
-    >
+    <div className="w-full min-h-screen relative">
+
       <canvas
         ref={canvasRef}
         style={{
