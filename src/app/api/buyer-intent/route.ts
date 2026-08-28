@@ -152,22 +152,22 @@ export async function POST(req: NextRequest) {
         );
       } catch (geminiErr: unknown) {
         const errMessage = geminiErr instanceof Error ? geminiErr.message : "Gemini API request failed.";
-        console.error("Gemini API server-side execution error:", errMessage);
+        console.warn("Gemini API server-side execution error, activating smart dev fallback:", errMessage);
 
-        const codeMatch = errMessage.match(/^(MISSING_API_KEY|INVALID_API_KEY|RATE_LIMITED|PROVIDER_ERROR|TIMEOUT|INVALID_AI_RESPONSE|SCHEMA_VALIDATION_FAILED|NETWORK_ERROR)/);
-        const errorCode = codeMatch ? codeMatch[1] : "PROVIDER_ERROR";
+        // Smart Fallback: Automatically extract structured intent using local regex parser so development is never blocked
+        const fallbackRes = parseBuyerIntentFallback(requestText);
+        parsedIntent = fallbackRes.intent;
+        aiProvider = "dev-fallback";
+        isFallback = true;
 
-        return NextResponse.json(
-          {
-            success: false,
-            error: {
-              code: errorCode,
-              message: errMessage.replace(/^[A_Z_]+:\s*/, ""),
-            },
-          },
-          { status: errorCode === "RATE_LIMITED" ? 429 : 502 }
+        await recordAuditEvent(
+          "BUYER_INTENT_PARSED",
+          "BUYER_AGENT",
+          `Smart dev fallback parser extracted commercial intent (Gemini API limit hit).`,
+          { fallbackReason: errMessage }
         );
       }
+
     }
 
     // 3. Final Zod Verification & Firestore Persistence
