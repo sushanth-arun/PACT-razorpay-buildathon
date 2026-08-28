@@ -222,9 +222,8 @@ export default function MerchantPage() {
 
       {/* Metric Cards Row with Staggered Entrance & SpotlightCard */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
         {loading ? (
-          Array.from({ length: 5 }).map((_, i) => (
+          Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="p-5 rounded-xl bg-slate-900/40 border border-slate-800/60 animate-pulse space-y-3">
               <div className="h-3 w-20 bg-slate-800 rounded" />
               <div className="h-7 w-14 bg-slate-800 rounded" />
@@ -271,18 +270,10 @@ export default function MerchantPage() {
                 icon={Store}
               />
             </motion.div>
-            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2, delay: 0.2 }}>
-              <MetricCard
-                title="Avg Order Value"
-                value="No orders yet"
-                subtitle="Awaiting deal execution"
-                hoverDetail="No completed orders yet"
-                icon={Store}
-              />
-            </motion.div>
           </>
         )}
       </div>
+
 
       {/* Main Grid: Left Catalog Management | Right Governance Policy Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
