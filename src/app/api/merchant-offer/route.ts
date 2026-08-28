@@ -233,6 +233,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    let buyerFit = aiProposal.buyerFitExplanation || "Selected items fulfill requested ergonomic use-case.";
+    let reasoning = aiProposal.reasoningSummary || "Commercial offer composed using authoritative Firestore prices.";
+
+    if (offerStatus === "BUDGET_CONSTRAINT_FAILED") {
+      const excess = totals.estimatedFinalAmount - (buyerIntent.budget || 0);
+      buyerFit = `BUDGET EXCEEDED: Calculated deal total (₹${totals.estimatedFinalAmount.toLocaleString("en-IN")}) exceeds buyer's requested budget cap (₹${(buyerIntent.budget || 0).toLocaleString("en-IN")}) by ₹${excess.toLocaleString("en-IN")}, even after applying max policy discount (${totals.discount.percentage}%).`;
+      reasoning = `Offer composed but flagged BUDGET_CONSTRAINT_FAILED due to ₹${excess.toLocaleString("en-IN")} budget overrun.`;
+    }
+
     // 9. Construct & Validate Final Merchant Offer
     const offerId = `offer_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const rawMerchantOffer = {
@@ -251,13 +260,14 @@ export async function POST(req: NextRequest) {
       },
       estimatedFinalAmount: totals.estimatedFinalAmount,
       deliveryDays: maxDeliveryDays || 3,
-      buyerFitExplanation: aiProposal.buyerFitExplanation || "Selected items fulfill requested ergonomic use-case.",
+      buyerFitExplanation: buyerFit,
       merchantOpportunityExplanation: aiProposal.merchantOpportunityExplanation || "High available stock optimizes inventory utilization.",
-      reasoningSummary: aiProposal.reasoningSummary || "Commercial offer composed using authoritative Firestore prices.",
+      reasoningSummary: reasoning,
       aiProvider,
       aiModel: currentModel,
       createdAt: new Date().toISOString(),
     };
+
 
     const validatedMerchantOffer: MerchantOffer = MerchantOfferSchema.parse(rawMerchantOffer);
 

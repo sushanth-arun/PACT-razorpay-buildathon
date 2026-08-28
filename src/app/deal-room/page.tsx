@@ -67,7 +67,7 @@ export default function DealRoomPage() {
   const [offerResult, setOfferResult] = useState<MerchantOffer | null>(null);
   const [offerError, setOfferError] = useState<string | null>(null);
 
-  // Check Gemini server-side health on mount
+  // Check Gemini server-side health and restore session state on mount
   React.useEffect(() => {
     fetch("/api/buyer-intent")
       .then((res) => res.json())
@@ -75,7 +75,20 @@ export default function DealRoomPage() {
         setIsGeminiConnected(Boolean(data.configured));
       })
       .catch(() => setIsGeminiConnected(false));
+
+    try {
+      const savedIntent = sessionStorage.getItem("pact_intent_result");
+      const savedOffer = sessionStorage.getItem("pact_offer_result");
+      const savedText = sessionStorage.getItem("pact_request_text");
+
+      if (savedText) setRequestText(savedText);
+      if (savedIntent) setIntentResult(JSON.parse(savedIntent));
+      if (savedOffer) setOfferResult(JSON.parse(savedOffer));
+    } catch {
+      // ignore storage errors
+    }
   }, []);
+
 
   const handleSubmitRequest = async (e: React.FormEvent, forceFallback = false) => {
     e.preventDefault();
@@ -119,6 +132,13 @@ export default function DealRoomPage() {
       setProcessingStep(4);
       setIntentResult(data.intent);
       setIsFallbackMode(Boolean(data.isFallback));
+      try {
+        sessionStorage.setItem("pact_request_text", requestText.trim());
+        sessionStorage.setItem("pact_intent_result", JSON.stringify(data.intent));
+        sessionStorage.removeItem("pact_offer_result");
+      } catch {
+        // ignore
+      }
     } catch (err: unknown) {
       clearInterval(stepInterval);
       const msg = err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -164,6 +184,12 @@ export default function DealRoomPage() {
 
       setOfferProcessingStep(5);
       setOfferResult(data.offer);
+      try {
+        sessionStorage.setItem("pact_offer_result", JSON.stringify(data.offer));
+      } catch {
+        // ignore
+      }
+
     } catch (err: unknown) {
       clearInterval(stepInterval);
       const msg = err instanceof Error ? err.message : "Failed to generate merchant offer.";
