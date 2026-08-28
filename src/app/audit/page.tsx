@@ -1,16 +1,18 @@
+"use client";
+
 import React from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SectionCard } from "@/components/ui/SectionCard";
+import BorderGlow from "@/components/BorderGlow";
 import { 
   User, 
   Bot, 
   Store, 
   FileCheck, 
   ShieldCheck, 
-  CreditCard,
-  CheckCircle2
+  CreditCard
 } from "lucide-react";
 
 const placeholderTimelineEvents = [
@@ -83,22 +85,36 @@ export default function AuditPage() {
             const Icon = evt.actorIcon;
             return (
               <div key={idx} className="relative flex items-start gap-4 group">
-                <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-400 font-mono text-[10px]">
+                <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-300 font-mono text-xs font-bold">
                   {idx + 1}
                 </div>
-                <div className="flex-1 p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4 text-blue-400" />
-                      <span className="text-xs font-bold font-mono text-slate-200">{evt.step}</span>
-                      <span className="text-[10px] font-mono text-slate-500">[{evt.actor}]</span>
+                <div className="flex-1">
+                  <BorderGlow
+                    edgeSensitivity={20}
+                    glowColor="40 80 80"
+                    backgroundColor="#090d16"
+                    borderRadius={12}
+                    glowRadius={25}
+                    glowIntensity={0.5}
+                    coneSpread={20}
+                    animated={false}
+                    colors={['#38bdf8', '#818cf8', '#34d399']}
+                  >
+                    <div className="p-4 space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Icon className="w-4.5 h-4.5 text-blue-400" />
+                          <span className="text-sm font-bold font-mono text-slate-100">{evt.step}</span>
+                          <span className="text-xs font-mono text-slate-400 font-medium">[{evt.actor}]</span>
+                        </div>
+                        {evt.badge}
+                      </div>
+                      <p className="text-xs text-slate-300 font-normal leading-relaxed">{evt.description}</p>
+                      <div className="p-2.5 rounded bg-slate-900/80 border border-slate-800/80 font-mono text-xs text-slate-200 font-medium">
+                        {evt.example}
+                      </div>
                     </div>
-                    {evt.badge}
-                  </div>
-                  <p className="text-xs text-slate-400">{evt.description}</p>
-                  <div className="p-2 rounded bg-slate-900 border border-slate-800/60 font-mono text-[11px] text-slate-300">
-                    {evt.example}
-                  </div>
+                  </BorderGlow>
                 </div>
               </div>
             );
@@ -108,5 +124,6 @@ export default function AuditPage() {
     </PageContainer>
   );
 }
+
 
 

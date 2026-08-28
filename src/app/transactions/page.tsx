@@ -1,10 +1,11 @@
+"use client";
+
 import React from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SectionCard } from "@/components/ui/SectionCard";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { Receipt } from "lucide-react";
+import BorderGlow from "@/components/BorderGlow";
 
 const staticPlaceholderTransactions = [
   {
@@ -44,33 +45,46 @@ export default function TransactionsPage() {
         subtitle="Static placeholder demonstration of validated order executions"
         badge={<StatusBadge status="neutral" label="PHASE 7 PREVIEW" />}
       >
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-800 text-slate-400 font-mono">
-                <th className="py-3 px-4 uppercase">Deal ID</th>
-                <th className="py-3 px-4 uppercase">Merchant</th>
-                <th className="py-3 px-4 uppercase">Amount</th>
-                <th className="py-3 px-4 uppercase">Firewall Status</th>
-                <th className="py-3 px-4 uppercase">Created At</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono">
-              {staticPlaceholderTransactions.map((tx) => (
-                <tr key={tx.dealId} className="hover:bg-slate-900/40">
-                  <td className="py-3 px-4 font-bold text-blue-400">{tx.dealId}</td>
-                  <td className="py-3 px-4 text-slate-300">{tx.merchant}</td>
-                  <td className="py-3 px-4 text-slate-100 font-bold">{tx.amount}</td>
-                  <td className="py-3 px-4">{tx.status}</td>
-                  <td className="py-3 px-4 text-slate-500">{tx.createdAt}</td>
+        <BorderGlow
+          edgeSensitivity={20}
+          glowColor="40 80 80"
+          backgroundColor="#090d16"
+          borderRadius={12}
+          glowRadius={25}
+          glowIntensity={0.5}
+          coneSpread={20}
+          animated={false}
+          colors={['#22c55e', '#38bdf8']}
+        >
+          <div className="p-3">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-800 text-slate-300 font-mono font-bold">
+                  <th className="py-3.5 px-4 uppercase text-xs">Deal ID</th>
+                  <th className="py-3.5 px-4 uppercase text-xs">Merchant</th>
+                  <th className="py-3.5 px-4 uppercase text-xs">Amount</th>
+                  <th className="py-3.5 px-4 uppercase text-xs">Firewall Status</th>
+                  <th className="py-3.5 px-4 uppercase text-xs">Created At</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 font-mono">
+                {staticPlaceholderTransactions.map((tx) => (
+                  <tr key={tx.dealId} className="hover:bg-slate-900/60 transition-colors">
+                    <td className="py-4 px-4 font-bold text-blue-400">{tx.dealId}</td>
+                    <td className="py-4 px-4 text-slate-200 font-medium">{tx.merchant}</td>
+                    <td className="py-4 px-4 text-slate-100 font-bold">{tx.amount}</td>
+                    <td className="py-4 px-4">{tx.status}</td>
+                    <td className="py-4 px-4 text-slate-400 font-medium text-xs">{tx.createdAt}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </BorderGlow>
       </SectionCard>
     </PageContainer>
   );
 }
+
 
 
