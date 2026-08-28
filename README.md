@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PACT — AI-to-AI Agentic Commerce Engine
 
-## Getting Started
+PACT (Policy-Enforced Autonomous Commercial Transactions) makes merchants transactable by AI buyers with deterministic backend policy enforcement.
 
-First, run the development server:
+Built for the **Razorpay Buildathon** under the **AI Growth and Agentic Commerce** track.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 💡 Core Principle
+
+> **AI can propose. PACT decides what becomes real.**
+
+AI agents negotiate commercial deals using real catalog data, but all financial arithmetic, stock availability, discount caps, budget limits, and payment creations are deterministically validated by server-side code (PACT Firewall).
+
+## 🏗️ High-Level System Architecture
+
+```
+User
+ ↓
+Buyer AI
+ ↓
+Structured Buyer Intent
+ ↓
+Merchant Agent
+ ↓
+Merchant Offer
+ ↓
+PACT Deal Compiler
+ ↓
+PACT Firewall (Policy Engine)
+ ↓
+Approval Gate / Validation
+ ↓
+Razorpay Test Mode Payment
+ ↓
+Audit Trail Telemetry
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Frontend**: Next.js (App Router), TypeScript, Tailwind CSS, Lucide Icons
+- **Backend**: Server-side API Routes, Firebase Admin SDK
+- **Database & Auth**: Firebase Auth, Firestore
+- **Payment**: Razorpay Test Mode SDK & Webhooks
+- **AI**: Gemini API / LLM Structured Output Integration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 Local Development Setup
 
-## Learn More
+1. **Clone the repository & install dependencies**:
+   ```bash
+   npm install
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+2. **Configure Environment Variables**:
+   Copy `.env.example` to `.env.local` and fill in the required keys:
+   ```bash
+   cp .env.example .env.local
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. **Run Development Server**:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🔑 Environment Variables (`.env.example`)
 
-## Deploy on Vercel
+- `NEXT_PUBLIC_APP_URL`: Base URL of the application.
+- `NEXT_PUBLIC_FIREBASE_*`: Firebase Client API configuration.
+- `FIREBASE_ADMIN_*`: Firebase Admin SDK credentials for server-side verification.
+- `GEMINI_API_KEY`: LLM key for Buyer AI and Merchant Agent reasoning.
+- `RAZORPAY_*`: Test mode Key ID, Secret, and Webhook secret.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📌 Current Development Phase
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Phase -1**: Project Setup & Development Foundation (Completed)
+- **Phase 0**: Frontend Shell & UI Components (Completed)
+- **Phase 1**: Firebase Integration (Next Phase)
