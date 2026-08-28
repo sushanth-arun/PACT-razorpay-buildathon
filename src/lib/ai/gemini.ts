@@ -62,6 +62,10 @@ Output:
 }
 `;
 
+export function getGeminiModel(): string {
+  return process.env.GEMINI_MODEL || process.env.AI_MODEL || "gemini-3.1-flash-lite";
+}
+
 export function getGeminiApiKey(): string | undefined {
   return process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 }
@@ -73,10 +77,10 @@ export function isGeminiConfigured(): boolean {
 export async function callGeminiRaw(userPrompt: string): Promise<string> {
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY_MISSING: GEMINI_API_KEY environment variable is not configured.");
+    throw new Error("MISSING_API_KEY: GEMINI_API_KEY environment variable is not configured.");
   }
 
-  const model = process.env.AI_MODEL || "gemini-3.6-flash";
+  const model = getGeminiModel();
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const payload = {
@@ -94,43 +98,64 @@ export async function callGeminiRaw(userPrompt: string): Promise<string> {
     },
   };
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+  const maxRetries = 2;
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    const errBodyText = await response.text();
-    let errDetail = response.statusText;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const errJson = JSON.parse(errBodyText);
-      errDetail = errJson?.error?.message || response.statusText;
-    } catch {
-      // keep fallback
-    }
+      if (attempt > 0) {
+        // Exponential backoff delay (500ms, 1000ms) for transient glitches
+        await new Promise((resolve) => setTimeout(resolve, attempt * 500));
+      }
 
-    console.error(`Gemini API call failed [HTTP ${response.status}]:`, errDetail);
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (response.status === 429) {
-      throw new Error(`Gemini API Quota Exceeded (HTTP 429): ${errDetail}`);
-    }
-    if (response.status === 404) {
-      throw new Error(`Gemini Model Not Found (HTTP 404): ${errDetail}`);
-    }
-    if (response.status === 400 || response.status === 401 || response.status === 403) {
-      throw new Error(`Gemini Authentication/Request Error (HTTP ${response.status}): ${errDetail}`);
-    }
+      if (!response.ok) {
+        const errBodyText = await response.text();
+        let errDetail = response.statusText;
+        try {
+          const errJson = JSON.parse(errBodyText);
+          errDetail = errJson?.error?.message || response.statusText;
+        } catch {
+          // keep fallback
+        }
 
-    throw new Error(`Gemini API Error (HTTP ${response.status}): ${errDetail}`);
+        console.error(`Gemini API call failed [HTTP ${response.status}]:`, errDetail);
+
+        if (response.status === 429) {
+          throw new Error(`RATE_LIMITED: Buyer AI is temporarily rate-limited. (${errDetail})`);
+        }
+        if (response.status === 404) {
+          throw new Error(`PROVIDER_ERROR: Model '${model}' not found (HTTP 404). (${errDetail})`);
+        }
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(`INVALID_API_KEY: Authentication failed for Gemini API key. (${errDetail})`);
+        }
+
+        throw new Error(`PROVIDER_ERROR: Gemini API Error (HTTP ${response.status}): ${errDetail}`);
+      }
+
+      const data = await response.json();
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) {
+        throw new Error("INVALID_AI_RESPONSE: Gemini returned an empty response candidate.");
+      }
+
+      return rawText;
+    } catch (err: unknown) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      // Do not retry 429 rate limit or authentication errors
+      if (lastError.message.includes("RATE_LIMITED") || lastError.message.includes("INVALID_API_KEY")) {
+        throw lastError;
+      }
+    }
   }
 
-  const data = await response.json();
-  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawText) {
-    throw new Error("Gemini returned an empty response candidate.");
-  }
-
-  return rawText;
+  throw lastError || new Error("PROVIDER_ERROR: Gemini request failed after retries.");
 }
+
 

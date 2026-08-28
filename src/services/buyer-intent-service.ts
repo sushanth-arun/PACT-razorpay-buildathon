@@ -10,7 +10,8 @@ export const AUDIT_EVENTS_COLLECTION = "audit_events";
 
 export interface SavedBuyerIntent extends BuyerIntent {
   id: string;
-  aiProvider: "gemini" | "fallback_parser";
+  aiProvider: string;
+  aiModel: string;
 }
 
 /**
@@ -18,13 +19,15 @@ export interface SavedBuyerIntent extends BuyerIntent {
  */
 export async function saveBuyerIntent(
   intent: BuyerIntent,
-  aiProvider: "gemini" | "fallback_parser"
+  aiProvider: string = "google-gemini",
+  aiModel: string = "gemini-3.1-flash-lite"
 ): Promise<SavedBuyerIntent> {
   const docId = `intent_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const savedDoc: SavedBuyerIntent = {
     ...intent,
     id: docId,
     aiProvider,
+    aiModel,
   };
 
   if (adminDb) {
@@ -37,6 +40,7 @@ export async function saveBuyerIntent(
 
   return savedDoc;
 }
+
 
 /**
  * Records real Audit Events into Firestore

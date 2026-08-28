@@ -112,12 +112,12 @@ export default function DealRoomPage() {
       return <StatusBadge status="validated" label="AI PARSED" />;
     }
     if (error) {
-      return <StatusBadge status="rejected" label="ERROR" />;
+      return <StatusBadge status="rejected" label="REQUEST FAILED" />;
     }
     if (isGeminiConnected) {
-      return <StatusBadge status="active" label="CONNECTED" />;
+      return <StatusBadge status="active" label="GEMINI 3.1 FLASH-LITE ONLINE" />;
     }
-    return <StatusBadge status="neutral" label="STANDBY" />;
+    return <StatusBadge status="neutral" label="CONFIGURATION REQUIRED" />;
   };
 
   // Helper for confidence badge colors
@@ -164,7 +164,7 @@ export default function DealRoomPage() {
             {isFallbackMode && (
               <span className="text-xs font-mono px-2.5 py-1 rounded-md bg-amber-950/70 text-amber-400 border border-amber-800/60 flex items-center gap-1.5">
                 <Info className="w-3.5 h-3.5" />
-                DEV FALLBACK PARSER (API KEY MISSING / OFFLINE)
+                DEV FALLBACK
               </span>
             )}
           </div>
@@ -201,14 +201,16 @@ export default function DealRoomPage() {
 
             {/* Action Bar */}
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-slate-400 font-mono">
-                Google Gemini 2.5 Flash Server-Side Intent Parser
+              <span className="text-xs text-slate-400 font-mono flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${isGeminiConnected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
+                Google Gemini 3.1 Flash-Lite Server-Side Intent Parser
               </span>
               <button
                 type="submit"
                 disabled={loading || !requestText.trim()}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-mono text-xs font-bold hover:bg-blue-500 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-blue-950/40"
+                className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-mono text-xs font-bold hover:bg-blue-500 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-blue-950/40 cursor-pointer"
               >
+
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-white" />

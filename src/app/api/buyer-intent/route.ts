@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGeminiApiKey, isGeminiConfigured, callGeminiRaw } from "@/lib/ai/gemini";
+import { getGeminiApiKey, isGeminiConfigured, getGeminiModel, callGeminiRaw } from "@/lib/ai/gemini";
 import { parseBuyerIntentFallback } from "@/lib/ai/buyer-intent";
 import { BuyerIntentSchema } from "@/lib/ai/schemas";
 import { saveBuyerIntent, recordAuditEvent } from "@/services/buyer-intent-service";
@@ -7,10 +7,11 @@ import { saveBuyerIntent, recordAuditEvent } from "@/services/buyer-intent-servi
 // GET endpoint to return Gemini configuration status without exposing API key
 export async function GET() {
   const configured = isGeminiConfigured();
+  const model = getGeminiModel();
   return NextResponse.json({
     configured,
-    provider: "gemini",
-    model: process.env.AI_MODEL || "gemini-3.6-flash",
+    provider: "google-gemini",
+    model,
     message: configured
       ? "Gemini API is configured server-side."
       : "GEMINI_API_KEY is missing from server environment.",
@@ -21,12 +22,22 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rawUserRequest = body?.request;
-    const useDevFallback = Boolean(body?.useDevFallback);
+    const explicitFallbackReq = Boolean(body?.useDevFallback);
+
+    // Environment flag for fallback: defaults to false
+    const fallbackAllowedInEnv = process.env.BUYER_AI_FALLBACK_ENABLED === "true";
+    const useDevFallback = explicitFallbackReq && fallbackAllowedInEnv;
 
     // 1. Input Validation
     if (!rawUserRequest || typeof rawUserRequest !== "string" || !rawUserRequest.trim()) {
       return NextResponse.json(
-        { success: false, error: "Request text is required." },
+        {
+          success: false,
+          error: {
+            code: "BAD_REQUEST",
+            message: "Request text is required.",
+          },
+        },
         { status: 400 }
       );
     }
@@ -34,7 +45,13 @@ export async function POST(req: NextRequest) {
     const requestText = rawUserRequest.trim();
     if (requestText.length > 1000) {
       return NextResponse.json(
-        { success: false, error: "Request text exceeds maximum length of 1000 characters." },
+        {
+          success: false,
+          error: {
+            code: "BAD_REQUEST",
+            message: "Request text exceeds maximum length of 1000 characters.",
+          },
+        },
         { status: 400 }
       );
     }
@@ -48,23 +65,26 @@ export async function POST(req: NextRequest) {
     );
 
     const apiKey = getGeminiApiKey();
+    const currentModel = getGeminiModel();
     let parsedIntent;
-    let aiProvider: "gemini" | "fallback_parser" = "gemini";
+    let aiProvider = "google-gemini";
     let isFallback = false;
 
     // Explicit fallback requested
     if (useDevFallback) {
       const fallbackRes = parseBuyerIntentFallback(requestText);
       parsedIntent = fallbackRes.intent;
-      aiProvider = "fallback_parser";
+      aiProvider = "dev-fallback";
       isFallback = true;
     } else {
       if (!apiKey) {
         return NextResponse.json(
           {
             success: false,
-            error: "GEMINI_API_KEY is missing in server configuration.",
-            errorType: "GEMINI_API_KEY_MISSING",
+            error: {
+              code: "MISSING_API_KEY",
+              message: "GEMINI_API_KEY is missing in server environment configuration.",
+            },
           },
           { status: 500 }
         );
@@ -90,8 +110,10 @@ export async function POST(req: NextRequest) {
           return NextResponse.json(
             {
               success: false,
-              error: "Gemini response could not be parsed as valid JSON.",
-              errorType: "INVALID_JSON_RESPONSE",
+              error: {
+                code: "INVALID_AI_RESPONSE",
+                message: "Gemini response could not be parsed as valid JSON.",
+              },
             },
             { status: 502 }
           );
@@ -101,27 +123,49 @@ export async function POST(req: NextRequest) {
         jsonObj.createdAt = new Date().toISOString();
 
         // Validate via Zod Schema
-        const validated = BuyerIntentSchema.parse(jsonObj);
+        let validated;
+        try {
+          validated = BuyerIntentSchema.parse(jsonObj);
+        } catch (zodErr: unknown) {
+          console.error("Zod schema validation failed on AI output:", zodErr);
+          return NextResponse.json(
+            {
+              success: false,
+              error: {
+                code: "SCHEMA_VALIDATION_FAILED",
+                message: "Structured AI output failed Zod schema validation.",
+              },
+            },
+            { status: 502 }
+          );
+        }
+
+
         parsedIntent = validated;
 
         // Record Audit Event 2: BUYER_INTENT_PARSED
         await recordAuditEvent(
           "BUYER_INTENT_PARSED",
           "BUYER_AGENT",
-          `Gemini 3.6 Flash parsed buyer intent with ${(validated.confidence * 100).toFixed(0)}% confidence.`,
-          { productIntent: validated.productIntent, confidence: validated.confidence }
+          `${currentModel} parsed buyer intent with ${(validated.confidence * 100).toFixed(0)}% confidence.`,
+          { productIntent: validated.productIntent, confidence: validated.confidence, model: currentModel }
         );
       } catch (geminiErr: unknown) {
         const errMessage = geminiErr instanceof Error ? geminiErr.message : "Gemini API request failed.";
         console.error("Gemini API server-side execution error:", errMessage);
 
+        const codeMatch = errMessage.match(/^(MISSING_API_KEY|INVALID_API_KEY|RATE_LIMITED|PROVIDER_ERROR|TIMEOUT|INVALID_AI_RESPONSE|SCHEMA_VALIDATION_FAILED|NETWORK_ERROR)/);
+        const errorCode = codeMatch ? codeMatch[1] : "PROVIDER_ERROR";
+
         return NextResponse.json(
           {
             success: false,
-            error: errMessage,
-            errorType: "GEMINI_API_ERROR",
+            error: {
+              code: errorCode,
+              message: errMessage.replace(/^[A_Z_]+:\s*/, ""),
+            },
           },
-          { status: 502 }
+          { status: errorCode === "RATE_LIMITED" ? 429 : 502 }
         );
       }
     }
@@ -137,21 +181,29 @@ export async function POST(req: NextRequest) {
       { productIntent: validatedIntent.productIntent }
     );
 
-    const savedDoc = await saveBuyerIntent(validatedIntent, aiProvider);
+    const savedDoc = await saveBuyerIntent(validatedIntent, aiProvider, currentModel);
 
     return NextResponse.json({
       success: true,
       intent: savedDoc,
       isFallback,
       aiProvider,
+      aiModel: currentModel,
     });
   } catch (err: unknown) {
     console.error("Error in /api/buyer-intent:", err);
     const errorMessage = err instanceof Error ? err.message : "Failed to process buyer intent.";
     return NextResponse.json(
-      { success: false, error: errorMessage },
+      {
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: errorMessage,
+        },
+      },
       { status: 500 }
     );
   }
 }
+
 
