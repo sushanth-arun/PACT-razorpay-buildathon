@@ -168,20 +168,18 @@ export async function POST(req: NextRequest) {
     // Determine Merchant Offer Status & Fallbacks
     let offerStatus: MerchantOfferStatus = "OFFER_GENERATED";
 
-    if (isOutofDomain || selectedItems.length === 0) {
+    if (isOutofDomain) {
       offerStatus = "NO_VALID_OFFER";
-      // Clear any forced selections when out of domain
-      if (isOutofDomain) {
-        selectedItems.length = 0;
-        alternativeItems.length = 0;
-      }
+      selectedItems.length = 0;
+      alternativeItems.length = 0;
     } else if (selectedItems.length === 0) {
       if (alternativeItems.length > 0) {
         offerStatus = "ALTERNATIVE_FOUND";
       } else {
-        offerStatus = "NO_VALID_OFFER";
+        offerStatus = "INSUFFICIENT_INVENTORY";
       }
     }
+
 
 
 
@@ -236,11 +234,18 @@ export async function POST(req: NextRequest) {
     let buyerFit = aiProposal.buyerFitExplanation || "Selected items fulfill requested ergonomic use-case.";
     let reasoning = aiProposal.reasoningSummary || "Commercial offer composed using authoritative Firestore prices.";
 
-    if (offerStatus === "BUDGET_CONSTRAINT_FAILED") {
+    if (offerStatus === "INSUFFICIENT_INVENTORY") {
+      buyerFit = `INSUFFICIENT STOCK: Buyer requested ${buyerIntent.quantity || 1} units of '${buyerIntent.productIntent}', but current ErgoSpace warehouse inventory cannot fulfill this quantity. Please consider reducing requested quantity.`;
+      reasoning = `Offer status set to INSUFFICIENT_INVENTORY due to catalog stock limits.`;
+    } else if (offerStatus === "NO_VALID_OFFER") {
+      buyerFit = `PRODUCT NOT CARRIED: ErgoSpace specializes in ergonomic office furniture and accessories. We do not carry or offer '${buyerIntent.productIntent}'.`;
+      reasoning = `No matching active products found in merchant catalog.`;
+    } else if (offerStatus === "BUDGET_CONSTRAINT_FAILED") {
       const excess = totals.estimatedFinalAmount - (buyerIntent.budget || 0);
-      buyerFit = `BUDGET EXCEEDED: Calculated deal total (₹${totals.estimatedFinalAmount.toLocaleString("en-IN")}) exceeds buyer's requested budget cap (₹${(buyerIntent.budget || 0).toLocaleString("en-IN")}) by ₹${excess.toLocaleString("en-IN")}, even after applying max policy discount (${totals.discount.percentage}%).`;
+      buyerFit = `BUDGET EXCEEDED: Calculated deal total (₹${totals.estimatedFinalAmount.toLocaleString("en-IN")}) exceeds buyer's budget cap (₹${(buyerIntent.budget || 0).toLocaleString("en-IN")}) by ₹${excess.toLocaleString("en-IN")}, even after applying max policy discount (${totals.discount.percentage}%). We recommend revising the requested quantity or budget.`;
       reasoning = `Offer composed but flagged BUDGET_CONSTRAINT_FAILED due to ₹${excess.toLocaleString("en-IN")} budget overrun.`;
     }
+
 
     // 9. Construct & Validate Final Merchant Offer
     const offerId = `offer_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;

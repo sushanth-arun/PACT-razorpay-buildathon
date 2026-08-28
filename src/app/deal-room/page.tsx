@@ -577,26 +577,33 @@ export default function DealRoomPage() {
                 </div>
 
                 {/* Totals Breakdown */}
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2 text-xs">
-                  <div className="flex items-center justify-between text-slate-400">
-                    <span>Subtotal</span>
-                    <span className="font-bold text-slate-200">₹{offerResult.subtotal.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-amber-400">
-                    <span>Proposed Discount ({offerResult.proposedDiscount.percentage}%)</span>
-                    <span className="font-bold">-₹{offerResult.proposedDiscount.amount.toLocaleString("en-IN")}</span>
-                  </div>
-                  {offerResult.status !== "NO_VALID_OFFER" && offerResult.selectedItems.length > 0 && (
+                {offerResult.selectedItems.length > 0 ? (
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2 text-xs">
                     <div className="flex items-center justify-between text-slate-400">
-                      <span>Delivery SLA</span>
-                      <span className="font-bold text-slate-200">{offerResult.deliveryDays} days</span>
+                      <span>Subtotal</span>
+                      <span className="font-bold text-slate-200">₹{offerResult.subtotal.toLocaleString("en-IN")}</span>
                     </div>
-                  )}
-                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-sm font-bold text-slate-100">
-                    <span>Estimated Total</span>
-                    <span className="text-emerald-400">₹{offerResult.estimatedFinalAmount.toLocaleString("en-IN")}</span>
+                    <div className="flex items-center justify-between text-amber-400">
+                      <span>Proposed Discount ({offerResult.proposedDiscount.percentage}%)</span>
+                      <span className="font-bold">-₹{offerResult.proposedDiscount.amount.toLocaleString("en-IN")}</span>
+                    </div>
+                    {offerResult.status !== "NO_VALID_OFFER" && (
+                      <div className="flex items-center justify-between text-slate-400">
+                        <span>Delivery SLA</span>
+                        <span className="font-bold text-slate-200">{offerResult.deliveryDays} days</span>
+                      </div>
+                    )}
+                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-sm font-bold text-slate-100">
+                      <span>Estimated Total</span>
+                      <span className="text-emerald-400">₹{offerResult.estimatedFinalAmount.toLocaleString("en-IN")}</span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono text-center text-slate-400">
+                    No items available to total
+                  </div>
+                )}
+
 
 
                 {/* Commercial Reasoning */}
