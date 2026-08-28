@@ -197,7 +197,13 @@ export default function MerchantPage() {
         <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-800/60 text-xs text-rose-300 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>Unable to load merchant catalog: {error}</span>
+            <span>
+              {error.includes("PERMISSION_DENIED") || error.toLowerCase().includes("permission")
+                ? "Catalog access is currently restricted by Firestore permissions."
+                : error.includes("CONFIGURATION_ERROR")
+                ? "Firebase configuration error: environment variables or Admin SDK missing."
+                : `Unable to load merchant catalog: ${error}`}
+            </span>
           </div>
           <button
             onClick={fetchMerchantData}
@@ -208,7 +214,7 @@ export default function MerchantPage() {
         </div>
       )}
 
-      {/* Metric Cards Row with Staggered Entrance & Skeleton */}
+      {/* Metric Cards Row with Staggered Entrance & Focus Pop Hover Effects */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {loading ? (
           Array.from({ length: 5 }).map((_, i) => (
@@ -225,6 +231,7 @@ export default function MerchantPage() {
                 title="Total Products"
                 value={totalProductsCount}
                 subtitle="Live Firestore items"
+                hoverDetail="Live catalog synced from Firestore"
                 icon={Package}
               />
             </motion.div>
@@ -233,6 +240,7 @@ export default function MerchantPage() {
                 title="Products In Stock"
                 value={inStockCount}
                 subtitle="Available for AI deals"
+                hoverDetail={`${inStockCount} of ${totalProductsCount} products currently available`}
                 icon={Package}
                 trend={{ value: `${Math.round((inStockCount / (totalProductsCount || 1)) * 100)}%`, isPositive: true }}
               />
@@ -242,6 +250,7 @@ export default function MerchantPage() {
                 title="Low Stock Warning"
                 value={lowStockCount}
                 subtitle={`Stock < ${LOW_STOCK_THRESHOLD} units`}
+                hoverDetail="Products below low-stock threshold"
                 icon={AlertTriangle}
                 trend={lowStockCount > 0 ? { value: `${lowStockCount} LOW`, isPositive: false } : undefined}
               />
@@ -251,6 +260,7 @@ export default function MerchantPage() {
                 title="Active Deals"
                 value="0"
                 subtitle="No in-flight deals"
+                hoverDetail="No deals have been created yet"
                 icon={Store}
               />
             </motion.div>
@@ -259,12 +269,14 @@ export default function MerchantPage() {
                 title="Avg Order Value"
                 value="No orders yet"
                 subtitle="Awaiting deal execution"
+                hoverDetail="No completed orders yet"
                 icon={Store}
               />
             </motion.div>
           </>
         )}
       </div>
+
 
       {/* Main Grid: Left Catalog Management | Right Governance Policy Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

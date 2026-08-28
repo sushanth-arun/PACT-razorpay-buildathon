@@ -37,54 +37,146 @@ export const COLLECTIONS = {
 
 // 1. Merchants Service
 export async function getMerchant(merchantId: string): Promise<Merchant | null> {
-  if (!db) return null;
-  const docRef = doc(db, COLLECTIONS.MERCHANTS, merchantId);
-  const snap = await getDoc(docRef);
-  return snap.exists() ? (snap.data() as Merchant) : null;
+  // Try Client SDK first
+  if (db) {
+    try {
+      const docRef = doc(db, COLLECTIONS.MERCHANTS, merchantId);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) return snap.data() as Merchant;
+    } catch (err: unknown) {
+      // If client SDK hit permission error or rules block, fall back to Server API
+      console.warn("Client Firestore read failed, falling back to server API...", err);
+    }
+  }
+
+  // Fallback to Server API Route
+  const res = await fetch(`/api/merchant?id=${encodeURIComponent(merchantId)}`);
+  const data = await res.json();
+  if (!res.ok) {
+    const errorMsg = data.error || "Failed to fetch merchant";
+    const err = new Error(errorMsg) as Error & { errorType?: string };
+    err.errorType = data.errorType || "SERVER_ERROR";
+    throw err;
+  }
+  return data.merchant as Merchant;
 }
 
 export async function saveMerchant(merchant: Merchant): Promise<void> {
-  if (!db) throw new Error("Firebase DB not initialized");
-  const docRef = doc(db, COLLECTIONS.MERCHANTS, merchant.id);
-  await setDoc(docRef, { ...merchant, updatedAt: new Date().toISOString() }, { merge: true });
+  if (db) {
+    try {
+      const docRef = doc(db, COLLECTIONS.MERCHANTS, merchant.id);
+      await setDoc(docRef, { ...merchant, updatedAt: new Date().toISOString() }, { merge: true });
+      return;
+    } catch (err) {
+      console.warn("Client Firestore save failed, falling back to server API...", err);
+    }
+  }
+
+  const res = await fetch("/api/merchant", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ merchantId: merchant.id, policies: merchant }),
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Failed to save merchant via server API");
+  }
 }
 
 export async function updateMerchantPolicies(
   merchantId: string,
   policies: Partial<Pick<Merchant, "maxDiscountPercent" | "minimumMarginPercent" | "maxAutoTransactionAmount" | "approvalRequiredAbove" | "allowSlowMovingInventoryDiscount" | "slowMovingInventoryFlexibility">>
 ): Promise<void> {
-  if (!db) throw new Error("Firebase DB not initialized");
-  const docRef = doc(db, COLLECTIONS.MERCHANTS, merchantId);
-  await updateDoc(docRef, {
-    ...policies,
-    updatedAt: new Date().toISOString(),
-  });
-}
+  if (db) {
+    try {
+      const docRef = doc(db, COLLECTIONS.MERCHANTS, merchantId);
+      await updateDoc(docRef, {
+        ...policies,
+        updatedAt: new Date().toISOString(),
+      });
+      return;
+    } catch (err) {
+      console.warn("Client Firestore policy update failed, falling back to server API...", err);
+    }
+  }
 
+  const res = await fetch("/api/merchant", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ merchantId, policies }),
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Failed to update merchant policies via server API");
+  }
+}
 
 // 2. Products Service
 export async function getMerchantProducts(merchantId: string): Promise<Product[]> {
-  if (!db) return [];
-  const q = query(
-    collection(db, COLLECTIONS.PRODUCTS),
-    where("merchantId", "==", merchantId)
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => d.data() as Product);
+  if (db) {
+    try {
+      const q = query(
+        collection(db, COLLECTIONS.PRODUCTS),
+        where("merchantId", "==", merchantId)
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        return snap.docs.map((d) => d.data() as Product);
+      }
+    } catch (err: unknown) {
+      console.warn("Client Firestore products query failed, falling back to server API...", err);
+    }
+  }
+
+  // Fallback to Server API Route
+  const res = await fetch(`/api/products?merchantId=${encodeURIComponent(merchantId)}`);
+  const data = await res.json();
+  if (!res.ok) {
+    const errorMsg = data.error || "Failed to fetch products";
+    const err = new Error(errorMsg) as Error & { errorType?: string };
+    err.errorType = data.errorType || "SERVER_ERROR";
+    throw err;
+  }
+  return (data.products || []) as Product[];
 }
 
 export async function getProduct(productId: string): Promise<Product | null> {
-  if (!db) return null;
-  const docRef = doc(db, COLLECTIONS.PRODUCTS, productId);
-  const snap = await getDoc(docRef);
-  return snap.exists() ? (snap.data() as Product) : null;
+  if (db) {
+    try {
+      const docRef = doc(db, COLLECTIONS.PRODUCTS, productId);
+      const snap = await getDoc(docRef);
+      if (snap.exists()) return snap.data() as Product;
+    } catch (err) {
+      console.warn("Client Firestore product get failed...", err);
+    }
+  }
+
+  const products = await getMerchantProducts("ergospace");
+  return products.find((p) => p.id === productId) || null;
 }
 
 export async function saveProduct(product: Product): Promise<void> {
-  if (!db) throw new Error("Firebase DB not initialized");
-  const docRef = doc(db, COLLECTIONS.PRODUCTS, product.id);
-  await setDoc(docRef, product, { merge: true });
+  if (db) {
+    try {
+      const docRef = doc(db, COLLECTIONS.PRODUCTS, product.id);
+      await setDoc(docRef, { ...product, updatedAt: new Date().toISOString() }, { merge: true });
+      return;
+    } catch (err) {
+      console.warn("Client Firestore product save failed, falling back to server API...", err);
+    }
+  }
+
+  const res = await fetch("/api/products", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ product }),
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Failed to save product via server API");
+  }
 }
+
 
 // 3. Deals Service
 export async function getDeal(dealId: string): Promise<Deal | null> {
