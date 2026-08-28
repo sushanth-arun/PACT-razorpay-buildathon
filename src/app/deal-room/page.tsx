@@ -1,47 +1,427 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Handshake } from "lucide-react";
 import BorderGlow from "@/components/BorderGlow";
+import { 
+  Bot, 
+  Send, 
+  Sparkles, 
+  Loader2, 
+  AlertCircle, 
+  CheckCircle2, 
+  ChevronDown, 
+  ChevronUp, 
+  Handshake, 
+  RefreshCw, 
+  Cpu,
+  Info,
+  SlidersHorizontal,
+  HelpCircle
+} from "lucide-react";
+import { SavedBuyerIntent } from "@/services/buyer-intent-service";
+import { motion, AnimatePresence } from "framer-motion";
+
+const SAMPLE_PROMPT_CHIPS = [
+  "5 developer setups under ₹60,000",
+  "10 standing desks under ₹1,50,000 with 15% discount",
+  "Ergonomic chair for a startup team",
+  "I need some chairs.",
+];
+
+const PROCESSING_STEPS = [
+  "UNDERSTANDING REQUEST",
+  "EXTRACTING CONSTRAINTS",
+  "NORMALIZING COMMERCIAL INTENT",
+  "VALIDATING STRUCTURE",
+  "BUYER INTENT READY",
+];
 
 export default function DealRoomPage() {
+  const [requestText, setRequestText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [processingStep, setProcessingStep] = useState(0);
+  const [intentResult, setIntentResult] = useState<SavedBuyerIntent | null>(null);
+  const [isFallbackMode, setIsFallbackMode] = useState(false);
+  const [aiProvider, setAiProvider] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const [showRawJson, setShowRawJson] = useState(false);
+
+  const handleSubmitRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!requestText.trim() || loading) return;
+
+    setLoading(true);
+    setError(null);
+    setIntentResult(null);
+    setProcessingStep(0);
+
+    // Simulate animated processing sequence
+    const stepInterval = setInterval(() => {
+      setProcessingStep((prev) => (prev < 3 ? prev + 1 : prev));
+    }, 400);
+
+    try {
+      const res = await fetch("/api/buyer-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request: requestText.trim() }),
+      });
+
+      const data = await res.json();
+      clearInterval(stepInterval);
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to process buyer intent.");
+      }
+
+      setProcessingStep(4);
+      setIntentResult(data.intent);
+      setIsFallbackMode(Boolean(data.isFallback));
+      setAiProvider(data.aiProvider || "gemini");
+    } catch (err: unknown) {
+      clearInterval(stepInterval);
+      const msg = err instanceof Error ? err.message : "An unexpected error occurred.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper for confidence badge colors
+  const getConfidenceBadge = (confidence: number = 0) => {
+    const percent = Math.round(confidence * 100);
+    if (percent >= 80) {
+      return {
+        label: `${percent}% HIGH`,
+        style: "bg-emerald-950/70 text-emerald-400 border-emerald-800/60",
+      };
+    }
+    if (percent >= 50) {
+      return {
+        label: `${percent}% MEDIUM`,
+        style: "bg-amber-950/70 text-amber-400 border-amber-800/60",
+      };
+    }
+    return {
+      label: `${percent}% LOW`,
+      style: "bg-rose-950/70 text-rose-400 border-rose-800/60",
+    };
+  };
+
   return (
     <PageContainer>
       <PageHeader
-        title="Deal Room"
-        description="Autonomous AI-to-AI intent negotiation, deal compilation, and firewall gatekeeping."
-        badge={<StatusBadge status="active" label="READY" />}
+        title="PACT DEAL ROOM"
+        description="Turn natural language commercial requirements into validated structured purchase intent."
+        badge={
+          <StatusBadge
+            status={intentResult ? "validated" : "active"}
+            label={intentResult ? "INTENT READY" : "BUYER AI STANDBY"}
+          />
+        }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <BorderGlow
-          edgeSensitivity={25}
-          glowColor="40 80 80"
-          backgroundColor="#090d16"
-          borderRadius={12}
-          glowRadius={25}
-          glowIntensity={0.6}
-          coneSpread={20}
-          animated={false}
-          colors={['#38bdf8', '#a855f7']}
-        >
-          <div className="p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h2 className="text-base font-bold text-slate-100 font-mono">1. BUYER AI INTENT</h2>
-              <StatusBadge status="neutral" label="STANDBY" />
+      {/* Top Main Section: Stage 1 Natural Language Input & Sample Chips */}
+      <BorderGlow
+        edgeSensitivity={25}
+        glowColor="40 80 80"
+        backgroundColor="#090d16"
+        borderRadius={16}
+        glowRadius={30}
+        glowIntensity={0.6}
+        coneSpread={20}
+        animated={false}
+        colors={['#38bdf8', '#818cf8', '#22c55e']}
+      >
+        <div className="p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+            <div className="flex items-center gap-2">
+              <Bot className="w-5 h-5 text-blue-400" />
+              <h2 className="text-base font-bold text-slate-100 font-mono">STAGE 1: BUYER AI NATURAL LANGUAGE INPUT</h2>
             </div>
-            <EmptyState
-              icon={Handshake}
-              title="No Buyer Intent"
-              description="Enter a natural language purchase request in Phase 3 to parse structured buyer intent."
-            />
+            {isFallbackMode && (
+              <span className="text-xs font-mono px-2.5 py-1 rounded-md bg-amber-950/70 text-amber-400 border border-amber-800/60 flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5" />
+                DEV FALLBACK PARSER (API KEY MISSING / OFFLINE)
+              </span>
+            )}
           </div>
-        </BorderGlow>
 
+          <form onSubmit={handleSubmitRequest} className="space-y-4">
+            <div className="relative">
+              <textarea
+                value={requestText}
+                onChange={(e) => setRequestText(e.target.value)}
+                maxLength={1000}
+                rows={3}
+                placeholder="I need ergonomic setups for 5 developers under ₹60,000. Delivery within 7 days and negotiate the best possible price."
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+              />
+              <div className="absolute right-3 bottom-3 text-[11px] font-mono text-slate-500">
+                {requestText.length} / 1000
+              </div>
+            </div>
+
+            {/* Prompt Chips */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-mono text-slate-400 font-semibold mr-1">EXAMPLE PROMPTS:</span>
+              {SAMPLE_PROMPT_CHIPS.map((chip, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setRequestText(chip)}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 hover:text-slate-100 hover:border-slate-700 transition-colors"
+                >
+                  "{chip}"
+                </button>
+              ))}
+            </div>
+
+            {/* Action Bar */}
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-xs text-slate-400 font-mono">
+                Google Gemini 2.5 Flash Server-Side Intent Parser
+              </span>
+              <button
+                type="submit"
+                disabled={loading || !requestText.trim()}
+                className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-mono text-xs font-bold hover:bg-blue-500 transition-colors disabled:opacity-50 flex items-center gap-2 shadow-lg shadow-blue-950/40"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    PARSING INTENT...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-blue-200" />
+                    PARSE BUYER INTENT
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* Error Alert */}
+          {error && (
+            <div className="p-4 rounded-xl bg-rose-950/40 border border-rose-800/60 text-xs text-rose-300 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{error}</span>
+              </div>
+              <button
+                onClick={() => setError(null)}
+                className="px-3 py-1 bg-rose-900/60 border border-rose-700/50 rounded font-mono text-[11px] hover:bg-rose-800 transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {/* Visual Processing Sequence */}
+          {loading && (
+            <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between text-xs font-mono text-slate-300">
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                  {PROCESSING_STEPS[processingStep]}
+                </span>
+                <span>STEP {processingStep + 1} / 5</span>
+              </div>
+              <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                <motion.div
+                  className="bg-blue-500 h-1.5 rounded-full"
+                  initial={{ width: "0%" }}
+                  animate={{ width: `${((processingStep + 1) / 5) * 100}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </BorderGlow>
+
+      {/* Deal Pipeline 3 Columns Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+
+        {/* Column 1: BUYER INTENT DISPLAY */}
+        <div className="space-y-4">
+          {intentResult ? (
+            <BorderGlow
+              edgeSensitivity={25}
+              glowColor="40 80 80"
+              backgroundColor="#090d16"
+              borderRadius={16}
+              glowRadius={30}
+              glowIntensity={0.7}
+              coneSpread={25}
+              animated={false}
+              colors={['#38bdf8', '#818cf8']}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-5 space-y-4"
+              >
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400" />
+                    <h3 className="text-base font-bold text-slate-100 font-mono">1. BUYER INTENT</h3>
+                  </div>
+                  <StatusBadge status="validated" label="PARSED & SAVED" />
+                </div>
+
+                <div className="space-y-3 font-mono text-xs">
+                  {/* Product Need */}
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                    <span className="text-[11px] text-slate-400 font-medium uppercase">PRODUCT NEED</span>
+                    <div className="font-bold text-slate-100 text-sm">{intentResult.productIntent}</div>
+                  </div>
+
+                  {/* Key Metrics Grid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 uppercase">QUANTITY</span>
+                      <div className="font-bold text-slate-100 text-sm">
+                        {intentResult.quantity !== null ? `${intentResult.quantity} units` : <span className="text-slate-500 font-normal italic">Not specified</span>}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 uppercase">BUDGET</span>
+                      <div className="font-bold text-slate-100 text-sm">
+                        {intentResult.budget !== null ? `₹${intentResult.budget.toLocaleString("en-IN")}` : <span className="text-slate-500 font-normal italic">Not specified</span>}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 uppercase">DISCOUNT REQUEST</span>
+                      <div className="font-bold text-slate-100 text-xs">
+                        {intentResult.requestedDiscount !== null ? (
+                          typeof intentResult.requestedDiscount === "number" ? `${intentResult.requestedDiscount}%` : intentResult.requestedDiscount
+                        ) : (
+                          <span className="text-slate-500 font-normal italic">Not specified</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                      <span className="text-[10px] text-slate-400 uppercase">DELIVERY SLA</span>
+                      <div className="font-bold text-slate-100 text-xs">
+                        {intentResult.deliveryMaxDays !== null ? `Within ${intentResult.deliveryMaxDays} days` : <span className="text-slate-500 font-normal italic">Not specified</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Preferences */}
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
+                    <span className="text-[10px] text-slate-400 uppercase">PREFERENCES</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {intentResult.preferences && intentResult.preferences.length > 0 ? (
+                        intentResult.preferences.map((p, i) => (
+                          <span key={i} className="px-2 py-0.5 rounded bg-blue-950/60 border border-blue-800/50 text-blue-300 text-[11px]">
+                            [{p}]
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-500 italic text-[11px]">None specified</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Negotiable Constraints */}
+                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
+                    <span className="text-[10px] text-slate-400 uppercase">NEGOTIABLE TERMS</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {intentResult.negotiableConstraints && intentResult.negotiableConstraints.length > 0 ? (
+                        intentResult.negotiableConstraints.map((n, i) => (
+                          <span key={i} className="px-2 py-0.5 rounded bg-purple-950/60 border border-purple-800/50 text-purple-300 text-[11px]">
+                            [{n}]
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-500 italic text-[11px]">None specified</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Confidence Indicator */}
+                  {(() => {
+                    const badge = getConfidenceBadge(intentResult.confidence);
+                    return (
+                      <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-slate-400 uppercase">PARSER CONFIDENCE</span>
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-bold border ${badge.style}`}>
+                            {badge.label}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-sans leading-tight">
+                          Confidence reflects how clearly the AI could extract the requested constraints from your prompt.
+                        </p>
+                      </div>
+                    );
+                  })()}
+
+                  {/* View Raw JSON Accordion */}
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowRawJson(!showRawJson)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 hover:text-slate-100 transition-colors"
+                    >
+                      <span>{showRawJson ? "Hide Raw Structure" : "View Raw Structure"}</span>
+                      {showRawJson ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                    </button>
+
+                    <AnimatePresence>
+                      {showRawJson && (
+                        <motion.pre
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-2 p-3 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono text-emerald-400 overflow-x-auto"
+                        >
+                          {JSON.stringify(intentResult, null, 2)}
+                        </motion.pre>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              </motion.div>
+            </BorderGlow>
+          ) : (
+            <BorderGlow
+              edgeSensitivity={25}
+              glowColor="40 80 80"
+              backgroundColor="#090d16"
+              borderRadius={12}
+              glowRadius={25}
+              glowIntensity={0.6}
+              coneSpread={20}
+              animated={false}
+              colors={['#38bdf8', '#a855f7']}
+            >
+              <div className="p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h2 className="text-base font-bold text-slate-100 font-mono">1. BUYER INTENT</h2>
+                  <StatusBadge status="neutral" label="STANDBY" />
+                </div>
+                <EmptyState
+                  icon={Handshake}
+                  title="No Buyer Intent Parsed"
+                  description="Submit a purchase prompt above to extract structured commercial intent."
+                />
+              </div>
+            </BorderGlow>
+          )}
+        </div>
+
+        {/* Column 2: MERCHANT OFFER (Standby for Phase 4) */}
         <BorderGlow
           edgeSensitivity={25}
           glowColor="40 80 80"
@@ -61,11 +441,12 @@ export default function DealRoomPage() {
             <EmptyState
               icon={Handshake}
               title="No Offer Generated"
-              description="The Merchant Agent will construct valid offers using real catalog data in Phase 4."
+              description="The Merchant Agent will construct valid commercial offers using real catalog data in Phase 4."
             />
           </div>
         </BorderGlow>
 
+        {/* Column 3: PACT DEAL CONTRACT (Standby for Phase 5) */}
         <BorderGlow
           edgeSensitivity={25}
           glowColor="40 80 80"
@@ -89,10 +470,8 @@ export default function DealRoomPage() {
             />
           </div>
         </BorderGlow>
+
       </div>
     </PageContainer>
   );
 }
-
-
-
