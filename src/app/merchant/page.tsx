@@ -220,8 +220,9 @@ export default function MerchantPage() {
         </div>
       )}
 
-      {/* Metric Cards Row with Staggered Entrance & BorderGlow */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Metric Cards Row with Staggered Entrance & SpotlightCard */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
         {loading ? (
           Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="p-5 rounded-xl bg-slate-900/40 border border-slate-800/60 animate-pulse space-y-3">
