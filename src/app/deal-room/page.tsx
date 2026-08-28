@@ -88,8 +88,16 @@ export default function DealRoomPage() {
       clearInterval(stepInterval);
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to process buyer intent.");
+        const errObj = data.error;
+        let errMsg = "Failed to process buyer intent.";
+        if (typeof errObj === "string") {
+          errMsg = errObj;
+        } else if (errObj && typeof errObj === "object") {
+          errMsg = errObj.message || errObj.code || JSON.stringify(errObj);
+        }
+        throw new Error(errMsg);
       }
+
 
       setProcessingStep(4);
       setIntentResult(data.intent);
