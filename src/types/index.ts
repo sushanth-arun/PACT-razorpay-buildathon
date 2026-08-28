@@ -49,9 +49,11 @@ export interface Merchant {
   maxAutoTransactionAmount: number;
   approvalRequiredAbove: number;
   allowSlowMovingInventoryDiscount: boolean;
+  slowMovingInventoryFlexibility?: boolean;
   createdAt: string;
   updatedAt: string;
 }
+
 
 // 2. Product Entity
 export interface Product {

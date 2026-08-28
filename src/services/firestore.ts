@@ -46,8 +46,21 @@ export async function getMerchant(merchantId: string): Promise<Merchant | null> 
 export async function saveMerchant(merchant: Merchant): Promise<void> {
   if (!db) throw new Error("Firebase DB not initialized");
   const docRef = doc(db, COLLECTIONS.MERCHANTS, merchant.id);
-  await setDoc(docRef, merchant, { merge: true });
+  await setDoc(docRef, { ...merchant, updatedAt: new Date().toISOString() }, { merge: true });
 }
+
+export async function updateMerchantPolicies(
+  merchantId: string,
+  policies: Partial<Pick<Merchant, "maxDiscountPercent" | "minimumMarginPercent" | "maxAutoTransactionAmount" | "approvalRequiredAbove" | "allowSlowMovingInventoryDiscount" | "slowMovingInventoryFlexibility">>
+): Promise<void> {
+  if (!db) throw new Error("Firebase DB not initialized");
+  const docRef = doc(db, COLLECTIONS.MERCHANTS, merchantId);
+  await updateDoc(docRef, {
+    ...policies,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
 
 // 2. Products Service
 export async function getMerchantProducts(merchantId: string): Promise<Product[]> {
