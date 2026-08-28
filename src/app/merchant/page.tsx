@@ -406,8 +406,9 @@ export default function MerchantPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-300 truncate max-w-md">{product.description}</p>
+                          <p className="text-xs text-slate-300 leading-relaxed font-normal mt-0.5">{product.description}</p>
                         </div>
+
 
                         <div className="flex items-center gap-4 shrink-0 font-mono text-xs">
                           {/* Price */}

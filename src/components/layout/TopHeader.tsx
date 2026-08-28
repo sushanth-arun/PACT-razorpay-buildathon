@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Store, ShieldCheck, Database } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { isFirebaseConfigured } from "@/lib/firebase/client";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export const TopHeader: React.FC = () => {
   const [firebaseConfigured, setFirebaseConfigured] = useState<boolean>(false);
@@ -42,6 +43,8 @@ export const TopHeader: React.FC = () => {
           <span className="text-slate-400">RAZORPAY:</span>
           <StatusBadge status="neutral" label="TEST MODE" />
         </div>
+
+        <ThemeToggle />
       </div>
     </header>
   );
