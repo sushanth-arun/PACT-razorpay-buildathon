@@ -13,11 +13,9 @@ import SpotlightCard from "@/components/SpotlightCard";
 import { 
   Store, 
   Package, 
-  Settings, 
   AlertCircle, 
   RefreshCw, 
   Search, 
-  Filter, 
   Edit3, 
   Check, 
   Loader2, 
@@ -31,7 +29,7 @@ import {
 import { getMerchant, getMerchantProducts, updateMerchantPolicies, saveProduct } from "@/services/firestore";
 import { DEMO_MERCHANT_ID } from "@/services/seed";
 import { Merchant, Product } from "@/types";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -125,7 +123,7 @@ export default function MerchantPage() {
     setProducts((prev) => prev.map((p) => (p.id === product.id ? updated : p)));
     try {
       await saveProduct(updated);
-    } catch (err) {
+    } catch {
       setProducts((prev) => prev.map((p) => (p.id === product.id ? product : p)));
       setError("Failed to update product visibility in Firestore.");
     }

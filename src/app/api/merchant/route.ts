@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminDb, isFirebaseAdminConfigured } from "@/lib/firebase/admin";
+import { adminDb } from "@/lib/firebase/admin";
 import { Merchant } from "@/types";
 
 export async function GET(request: Request) {

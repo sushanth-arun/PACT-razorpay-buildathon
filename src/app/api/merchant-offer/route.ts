@@ -157,18 +157,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Check if buyer intent is completely outside ErgoSpace catalog domain (e.g., cars, ice cream)
-    const reqNeedLower = buyerIntent.productIntent.toLowerCase();
-    const isOutofDomain = !allActiveProducts.some((p) =>
-      reqNeedLower.includes(p.category.toLowerCase()) ||
-      p.name.toLowerCase().includes(reqNeedLower) ||
-      p.description?.toLowerCase().includes(reqNeedLower)
-    );
+    // Check if buyer intent is completely outside ErgoSpace catalog domain (e.g., cars, food, vehicles)
+    const reqNeedTokens = buyerIntent.productIntent
+      .toLowerCase()
+      .split(/\W+/)
+      .filter((t) => t.length > 2);
+
+    const isOutOfDomain = reqNeedTokens.length > 0 && !allActiveProducts.some((p) => {
+      const prodText = `${p.name} ${p.category} ${p.description || ""}`.toLowerCase();
+      return reqNeedTokens.some((tok) => {
+        const singular = tok.endsWith("s") ? tok.slice(0, -1) : tok;
+        return prodText.includes(tok) || prodText.includes(singular);
+      });
+    }) && selectedItems.length === 0;
 
     // Determine Merchant Offer Status & Fallbacks
     let offerStatus: MerchantOfferStatus = "OFFER_GENERATED";
 
-    if (isOutofDomain) {
+    if (isOutOfDomain) {
       offerStatus = "NO_VALID_OFFER";
       selectedItems.length = 0;
       alternativeItems.length = 0;

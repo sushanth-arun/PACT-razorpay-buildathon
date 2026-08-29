@@ -1,16 +1,13 @@
-import { db, isFirebaseConfigured } from "@/lib/firebase/client";
+import { db } from "@/lib/firebase/client";
 import {
   collection,
   doc,
   getDoc,
   getDocs,
   setDoc,
-  updateDoc,
   query,
   where,
   orderBy,
-  limit as limitTo,
-  serverTimestamp,
 } from "firebase/firestore";
 import {
   Merchant,

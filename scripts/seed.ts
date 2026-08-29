@@ -6,7 +6,7 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { DEMO_MERCHANT_ID, DEMO_MERCHANT, DEMO_PRODUCTS } from "../src/services/seed";
+import { DEMO_MERCHANT, DEMO_PRODUCTS } from "../src/services/seed";
 
 
 

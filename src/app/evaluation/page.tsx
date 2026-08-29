@@ -94,7 +94,7 @@ export default function EvaluationPage() {
       <SectionCard
         title="FIREWALL TEST SCENARIO MATRIX"
         subtitle="Visual test harness demonstrating PACT policy engine deterministic decisions"
-        badge={<StatusBadge status="neutral" label="PHASE 6 PREVIEW" />}
+        badge={<StatusBadge status="active" label="PHASE 6 LIVE" />}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {evaluationScenarios.map((sc, idx) => (

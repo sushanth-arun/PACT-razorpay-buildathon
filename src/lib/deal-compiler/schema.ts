@@ -45,7 +45,11 @@ export type DealContractStatus =
   | "DRAFT"
   | "COMPILING"
   | "COMPILED"
-  | "COMPILATION_FAILED";
+  | "COMPILATION_FAILED"
+  | "VALIDATING"
+  | "VALIDATED"
+  | "REJECTED"
+  | "PENDING_APPROVAL";
 
 // PACT Deal Contract Zod Schema
 export const DealContractSchema = z.object({
@@ -83,7 +87,16 @@ export const DealContractSchema = z.object({
     approvalRequiredAbove: z.number(),
   }),
 
-  status: z.enum(["DRAFT", "COMPILING", "COMPILED", "COMPILATION_FAILED"]),
+  status: z.enum([
+    "DRAFT",
+    "COMPILING",
+    "COMPILED",
+    "COMPILATION_FAILED",
+    "VALIDATING",
+    "VALIDATED",
+    "REJECTED",
+    "PENDING_APPROVAL",
+  ]),
 
   validationStatus: ValidationStatusSchema,
 

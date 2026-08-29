@@ -393,6 +393,8 @@ Use real Firebase data for all product and pricing information.
 Validate the structured output before saving or displaying it.
 
 Do not implement Razorpay yet.
+
+
 PHASE 5 — ⭐ THE DEAL COMPILER
 
 This is one of the things that makes PACT memorable.
@@ -502,6 +504,9 @@ Add audit events when:
 - deal is compiled
 
 Ensure all calculations are deterministic.
+
+
+
 PHASE 6 — ⭐ PACT FIREWALL
 
 This is arguably the most important engineering phase.

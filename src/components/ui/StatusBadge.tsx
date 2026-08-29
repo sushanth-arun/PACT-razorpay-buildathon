@@ -44,9 +44,9 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, classNa
   const displayText = label || status.toUpperCase();
 
   return (
-    <span className={cn("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border font-mono tracking-wide", style.bg, style.text, className)}>
-      <span className={cn("w-1.5 h-1.5 rounded-full", style.dot)} />
-      {displayText}
+    <span className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold border font-mono tracking-tight shrink-0 whitespace-nowrap", style.bg, style.text, className)}>
+      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", style.dot)} />
+      <span>{displayText}</span>
     </span>
   );
 };

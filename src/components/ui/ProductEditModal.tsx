@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Product } from "@/types";
 import { saveProduct } from "@/services/firestore";
-import { X, Check, Loader2, AlertTriangle, ShieldAlert } from "lucide-react";
+import { X, Check, Loader2, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ProductEditModalProps {

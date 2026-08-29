@@ -21,8 +21,10 @@ export const CountUp: React.FC<CountUpProps> = ({
 }) => {
   const targetNum = typeof to === "number" ? to : parseFloat(to.replace(/[^0-9.-]+/g, "")) || 0;
   const [count, setCount] = useState(from);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (isNaN(targetNum)) return;
     let startTime: number | null = null;
     let animationFrameId: number;
@@ -47,9 +49,9 @@ export const CountUp: React.FC<CountUpProps> = ({
   }
 
   return (
-    <span className={className}>
+    <span className={className} suppressHydrationWarning>
       {prefix}
-      {count.toLocaleString("en-IN")}
+      {mounted ? count.toLocaleString("en-IN") : targetNum.toLocaleString("en-IN")}
       {suffix}
     </span>
   );
