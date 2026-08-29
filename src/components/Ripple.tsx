@@ -2,13 +2,13 @@
 
 import React, { useState } from "react";
 
-interface RippleProps {
+interface RippleProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
   rippleColor?: string;
   duration?: number;
-  [key: string]: any;
 }
+
 
 export const Ripple: React.FC<RippleProps> = ({
   children,

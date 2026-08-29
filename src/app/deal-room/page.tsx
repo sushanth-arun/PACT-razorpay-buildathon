@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { SavedBuyerIntent } from "@/services/buyer-intent-service";
 import { MerchantOffer } from "@/lib/ai/merchant-offer-schema";
+import { DealContract } from "@/lib/deal-compiler/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { Ripple } from "@/components/Ripple";
 
@@ -40,17 +41,24 @@ const PROCESSING_STEPS = [
   "UNDERSTANDING REQUEST",
   "EXTRACTING CONSTRAINTS",
   "NORMALIZING COMMERCIAL INTENT",
-  "VALIDATING STRUCTURE",
-  "BUYER INTENT READY",
+  "SAVING BUYER INTENT",
+  "INTENT READY",
 ];
 
 const MERCHANT_PROCESSING_STEPS = [
-  "ANALYZING BUYER INTENT",
   "SEARCHING FIRESTORE CATALOG",
   "CHECKING AUTHORITATIVE INVENTORY",
   "EVALUATING COMMERCIAL OPTIONS",
   "CONSTRUCTING OFFER",
   "OFFER READY",
+];
+
+const COMPILER_PROCESSING_STEPS = [
+  "VERIFYING PRODUCTS",
+  "RECHECKING PRICES",
+  "CALCULATING TOTAL",
+  "CHECKING CONSTRAINTS",
+  "COMPILING CONTRACT",
 ];
 
 export default function DealRoomPage() {
@@ -69,6 +77,13 @@ export default function DealRoomPage() {
   const [offerResult, setOfferResult] = useState<MerchantOffer | null>(null);
   const [offerError, setOfferError] = useState<string | null>(null);
 
+  // Deal Compiler state
+  const [compilerLoading, setCompilerLoading] = useState(false);
+  const [compilerProcessingStep, setCompilerProcessingStep] = useState(0);
+  const [dealContractResult, setDealContractResult] = useState<DealContract | null>(null);
+  const [compilerError, setCompilerError] = useState<string | null>(null);
+  const [showRawContractJson, setShowRawContractJson] = useState(false);
+
   // Check Gemini server-side health and restore session state on mount
   React.useEffect(() => {
     fetch("/api/buyer-intent")
@@ -81,11 +96,13 @@ export default function DealRoomPage() {
     try {
       const savedIntent = sessionStorage.getItem("pact_intent_result");
       const savedOffer = sessionStorage.getItem("pact_offer_result");
+      const savedContract = sessionStorage.getItem("pact_contract_result");
       const savedText = sessionStorage.getItem("pact_request_text");
 
       if (savedText) setRequestText(savedText);
       if (savedIntent) setIntentResult(JSON.parse(savedIntent));
       if (savedOffer) setOfferResult(JSON.parse(savedOffer));
+      if (savedContract) setDealContractResult(JSON.parse(savedContract));
     } catch {
       // ignore storage errors
     }
@@ -100,6 +117,8 @@ export default function DealRoomPage() {
     setError(null);
     setIntentResult(null);
     setOfferResult(null);
+    setDealContractResult(null);
+    setCompilerError(null);
     setProcessingStep(0);
 
     const stepInterval = setInterval(() => {
@@ -130,7 +149,6 @@ export default function DealRoomPage() {
         throw new Error(errMsg);
       }
 
-
       setProcessingStep(4);
       setIntentResult(data.intent);
       setIsFallbackMode(Boolean(data.isFallback));
@@ -139,6 +157,7 @@ export default function DealRoomPage() {
         sessionStorage.removeItem("pact_request_text");
         sessionStorage.setItem("pact_intent_result", JSON.stringify(data.intent));
         sessionStorage.removeItem("pact_offer_result");
+        sessionStorage.removeItem("pact_contract_result");
       } catch {
         // ignore
       }
@@ -157,6 +176,8 @@ export default function DealRoomPage() {
 
     setOfferLoading(true);
     setOfferError(null);
+    setDealContractResult(null);
+    setCompilerError(null);
     setOfferProcessingStep(0);
 
     const stepInterval = setInterval(() => {
@@ -190,6 +211,7 @@ export default function DealRoomPage() {
       setOfferResult(data.offer);
       try {
         sessionStorage.setItem("pact_offer_result", JSON.stringify(data.offer));
+        sessionStorage.removeItem("pact_contract_result");
       } catch {
         // ignore
       }
@@ -202,6 +224,59 @@ export default function DealRoomPage() {
       setOfferLoading(false);
     }
   };
+
+  const handleCompileDeal = async () => {
+    if (!intentResult?.id || !offerResult?.id || compilerLoading) return;
+
+    setCompilerLoading(true);
+    setCompilerError(null);
+    setCompilerProcessingStep(0);
+
+    const stepInterval = setInterval(() => {
+      setCompilerProcessingStep((prev) => (prev < 4 ? prev + 1 : prev));
+    }, 350);
+
+    try {
+      const res = await fetch("/api/deal/compile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyerIntentId: intentResult.id,
+          merchantOfferId: offerResult.id,
+        }),
+      });
+
+      const data = await res.json();
+      clearInterval(stepInterval);
+
+      if (!res.ok) {
+        const errObj = data.error;
+        let errMsg = "Failed to compile deal contract.";
+        if (typeof errObj === "string") {
+          errMsg = errObj;
+        } else if (errObj && typeof errObj === "object") {
+          errMsg = errObj.message || errObj.code || JSON.stringify(errObj);
+        }
+        throw new Error(errMsg);
+      }
+
+      setCompilerProcessingStep(5);
+      setDealContractResult(data.contract);
+      try {
+        sessionStorage.setItem("pact_contract_result", JSON.stringify(data.contract));
+      } catch {
+        // ignore
+      }
+
+    } catch (err: unknown) {
+      clearInterval(stepInterval);
+      const msg = err instanceof Error ? err.message : "Deal compilation failed.";
+      setCompilerError(msg);
+    } finally {
+      setCompilerLoading(false);
+    }
+  };
+
 
   // Status Badge Logic
   const getHeaderStatusBadge = () => {
@@ -630,16 +705,29 @@ export default function DealRoomPage() {
                   </div>
                 </div>
 
-                {/* Bundle Opportunities */}
-                {offerResult.bundleItems.length > 0 && (
-                  <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
-                    <span className="text-[10px] text-amber-400 uppercase font-bold">BUNDLE RECOMMENDATION</span>
-                    {offerResult.bundleItems.map((b, i) => (
-                      <div key={i} className="flex items-center justify-between text-[11px] text-slate-300">
-                        <span>+ {b.productName}</span>
-                        <span className="font-bold text-slate-200">₹{b.unitPrice.toLocaleString("en-IN")}</span>
-                      </div>
-                    ))}
+                {/* Compile Deal Action Button (Phase 5) */}
+                {offerResult.selectedItems.length > 0 && offerResult.status === "OFFER_GENERATED" && (
+                  <div className="pt-2">
+                    <Ripple className="w-full rounded-xl">
+                      <button
+                        type="button"
+                        onClick={handleCompileDeal}
+                        disabled={compilerLoading}
+                        className="w-full py-2.5 rounded-xl bg-purple-600 text-white font-mono text-xs font-bold hover:bg-purple-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-purple-950/40 cursor-pointer"
+                      >
+                        {compilerLoading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>{COMPILER_PROCESSING_STEPS[compilerProcessingStep]}...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Cpu className="w-4 h-4" />
+                            <span>COMPILE DEAL</span>
+                          </>
+                        )}
+                      </button>
+                    </Ripple>
                   </div>
                 )}
               </motion.div>
@@ -671,23 +759,159 @@ export default function DealRoomPage() {
           )}
         </div>
 
-        {/* Column 3: PACT DEAL CONTRACT (Standby for Phase 5) */}
-        <SpotlightCard
-          spotlightColor="rgba(168, 85, 247, 0.15)"
-          className="bg-slate-950/80 border border-slate-800 p-0 rounded-2xl"
-        >
-          <div className="p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h2 className="text-base font-bold text-slate-100 font-mono">3. PACT DEAL CONTRACT</h2>
-              <StatusBadge status="neutral" label="UNCOMPILED" />
+        {/* Column 3: PACT DEAL CONTRACT (Phase 5 Visual Centerpiece) */}
+        <div className="space-y-4">
+          {dealContractResult ? (
+            <SpotlightCard
+              spotlightColor="rgba(168, 85, 247, 0.25)"
+              className="bg-slate-950/90 border-2 border-purple-800/80 p-0 rounded-2xl shadow-xl shadow-purple-950/20"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                className="p-5 space-y-4 font-mono"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Cpu className="w-4 h-4 text-purple-400 animate-pulse" />
+                      <h2 className="text-sm font-extrabold text-slate-100 uppercase tracking-wider">PACT DEAL CONTRACT</h2>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">#{dealContractResult.dealId}</p>
+                  </div>
+                  <StatusBadge
+                    status={dealContractResult.status === "COMPILED" ? "compiled" : "rejected"}
+                    label={dealContractResult.status}
+                  />
+                </div>
+
+                {/* Validation Checks Timeline */}
+                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-2 text-[11px]">
+                  <span className="text-[10px] text-purple-400 uppercase font-bold tracking-wider">COMPILATION VERIFICATION</span>
+                  <div className="space-y-1.5 pt-1">
+                    {dealContractResult.validationStatus.checks.map((check, idx) => (
+                      <div key={idx} className="flex items-start justify-between gap-2">
+                        <span className="text-[10px] font-bold text-slate-300">{check.rule}:</span>
+                        <div className="flex items-center gap-1.5 text-[10px] text-right">
+                          <span className={check.status === "PASS" ? "text-emerald-400 font-bold" : "text-rose-400 font-bold"}>
+                            [{check.status}]
+                          </span>
+                          <span className="text-slate-400">{check.message}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Failure Alert Box if COMPILATION_FAILED */}
+                {dealContractResult.status === "COMPILATION_FAILED" && (
+                  <div className="p-3 rounded-lg bg-rose-950/80 border border-rose-700/80 text-rose-200 text-xs font-mono space-y-1">
+                    <div className="flex items-center gap-2 font-bold text-rose-300">
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                      <span>DEAL COMPILATION FAILED</span>
+                    </div>
+                    <p className="text-[11px] text-rose-200 pl-6 leading-relaxed">
+                      {dealContractResult.validationStatus.failureReason || "Compilation constraints violated. No contract was established."}
+                    </p>
+                  </div>
+                )}
+
+                {/* Selected Products Table */}
+                {dealContractResult.items.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">CONTRACTED ITEMS</span>
+                    <div className="divide-y divide-slate-800/80 rounded-lg bg-slate-950 border border-slate-800 overflow-hidden">
+                      {dealContractResult.items.map((item, idx) => (
+                        <div key={idx} className="p-3 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-100">{item.productName}</span>
+                            <span className="text-xs font-bold text-purple-400">₹{item.lineTotal.toLocaleString("en-IN")}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-slate-400">
+                            <span>{item.quantity} units @ ₹{item.unitPrice.toLocaleString("en-IN")}</span>
+                            <span className="text-[10px] text-emerald-400 font-bold">CATALOG VERIFIED</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Contract Financial Totals */}
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-purple-900/60 space-y-2 text-xs">
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>Subtotal</span>
+                    <span className="font-bold text-slate-200">₹{dealContractResult.subtotal.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-amber-400">
+                    <span>Discount ({dealContractResult.discount.percentage}%)</span>
+                    <span className="font-bold">-₹{dealContractResult.discount.amount.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>Delivery SLA</span>
+                    <span className="font-bold text-slate-200">{dealContractResult.deliveryDays} days</span>
+                  </div>
+                  <div className="pt-2 border-t border-purple-900/80 flex items-center justify-between text-base font-extrabold text-slate-100">
+                    <span className="tracking-wider uppercase">FINAL AMOUNT</span>
+                    <span className="text-emerald-400 text-lg">₹{dealContractResult.finalAmount.toLocaleString("en-IN")}</span>
+                  </div>
+                </div>
+
+                {/* Raw Contract Structure Accordion */}
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowRawContractJson(!showRawContractJson)}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 hover:text-slate-100 transition-colors"
+                  >
+                    <span>{showRawContractJson ? "Hide Structured Contract" : "View Structured Contract"}</span>
+                    {showRawContractJson ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+
+                  <AnimatePresence>
+                    {showRawContractJson && (
+                      <motion.pre
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-2 p-3 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono text-purple-300 overflow-x-auto"
+                      >
+                        {JSON.stringify(dealContractResult, null, 2)}
+                      </motion.pre>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            </SpotlightCard>
+          ) : (
+            <SpotlightCard
+              spotlightColor="rgba(168, 85, 247, 0.15)"
+              className="bg-slate-950/80 border border-slate-800 p-0 rounded-2xl"
+            >
+              <div className="p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h2 className="text-base font-bold text-slate-100 font-mono">3. PACT DEAL CONTRACT</h2>
+                  <StatusBadge status="neutral" label="UNCOMPILED" />
+                </div>
+                <EmptyState
+                  icon={Handshake}
+                  title="Uncompiled Deal"
+                  description={offerResult ? "Click 'COMPILE DEAL' under Merchant Offer to execute deterministic compilation." : "The Deal Compiler will construct deterministic commercial contracts once an offer exists."}
+                />
+              </div>
+            </SpotlightCard>
+          )}
+
+          {compilerError && (
+            <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs font-mono flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{compilerError}</span>
             </div>
-            <EmptyState
-              icon={Handshake}
-              title="Uncompiled Deal"
-              description="The Deal Compiler will create deterministic commercial contracts in Phase 5."
-            />
-          </div>
-        </SpotlightCard>
+          )}
+        </div>
+
 
       </div>
 
