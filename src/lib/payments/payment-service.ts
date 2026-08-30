@@ -166,7 +166,7 @@ export async function createPaymentOrder(
       },
     });
 
-    // 6. Save Order in Firestore
+    // 6. Save Order in Firestore (root and deal sub-collection)
     const newOrder: PACTOrder = {
       id: orderId,
       dealId,
@@ -181,8 +181,9 @@ export async function createPaymentOrder(
     };
 
     await adminDb.collection(ORDERS_COLLECTION).doc(orderId).set(newOrder);
+    await adminDb.collection(DEALS_COLLECTION).doc(dealId).collection(ORDERS_COLLECTION).doc(orderId).set(newOrder);
 
-    // 7. Save Payment record as PAYMENT_PENDING
+    // 7. Save Payment record as PAYMENT_PENDING (root and deal sub-collection)
     const newPayment: PACTPayment = {
       id: paymentId,
       dealId,
@@ -197,11 +198,15 @@ export async function createPaymentOrder(
     };
 
     await adminDb.collection(PAYMENTS_COLLECTION).doc(paymentId).set(newPayment);
+    await adminDb.collection(DEALS_COLLECTION).doc(dealId).collection(PAYMENTS_COLLECTION).doc(paymentId).set(newPayment);
 
-    // 8. Update Deal state to PAYMENT_PENDING
+    // 8. Update Deal state to PAYMENT_PENDING with order foreign keys
     await dealRef.update({
       status: "PAYMENT_PENDING",
       updatedAt: nowStr,
+      orderId,
+      razorpayOrderId: rzOrder.id,
+      paymentId,
     });
 
     // 9. Record Audit Events with merchantId

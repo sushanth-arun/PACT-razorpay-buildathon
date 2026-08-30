@@ -122,21 +122,21 @@ export default function AuthPage() {
       {/* Subtle radial ambient glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-sm relative z-10">
+      <div className="w-full max-w-md relative z-10">
         <SpotlightCard
           spotlightColor="rgba(59, 130, 246, 0.25)"
           className="bg-slate-950/95 border border-slate-800 p-0 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl"
         >
-          <div className="p-6 sm:p-7 space-y-5">
+          <div className="p-7 sm:p-8 space-y-6">
             {/* Embedded PACT Logo & Badge */}
-            <div className="flex items-center justify-center gap-2.5 pb-1">
-              <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-950">
-                <Cpu className="w-4.5 h-4.5" />
+            <div className="flex items-center justify-center gap-3 pb-1">
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-950">
+                <Cpu className="w-6 h-6" />
               </div>
-              <span className="font-mono font-black text-xl tracking-wider text-white">PACT</span>
+              <span className="font-mono font-black text-2xl tracking-wider text-white">PACT</span>
             </div>
             {/* Tab Switcher */}
-            <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs">
+            <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-sm">
               <button
                 type="button"
                 onClick={() => {
@@ -145,7 +145,7 @@ export default function AuthPage() {
                   setError(null);
                   setSuccessMsg(null);
                 }}
-                className={`flex-1 py-2.5 rounded-lg font-bold transition-all cursor-pointer ${
+                className={`flex-1 py-3 rounded-lg font-bold transition-all cursor-pointer ${
                   isLogin && !isForgotPassword
                     ? "bg-blue-600 text-white shadow-md shadow-blue-950"
                     : "text-slate-400 hover:text-slate-200"
@@ -161,7 +161,7 @@ export default function AuthPage() {
                   setError(null);
                   setSuccessMsg(null);
                 }}
-                className={`flex-1 py-2.5 rounded-lg font-bold transition-all cursor-pointer ${
+                className={`flex-1 py-3 rounded-lg font-bold transition-all cursor-pointer ${
                   !isLogin && !isForgotPassword
                     ? "bg-blue-600 text-white shadow-md shadow-blue-950"
                     : "text-slate-400 hover:text-slate-200"
@@ -176,24 +176,24 @@ export default function AuthPage() {
               {/* Role Selector on Signup */}
               {!isLogin && !isForgotPassword && (
                 <div className="space-y-2">
-                  <label className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider block">
+                  <label className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider block">
                     SELECT YOUR ROLE
                   </label>
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setRole("BUYER")}
-                      className={`p-3 rounded-xl border cursor-pointer transition-all text-left flex flex-col gap-1 ${
+                      className={`p-3.5 rounded-xl border cursor-pointer transition-all text-left flex flex-col gap-1.5 ${
                         role === "BUYER"
                           ? "bg-cyan-950/70 border-cyan-500 text-white shadow-md shadow-cyan-950/50"
                           : "bg-slate-900/70 border-slate-800 text-slate-400 hover:border-slate-700"
                       }`}
                     >
-                      <div className="flex items-center gap-1.5 font-mono font-bold text-xs text-cyan-400">
-                        <Bot className="w-4 h-4" />
+                      <div className="flex items-center gap-2 font-mono font-bold text-sm text-cyan-400">
+                        <Bot className="w-5 h-5" />
                         <span>AI BUYER</span>
                       </div>
-                      <p className="text-[10px] text-slate-400 leading-tight">
+                      <p className="text-xs text-slate-400 leading-tight">
                         Discover & negotiate deals
                       </p>
                     </button>
@@ -201,17 +201,17 @@ export default function AuthPage() {
                     <button
                       type="button"
                       onClick={() => setRole("MERCHANT_ADMIN")}
-                      className={`p-3 rounded-xl border cursor-pointer transition-all text-left flex flex-col gap-1 ${
+                      className={`p-3.5 rounded-xl border cursor-pointer transition-all text-left flex flex-col gap-1.5 ${
                         role === "MERCHANT_ADMIN"
                           ? "bg-emerald-950/70 border-emerald-500 text-white shadow-md shadow-emerald-950/50"
                           : "bg-slate-900/70 border-slate-800 text-slate-400 hover:border-slate-700"
                       }`}
                     >
-                      <div className="flex items-center gap-1.5 font-mono font-bold text-xs text-emerald-400">
-                        <Store className="w-4 h-4" />
+                      <div className="flex items-center gap-2 font-mono font-bold text-sm text-emerald-400">
+                        <Store className="w-5 h-5" />
                         <span>MERCHANT</span>
                       </div>
-                      <p className="text-[10px] text-slate-400 leading-tight">
+                      <p className="text-xs text-slate-400 leading-tight">
                         Store catalog & policies
                       </p>
                     </button>
@@ -222,7 +222,7 @@ export default function AuthPage() {
               {/* Display Name on Signup */}
               {!isLogin && !isForgotPassword && (
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-mono text-slate-400 uppercase">
+                  <label className="text-xs font-mono text-slate-300 uppercase">
                     Your Name
                   </label>
                   <div className="relative">
@@ -231,18 +231,18 @@ export default function AuthPage() {
                       placeholder="e.g. Sushanth Arun"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 transition-colors"
                     />
-                    <UserIcon className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <UserIcon className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
                   </div>
                 </div>
               )}
 
               {/* Merchant Store Fields */}
               {!isLogin && !isForgotPassword && role === "MERCHANT_ADMIN" && (
-                <div className="space-y-3 p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-800/40">
+                <div className="space-y-3.5 p-4 rounded-xl bg-emerald-950/20 border border-emerald-800/40">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-mono text-emerald-400 uppercase font-bold">
+                    <label className="text-xs font-mono text-emerald-400 uppercase font-bold">
                       Merchant Store Name *
                     </label>
                     <div className="relative">
@@ -252,14 +252,14 @@ export default function AuthPage() {
                         value={merchantName}
                         onChange={(e) => setMerchantName(e.target.value)}
                         required
-                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-emerald-800/60 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 transition-colors"
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-emerald-800/60 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                       />
-                      <Store className="w-4 h-4 text-emerald-500 absolute left-3 top-3" />
+                      <Store className="w-5 h-5 text-emerald-500 absolute left-3 top-3.5" />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-mono text-slate-400 uppercase">
+                    <label className="text-xs font-mono text-slate-300 uppercase">
                       Store Description
                     </label>
                     <textarea
@@ -267,7 +267,7 @@ export default function AuthPage() {
                       placeholder="High-performance ergonomic furniture..."
                       value={merchantDescription}
                       onChange={(e) => setMerchantDescription(e.target.value)}
-                      className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 transition-colors resize-none"
+                      className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors resize-none"
                     />
                   </div>
                 </div>
@@ -275,7 +275,7 @@ export default function AuthPage() {
 
               {/* Email Address */}
               <div className="space-y-1.5">
-                <label className="text-[11px] font-mono text-slate-400 uppercase">
+                <label className="text-xs font-mono text-slate-300 uppercase">
                   Email Address *
                 </label>
                 <div className="relative">
@@ -285,9 +285,9 @@ export default function AuthPage() {
                     placeholder="name@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 transition-colors"
                   />
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                  <Mail className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
                 </div>
               </div>
 
@@ -295,7 +295,7 @@ export default function AuthPage() {
               {!isForgotPassword && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-mono text-slate-400 uppercase">
+                    <label className="text-xs font-mono text-slate-300 uppercase">
                       Password *
                     </label>
                     {isLogin && (
@@ -306,7 +306,7 @@ export default function AuthPage() {
                           setError(null);
                           setSuccessMsg(null);
                         }}
-                        className="text-[11px] font-mono text-blue-400 hover:text-blue-300 transition-colors"
+                        className="text-xs font-mono text-blue-400 hover:text-blue-300 transition-colors"
                       >
                         Forgot Password?
                       </button>
@@ -319,9 +319,9 @@ export default function AuthPage() {
                       placeholder="••••••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-blue-500 transition-colors font-mono"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 transition-colors font-mono"
                     />
-                    <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <Lock className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
                   </div>
                 </div>
               )}
@@ -329,7 +329,7 @@ export default function AuthPage() {
               {/* Confirm Password on Signup */}
               {!isLogin && !isForgotPassword && (
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-mono text-slate-400 uppercase">
+                  <label className="text-xs font-mono text-slate-300 uppercase">
                     Confirm Password *
                   </label>
                   <div className="relative">
@@ -339,24 +339,24 @@ export default function AuthPage() {
                       placeholder="••••••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-blue-500 transition-colors font-mono"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 transition-colors font-mono"
                     />
-                    <KeyRound className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                    <KeyRound className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
                   </div>
                 </div>
               )}
 
               {/* Feedback messages */}
               {error && (
-                <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                <div className="p-3.5 rounded-xl bg-rose-950/50 border border-rose-800/80 text-rose-300 text-sm flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
                   <span>{error}</span>
                 </div>
               )}
 
               {successMsg && (
-                <div className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-800/80 text-emerald-300 text-xs flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <div className="p-3.5 rounded-xl bg-emerald-950/50 border border-emerald-800/80 text-emerald-300 text-sm flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
                   <span>{successMsg}</span>
                 </div>
               )}
@@ -367,27 +367,27 @@ export default function AuthPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-mono text-xs font-bold transition-all shadow-xl shadow-blue-950/60 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-mono text-sm font-bold transition-all shadow-xl shadow-blue-950/60 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {loading ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="w-5 h-5 animate-spin" />
                         <span>PROCESSING...</span>
                       </>
                     ) : isForgotPassword ? (
                       <>
                         <span>SEND RESET LINK</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ArrowRight className="w-4 h-4" />
                       </>
                     ) : isLogin ? (
                       <>
                         <span>SIGN IN TO PACT</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ArrowRight className="w-4 h-4" />
                       </>
                     ) : (
                       <>
                         <span>CREATE {role} ACCOUNT</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ArrowRight className="w-4 h-4" />
                       </>
                     )}
                   </button>
@@ -402,7 +402,7 @@ export default function AuthPage() {
                       setIsForgotPassword(false);
                       setIsLogin(true);
                     }}
-                    className="text-xs font-mono text-slate-400 hover:text-slate-200"
+                    className="text-sm font-mono text-slate-400 hover:text-slate-200"
                   >
                     ← Back to Sign In
                   </button>
@@ -411,44 +411,44 @@ export default function AuthPage() {
             </form>
 
             {/* Quick Demo Credentials Footer */}
-            <div className="pt-4 border-t border-slate-800/80 font-mono text-[11px] text-slate-400 space-y-2">
-              <div className="flex items-center justify-between text-[10px] tracking-wider uppercase">
-                <div className="flex items-center gap-1 text-blue-400 font-bold">
-                  <ShieldCheck className="w-3.5 h-3.5" />
+            <div className="pt-5 border-t border-slate-800/80 font-mono text-xs text-slate-400 space-y-2.5">
+              <div className="flex items-center justify-between text-xs tracking-wider uppercase">
+                <div className="flex items-center gap-1.5 text-blue-400 font-bold">
+                  <ShieldCheck className="w-4 h-4" />
                   <span>PRE-SEEDED DEMO ACCOUNTS</span>
                 </div>
-                <span className="text-slate-500 font-bold">PASSWORD: pact123456</span>
+                <span className="text-slate-400 font-bold">PW: pact123456</span>
               </div>
-              <div className="grid grid-cols-1 gap-1.5 text-[10px]">
-                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800">
-                  <span className="text-slate-300 font-bold">AI Buyer:</span>
-                  <code className="text-blue-300">buyer@pact.ai</code>
-                  <span className="text-slate-500">Global Buyer</span>
+              <div className="grid grid-cols-1 gap-2 text-xs">
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                  <span className="text-slate-200 font-bold">AI Buyer:</span>
+                  <code className="text-blue-300 font-semibold">buyer@pact.ai</code>
+                  <span className="text-slate-400">Global Buyer</span>
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
                   <span className="text-emerald-300 font-bold">ErgoSpace:</span>
-                  <code className="text-slate-300">merchant@ergospace.com</code>
-                  <span className="text-slate-500">Seating & Desks</span>
+                  <code className="text-slate-200 font-semibold">merchant@ergospace.com</code>
+                  <span className="text-slate-400">Seating & Desks</span>
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
                   <span className="text-emerald-300 font-bold">DeskForge:</span>
-                  <code className="text-slate-300">merchant@deskforge.com</code>
-                  <span className="text-slate-500">Motorized Desks</span>
+                  <code className="text-slate-200 font-semibold">merchant@deskforge.com</code>
+                  <span className="text-slate-400">Motorized Desks</span>
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
                   <span className="text-emerald-300 font-bold">CyberTech:</span>
-                  <code className="text-slate-300">merchant@cybertech.com</code>
-                  <span className="text-slate-500">Dev Battlestations</span>
+                  <code className="text-slate-200 font-semibold">merchant@cybertech.com</code>
+                  <span className="text-slate-400">Battlestations</span>
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
                   <span className="text-emerald-300 font-bold">OfficePro:</span>
-                  <code className="text-slate-300">merchant@officepro.com</code>
-                  <span className="text-slate-500">Enterprise AV</span>
+                  <code className="text-slate-200 font-semibold">merchant@officepro.com</code>
+                  <span className="text-slate-400">Enterprise AV</span>
                 </div>
-                <div className="flex items-center justify-between p-2 rounded-lg bg-slate-900/80 border border-slate-800">
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
                   <span className="text-emerald-300 font-bold">NordicLiving:</span>
-                  <code className="text-slate-300">merchant@nordicliving.com</code>
-                  <span className="text-slate-500">Minimalist Wood</span>
+                  <code className="text-slate-200 font-semibold">merchant@nordicliving.com</code>
+                  <span className="text-slate-400">Minimalist Wood</span>
                 </div>
               </div>
             </div>

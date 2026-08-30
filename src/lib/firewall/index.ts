@@ -446,15 +446,29 @@ export async function evaluateDealWithFirewall(
     },
   };
 
-  // 5. Persist Policy Evaluation to Firestore
+  // 5. Persist Policy Evaluation to Firestore with Dual-Level Consistency
   if (adminDb) {
     try {
+      // Root collection persistence
       await adminDb.collection(POLICY_EVALUATIONS_COLLECTION).doc(evalId).set(firewallEvaluation);
-      // Update Deal Contract document status in Firestore
+
+      // Hierarchical sub-collection persistence deals/{dealId}/policy_evaluations/{evalId}
+      await adminDb
+        .collection(DEALS_COLLECTION)
+        .doc(dealId)
+        .collection(POLICY_EVALUATIONS_COLLECTION)
+        .doc(evalId)
+        .set(firewallEvaluation);
+
+      // Update Deal Contract document status and foreign keys in Firestore
       await adminDb.collection(DEALS_COLLECTION).doc(dealId).update({
         status: overallStatus,
         updatedAt: nowStr,
         lastFirewallEvaluationId: evalId,
+        firewallStatus: overallStatus,
+        firewallSummary: summaryMessage,
+        firewallRulesPassed: passedCount,
+        firewallRulesTotal: evaluations.length,
       });
     } catch (err) {
       console.error("Failed to persist Firewall Evaluation in Firestore:", err);

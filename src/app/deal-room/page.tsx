@@ -828,8 +828,8 @@ function DealRoomContent() {
                 onChange={(e) => setRequestText(e.target.value)}
                 maxLength={1000}
                 rows={3}
-                placeholder="I need ergonomic setups for 5 developers under ₹60,000. Delivery within 7 days and negotiate the best possible price."
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl text-sm font-mono text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
+                placeholder="Enter your purchase request here, or select a recommended prompt below..."
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl text-sm font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-blue-500 transition-colors resize-none"
               />
               <div className="absolute right-3 bottom-3 text-[11px] font-mono text-slate-500">
                 {requestText.length} / 1000
@@ -912,8 +912,8 @@ function DealRoomContent() {
       </SpotlightCard>
       )}
 
-      {/* Lifecycle Pipeline View (Stages 1-4) */}
-      {(selectedStage === "ALL" || selectedStage === 1 || selectedStage === 2 || selectedStage === 3 || selectedStage === 4) && (
+      {/* Lifecycle Pipeline View (Stages 1-4) - only shown once buyer intent has been parsed */}
+      {Boolean(intentResult || offerResult || dealContractResult) && (selectedStage === "ALL" || selectedStage === 1 || selectedStage === 2 || selectedStage === 3 || selectedStage === 4) && (
         <div
           className={`grid gap-6 pt-2 items-start ${
             selectedStage === "ALL"

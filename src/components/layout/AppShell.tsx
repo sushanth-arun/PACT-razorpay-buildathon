@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/layout/AppSidebar";
-import { TopHeader } from "@/components/layout/TopHeader";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 
 export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -35,7 +35,8 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   if (isAuthPage) {
     return (
-      <main className="min-h-screen w-full bg-slate-950 flex flex-col justify-center items-center">
+      <main className="min-h-screen w-full bg-slate-950 flex flex-col justify-center items-center relative">
+        <ThemeToggle />
         {children}
       </main>
     );
@@ -54,9 +55,9 @@ export const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) 
     <div className="flex min-h-screen w-full pl-64">
       <AppSidebar />
       <div className="flex-1 flex flex-col min-w-0">
-        <TopHeader />
         <main className="flex-1 bg-slate-950/50">{children}</main>
       </div>
+      <ThemeToggle />
     </div>
   );
 };

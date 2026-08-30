@@ -69,19 +69,6 @@ export function DealStepper({
               <span className="text-[10px] opacity-70">↗</span>
             </a>
           )}
-
-          <span className="text-[11px] text-slate-400">View Mode:</span>
-          <button
-            type="button"
-            onClick={() => onSelectStep("ALL")}
-            className={`px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
-              selectedStep === "ALL"
-                ? "bg-blue-600 text-white shadow-md shadow-blue-900/50"
-                : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800"
-            }`}
-          >
-            ALL 5 GATES
-          </button>
         </div>
       </div>
 

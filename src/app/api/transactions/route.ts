@@ -50,15 +50,22 @@ export async function GET(req: NextRequest) {
     }
 
     // Combine into rich transaction records
-    const transactions = orders.map((order) => {
-      const deal = dealsMap[order.dealId] || null;
-      return {
-        id: order.id,
-        orderId: order.id,
-        dealId: order.dealId,
-        merchantId: order.merchantId,
-        merchantName: deal?.merchantName || order.merchantId || "ErgoSpace",
-        amount: order.amount / 100, // paise to INR
+    const transactions = orders
+      .filter((order) => {
+        // If deals collection was wiped or deal was deleted, omit orphaned records
+        if (!order.dealId) return false;
+        const deal = dealsMap[order.dealId];
+        return Boolean(deal);
+      })
+      .map((order) => {
+        const deal = dealsMap[order.dealId] || null;
+        return {
+          id: order.id,
+          orderId: order.id,
+          dealId: order.dealId,
+          merchantId: order.merchantId,
+          merchantName: deal?.merchantName || order.merchantId || "ErgoSpace",
+          amount: order.amount / 100, // paise to INR
         status: order.status === "PAID" ? "PAID" : order.status === "CREATED" ? "PENDING" : order.status,
         razorpayOrderId: order.razorpayOrderId,
         createdAt: order.createdAt,

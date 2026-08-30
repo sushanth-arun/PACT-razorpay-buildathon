@@ -118,107 +118,6 @@ function getEventStatus(eventType: AuditEventType): {
   return { type: "INFO", icon: Info, color: "text-blue-400" };
 }
 
-// 7-Stage PACT Lifecycle Milestone Checker
-interface LifecycleStageState {
-  id: string;
-  label: string;
-  sublabel: string;
-  status: "COMPLETE" | "FAILED" | "WARNING" | "ACTIVE" | "BLOCKED" | "NOT_STARTED";
-}
-
-function deriveLifecycleFromEvents(events: AuditEvent[]): LifecycleStageState[] {
-  const eventSet = new Set(events.map((e) => e.eventType));
-
-  // 1. BUYER REQUEST
-  const hasRequest = eventSet.has("BUYER_REQUEST_RECEIVED");
-
-  // 2. BUYER AGENT
-  const hasIntent = eventSet.has("BUYER_INTENT_PARSED");
-
-  // 3. MERCHANT AGENT
-  const hasOffer = eventSet.has("MERCHANT_OFFER_GENERATED");
-  const offerFailed = eventSet.has("MERCHANT_OFFER_FAILED");
-
-  // 4. DEAL COMPILER
-  const hasCompiled = eventSet.has("DEAL_COMPILED");
-  const compileFailed = eventSet.has("DEAL_COMPILATION_FAILED");
-
-  // 5. PACT FIREWALL
-  const firewallValidated = eventSet.has("DEAL_VALIDATED");
-  const firewallRejected = eventSet.has("DEAL_REJECTED");
-  const firewallPending = eventSet.has("HUMAN_APPROVAL_REQUIRED");
-
-  // 6. APPROVAL / RAZORPAY GATE
-  const hasOrder = eventSet.has("RAZORPAY_ORDER_CREATED") || eventSet.has("PAYMENT_INITIATED");
-
-  // 7. RESULT / PAYMENT
-  const paymentPaid = eventSet.has("PAYMENT_SUCCESSFUL");
-  const paymentFailed = eventSet.has("PAYMENT_FAILED");
-
-  return [
-    {
-      id: "BUYER_REQUEST",
-      label: "BUYER REQUEST",
-      sublabel: "Natural Language",
-      status: hasRequest || hasIntent ? "COMPLETE" : "NOT_STARTED",
-    },
-    {
-      id: "BUYER_AGENT",
-      label: "BUYER AGENT",
-      sublabel: "Intent Extraction",
-      status: hasIntent ? "COMPLETE" : hasRequest ? "ACTIVE" : "NOT_STARTED",
-    },
-    {
-      id: "MERCHANT_AGENT",
-      label: "MERCHANT AGENT",
-      sublabel: "Catalog Match",
-      status: hasOffer ? "COMPLETE" : offerFailed ? "FAILED" : hasIntent ? "ACTIVE" : "BLOCKED",
-    },
-    {
-      id: "DEAL_COMPILER",
-      label: "DEAL COMPILER",
-      sublabel: "Deterministic Contract",
-      status: hasCompiled ? "COMPLETE" : compileFailed ? "FAILED" : hasOffer ? "ACTIVE" : "BLOCKED",
-    },
-    {
-      id: "PACT_FIREWALL",
-      label: "PACT FIREWALL",
-      sublabel: "9 Security Gates",
-      status: firewallValidated
-        ? "COMPLETE"
-        : firewallPending
-        ? "WARNING"
-        : firewallRejected
-        ? "FAILED"
-        : hasCompiled
-        ? "ACTIVE"
-        : "BLOCKED",
-    },
-    {
-      id: "RAZORPAY_ORDER",
-      label: "RAZORPAY GATE",
-      sublabel: "Server Order",
-      status: hasOrder
-        ? "COMPLETE"
-        : firewallValidated
-        ? "ACTIVE"
-        : "BLOCKED",
-    },
-    {
-      id: "PAYMENT_CONFIRMED",
-      label: "SETTLEMENT",
-      sublabel: "HMAC Verified",
-      status: paymentPaid
-        ? "COMPLETE"
-        : paymentFailed
-        ? "FAILED"
-        : hasOrder
-        ? "ACTIVE"
-        : "BLOCKED",
-    },
-  ];
-}
-
 function AuditPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -312,11 +211,6 @@ function AuditPageContent() {
       return next;
     });
   };
-
-  // Compute deal lifecycle state
-  const lifecycleStages = useMemo(() => {
-    return deriveLifecycleFromEvents(events);
-  }, [events]);
 
   // Summary Metrics
   const metrics = useMemo(() => {
@@ -514,58 +408,6 @@ function AuditPageContent() {
           <p className="text-xl font-extrabold text-amber-400">{metrics.warnings}</p>
         </div>
       </div>
-
-      {/* 🧭 DEAL LIFECYCLE RECONSTRUCTION RAIL */}
-      <SpotlightCard
-        spotlightColor="rgba(168, 85, 247, 0.15)"
-        className="bg-slate-950/90 border border-slate-800 p-5 rounded-3xl shadow-xl font-mono"
-      >
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-purple-400" />
-              <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
-                DEAL LIFECYCLE RECONSTRUCTION {selectedDealId ? `(#${selectedDealId})` : "(AGGREGATE)"}
-              </span>
-            </div>
-            <span className="text-[11px] text-slate-400">Derived from verified cryptographic audit records</span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-            {lifecycleStages.map((stage, idx) => {
-              let statusBg = "bg-slate-900/60 border-slate-800 text-slate-500";
-              let badgeColor = "text-slate-500";
-
-              if (stage.status === "COMPLETE") {
-                statusBg = "bg-emerald-950/70 border-emerald-800 text-emerald-300";
-                badgeColor = "text-emerald-400";
-              } else if (stage.status === "FAILED") {
-                statusBg = "bg-rose-950/70 border-rose-800 text-rose-300";
-                badgeColor = "text-rose-400";
-              } else if (stage.status === "WARNING") {
-                statusBg = "bg-amber-950/70 border-amber-800 text-amber-300";
-                badgeColor = "text-amber-400";
-              } else if (stage.status === "ACTIVE") {
-                statusBg = "bg-blue-950/70 border-blue-800 text-blue-300";
-                badgeColor = "text-blue-400";
-              }
-
-              return (
-                <div key={stage.id} className={`p-3 rounded-2xl border text-center space-y-1.5 ${statusBg}`}>
-                  <div className="flex items-center justify-center gap-1 text-[10px] text-slate-400 font-bold">
-                    <span>{idx + 1}.</span>
-                    <span className="truncate">{stage.label}</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 truncate">{stage.sublabel}</p>
-                  <span className={`inline-block text-[10px] font-extrabold uppercase ${badgeColor}`}>
-                    [{stage.status}]
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </SpotlightCard>
 
       {/* Main Audit Trail Timeline */}
       <div className="space-y-4">

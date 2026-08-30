@@ -51,7 +51,18 @@ export async function recordAuditEvent(
 
   if (adminDb) {
     try {
+      // 1. Root audit_events collection for global querying
       await adminDb.collection(AUDIT_EVENTS_COLLECTION).doc(eventId).set(auditDoc);
+
+      // 2. Hierarchical sub-collection deals/{dealId}/audit_events/{eventId} for direct deal containment
+      if (dealId && dealId !== "system") {
+        await adminDb
+          .collection("deals")
+          .doc(dealId)
+          .collection("audit_events")
+          .doc(eventId)
+          .set(auditDoc);
+      }
     } catch (err) {
       console.error("[PACT Audit Service] Failed to write audit event to Firestore:", err);
     }
