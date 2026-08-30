@@ -44,15 +44,6 @@ export async function compileDeal(options: CompileOptions): Promise<CompileResul
   const dealId = `deal_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const nowStr = new Date().toISOString();
 
-  await recordAuditEvent(
-    "DEAL_COMPILATION_STARTED",
-    "DEAL_COMPILER",
-    `Started deterministic deal compilation for BuyerIntent: ${buyerIntentId} and MerchantOffer: ${merchantOfferId}`,
-    { buyerIntentId, merchantOfferId, dealId }
-  );
-
-  const checks: DealCheckResult[] = [];
-
   // 1. Retrieve Buyer Intent from Firestore
   let buyerIntentDoc: SavedBuyerIntent | null = null;
   if (adminDb) {
@@ -64,13 +55,6 @@ export async function compileDeal(options: CompileOptions): Promise<CompileResul
     } catch (err) {
       console.error("Failed to retrieve buyer intent in compiler:", err);
     }
-  }
-
-  if (!buyerIntentDoc) {
-    const errorMsg = `BuyerIntent ${buyerIntentId} not found in Firestore.`;
-    return createFailedResult(dealId, merchantOfferId, buyerIntentId, errorMsg, [
-      { rule: "PRODUCT_VALIDITY", status: "FAIL", message: errorMsg },
-    ]);
   }
 
   // 2. Retrieve Merchant Offer from Firestore
@@ -86,14 +70,30 @@ export async function compileDeal(options: CompileOptions): Promise<CompileResul
     }
   }
 
+  const merchantId = merchantOfferDoc?.merchantId || (buyerIntentDoc as unknown as { targetMerchantId?: string })?.targetMerchantId || DEMO_MERCHANT_ID;
+
+  await recordAuditEvent(
+    "DEAL_COMPILATION_STARTED",
+    "DEAL_COMPILER",
+    `Started deterministic deal compilation for BuyerIntent: ${buyerIntentId} and MerchantOffer: ${merchantOfferId}`,
+    { buyerIntentId, merchantOfferId, dealId, merchantId }
+  );
+
+  const checks: DealCheckResult[] = [];
+
+  if (!buyerIntentDoc) {
+    const errorMsg = `BuyerIntent ${buyerIntentId} not found in Firestore.`;
+    return createFailedResult(dealId, merchantOfferId, buyerIntentId, errorMsg, [
+      { rule: "PRODUCT_VALIDITY", status: "FAIL", message: errorMsg },
+    ]);
+  }
+
   if (!merchantOfferDoc) {
     const errorMsg = `MerchantOffer ${merchantOfferId} not found in Firestore.`;
     return createFailedResult(dealId, merchantOfferId, buyerIntentId, errorMsg, [
       { rule: "PRODUCT_VALIDITY", status: "FAIL", message: errorMsg },
     ]);
   }
-
-  const merchantId = merchantOfferDoc.merchantId || DEMO_MERCHANT_ID;
 
   // 3. Retrieve Authoritative Merchant Policies from Firestore
   let merchantDoc: Merchant | null = null;
@@ -437,6 +437,7 @@ export async function compileDeal(options: CompileOptions): Promise<CompileResul
     `Successfully compiled PACT Deal Contract #${dealId.substring(0, 10)} for ₹${finalAmount.toLocaleString("en-IN")}. All ${checks.length} compilation checks PASSED.`,
     {
       dealId,
+      merchantId,
       buyerIntentId,
       merchantOfferId,
       subtotal,
@@ -534,7 +535,7 @@ function createFailedResult(
     "DEAL_COMPILATION_FAILED",
     "DEAL_COMPILER",
     `Deal compilation failed for ${dealId}: ${failureReason}`,
-    { dealId, buyerIntentId, merchantOfferId, failureReason, checks }
+    { dealId, merchantId: merchantOfferDoc?.merchantId, buyerIntentId, merchantOfferId, failureReason, checks }
   );
 
   return {

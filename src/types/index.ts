@@ -39,17 +39,32 @@ export type AuditEventType =
   | "PAYMENT_SUCCESSFUL"
   | "PAYMENT_FAILED";
 
+export type UserRole = "BUYER" | "MERCHANT_ADMIN";
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  role: UserRole;
+  displayName?: string;
+  merchantId?: string; // required if role === 'MERCHANT_ADMIN'
+  createdAt: string;
+  updatedAt: string;
+}
+
 // 1. Merchant Entity
 export interface Merchant {
   id: string;
   name: string;
   description: string;
+  ownerUid?: string;
+  categories?: string[];
   maxDiscountPercent: number;
   minimumMarginPercent: number;
   maxAutoTransactionAmount: number;
   approvalRequiredAbove: number;
   allowSlowMovingInventoryDiscount: boolean;
   slowMovingInventoryFlexibility?: boolean;
+  active?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -170,6 +185,35 @@ export interface AuditEvent {
   eventType: AuditEventType;
   humanReadableMessage: string;
   metadata?: Record<string, unknown>;
+}
+
+// 9. Transaction Record
+export interface TransactionRecord {
+  id: string;
+  orderId: string;
+  dealId: string;
+  merchantId: string;
+  merchantName: string;
+  amount: number;
+  currency?: string;
+  status: string;
+  dealStatus?: string;
+  itemsCount?: number;
+  subtotal?: number;
+  finalAmount?: number;
+  discount?: { amount: number; percentage: number; reasoning?: string };
+  items?: Array<{
+    productId: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    lineTotal: number;
+  }>;
+  createdAt: string;
+  updatedAt?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  buyerSummary?: string;
 }
 
 

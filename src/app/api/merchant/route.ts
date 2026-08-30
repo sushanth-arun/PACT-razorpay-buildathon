@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
+import { getAuthenticatedUserFromRequest } from "@/lib/auth/auth-service";
 import { Merchant } from "@/types";
 
 export async function GET(request: Request) {
@@ -34,21 +35,37 @@ export async function GET(request: Request) {
     });
   } catch (error: unknown) {
     const errMessage = error instanceof Error ? error.message : "Unknown error reading merchant";
-    const isPermission = errMessage.toLowerCase().includes("permission") || errMessage.toLowerCase().includes("unauthenticated");
     return NextResponse.json(
       {
-        errorType: isPermission ? "PERMISSION_DENIED" : "SERVER_ERROR",
+        errorType: "SERVER_ERROR",
         error: errMessage,
       },
-      { status: isPermission ? 403 : 500 }
+      { status: 500 }
     );
   }
 }
 
 export async function PATCH(request: Request) {
   try {
+    // 1. Authoritative Server-Side User Verification
+    const authUser = await getAuthenticatedUserFromRequest(request);
     const body = await request.json();
-    const { merchantId = "ergospace", policies } = body;
+    const { policies } = body;
+    let merchantId = body.merchantId || "ergospace";
+
+    // 2. Multi-tenant isolation check: A logged-in MERCHANT_ADMIN can ONLY modify their own merchant policies
+    if (authUser && authUser.role === "MERCHANT_ADMIN" && authUser.merchantId) {
+      if (merchantId !== authUser.merchantId) {
+        return NextResponse.json(
+          {
+            errorType: "FORBIDDEN",
+            error: `Access Denied: You cannot modify policies for merchant '${merchantId}'.`,
+          },
+          { status: 403 }
+        );
+      }
+      merchantId = authUser.merchantId;
+    }
 
     if (!adminDb) {
       return NextResponse.json(

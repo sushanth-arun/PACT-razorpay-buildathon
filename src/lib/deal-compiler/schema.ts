@@ -49,7 +49,9 @@ export type DealContractStatus =
   | "VALIDATING"
   | "VALIDATED"
   | "REJECTED"
-  | "PENDING_APPROVAL";
+  | "PENDING_APPROVAL"
+  | "PAYMENT_PENDING"
+  | "PAID";
 
 // PACT Deal Contract Zod Schema
 export const DealContractSchema = z.object({
@@ -96,6 +98,8 @@ export const DealContractSchema = z.object({
     "VALIDATED",
     "REJECTED",
     "PENDING_APPROVAL",
+    "PAYMENT_PENDING",
+    "PAID",
   ]),
 
   validationStatus: ValidationStatusSchema,

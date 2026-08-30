@@ -53,11 +53,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const requestedMerchantId = body?.merchantId || (buyerIntent as unknown as { targetMerchantId?: string }).targetMerchantId || DEMO_MERCHANT_ID;
+
     // 2. Retrieve Merchant Data & Governance Policies
-    const merchant: Merchant | null = await getMerchantPolicies(DEMO_MERCHANT_ID);
+    const merchant: Merchant | null = await getMerchantPolicies(requestedMerchantId);
     if (!merchant) {
       return NextResponse.json(
-        { success: false, error: { code: "MERCHANT_NOT_FOUND", message: "ErgoSpace merchant profile not found in Firestore." } },
+        { success: false, error: { code: "MERCHANT_NOT_FOUND", message: `Merchant profile '${requestedMerchantId}' not found in Firestore.` } },
         { status: 500 }
       );
     }
@@ -66,12 +68,12 @@ export async function POST(req: NextRequest) {
     await recordAuditEvent(
       "MERCHANT_POLICIES_RETRIEVED",
       "MERCHANT_AGENT",
-      `Loaded ErgoSpace governance policies: Max Discount ${merchant.maxDiscountPercent}%, Min Margin ${merchant.minimumMarginPercent}%.`,
-      { maxDiscountCap: merchant.maxDiscountPercent }
+      `Loaded ${merchant.name} governance policies: Max Discount ${merchant.maxDiscountPercent}%, Min Margin ${merchant.minimumMarginPercent}%.`,
+      { merchantId: merchant.id, maxDiscountCap: merchant.maxDiscountPercent }
     );
 
     // 3. Retrieve Candidate Products from Firestore
-    const candidateProducts: Product[] = await searchProducts(DEMO_MERCHANT_ID, {
+    const candidateProducts: Product[] = await searchProducts(merchant.id, {
       query: buyerIntent.productIntent,
     });
 
@@ -258,7 +260,7 @@ export async function POST(req: NextRequest) {
     const rawMerchantOffer = {
       id: offerId,
       buyerIntentId,
-      merchantId: DEMO_MERCHANT_ID,
+      merchantId: requestedMerchantId,
       status: offerStatus,
       selectedItems: totals.items,
       alternativeItems,
@@ -295,15 +297,15 @@ export async function POST(req: NextRequest) {
     await recordAuditEvent(
       "MERCHANT_OFFER_GENERATED",
       "MERCHANT_AGENT",
-      `Merchant offer generated: ${selectedItems.length} items, subtotal ₹${totals.subtotal.toLocaleString("en-IN")}, final ₹${totals.estimatedFinalAmount.toLocaleString("en-IN")}.`,
-      { status: offerStatus, finalAmount: totals.estimatedFinalAmount }
+      `Merchant offer generated for ${merchant.name}: ${selectedItems.length} items, subtotal ₹${totals.subtotal.toLocaleString("en-IN")}, final ₹${totals.estimatedFinalAmount.toLocaleString("en-IN")}.`,
+      { merchantId: requestedMerchantId, status: offerStatus, finalAmount: totals.estimatedFinalAmount }
     );
 
     await recordAuditEvent(
       "MERCHANT_OFFER_VALIDATED",
       "MERCHANT_AGENT",
-      `Merchant offer verified against ErgoSpace max discount policy (${merchant.maxDiscountPercent}% cap).`,
-      { maxDiscountCap: merchant.maxDiscountPercent }
+      `Merchant offer verified against ${merchant.name} max discount policy (${merchant.maxDiscountPercent}% cap).`,
+      { merchantId: requestedMerchantId, maxDiscountCap: merchant.maxDiscountPercent }
     );
 
     return NextResponse.json({

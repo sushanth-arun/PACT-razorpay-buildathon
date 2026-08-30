@@ -42,8 +42,11 @@ export async function saveBuyerIntent(
 }
 
 
+import { recordAuditEvent as recordAuditEventInternal } from "@/lib/audit/audit-service";
+import { AuditActor, AuditEventType } from "@/lib/audit/schema";
+
 /**
- * Records real Audit Events into Firestore
+ * Records real Audit Events into Firestore (delegates to centralized audit service)
  */
 export async function recordAuditEvent(
   eventType: string,
@@ -51,21 +54,10 @@ export async function recordAuditEvent(
   humanReadableMessage: string,
   metadata?: Record<string, unknown>
 ): Promise<void> {
-  const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  const auditDoc = {
-    id: eventId,
-    timestamp: new Date().toISOString(),
-    actor,
-    eventType,
+  await recordAuditEventInternal(
+    eventType as AuditEventType,
+    actor as AuditActor,
     humanReadableMessage,
-    metadata: metadata || {},
-  };
-
-  if (adminDb) {
-    try {
-      await adminDb.collection(AUDIT_EVENTS_COLLECTION).doc(eventId).set(auditDoc);
-    } catch (err) {
-      console.warn("Failed to record audit event in Firestore:", err);
-    }
-  }
+    metadata
+  );
 }

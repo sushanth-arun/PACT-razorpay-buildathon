@@ -21,6 +21,13 @@ const adminApp = !getApps().length && isFirebaseAdminConfigured()
   : (getApps().length ? getApps()[0] : null);
 
 export const adminDb = adminApp ? getFirestore(adminApp) : null;
+if (adminDb) {
+  try {
+    adminDb.settings({ ignoreUndefinedProperties: true });
+  } catch {
+    // ignore if already configured
+  }
+}
 export const adminAuth = adminApp ? getAuth(adminApp) : null;
 
 

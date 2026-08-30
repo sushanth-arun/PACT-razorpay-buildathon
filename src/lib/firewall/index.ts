@@ -417,15 +417,15 @@ export async function evaluateDealWithFirewall(
     overallStatus = "REJECTED";
     const failedRules = evaluations.filter((e) => e.status === "FAIL").map((e) => e.ruleName).join(", ");
     summaryMessage = `PACT Firewall BLOCKED deal: Critical policy violations detected (${failedRules}).`;
-    await recordAuditEvent("DEAL_REJECTED", "PACT_FIREWALL", summaryMessage, { dealId, failedCount, failedRules });
+    await recordAuditEvent("DEAL_REJECTED", "PACT_FIREWALL", summaryMessage, { dealId, merchantId, failedCount, failedRules });
   } else if (requiresHumanApproval) {
     overallStatus = "PENDING_APPROVAL";
     summaryMessage = `PACT Firewall PASSED core verification: Deal exceeds merchant approval threshold (₹${approvalRequiredAbove.toLocaleString("en-IN")}) and is routed to PENDING_APPROVAL.`;
-    await recordAuditEvent("HUMAN_APPROVAL_REQUIRED", "PACT_FIREWALL", summaryMessage, { dealId });
+    await recordAuditEvent("HUMAN_APPROVAL_REQUIRED", "PACT_FIREWALL", summaryMessage, { dealId, merchantId });
   } else {
     overallStatus = "VALIDATED";
     summaryMessage = "PACT Firewall PASSED: Deal satisfies all commercial, inventory, pricing, budget, and merchant policy constraints.";
-    await recordAuditEvent("DEAL_VALIDATED", "PACT_FIREWALL", summaryMessage, { dealId });
+    await recordAuditEvent("DEAL_VALIDATED", "PACT_FIREWALL", summaryMessage, { dealId, merchantId });
   }
 
   const firewallEvaluation: FirewallEvaluation = {

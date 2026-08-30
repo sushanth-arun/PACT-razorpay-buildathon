@@ -30,11 +30,22 @@ export async function searchProducts(
 ): Promise<Product[]> {
   if (!adminDb) return [];
   try {
-    const snap = await adminDb
+    // 1. Try subcollection first: merchants/{merchantId}/products
+    let snap = await adminDb
+      .collection("merchants")
+      .doc(merchantId)
       .collection("products")
-      .where("merchantId", "==", merchantId)
       .where("active", "==", true)
       .get();
+
+    // 2. Fallback to root collection if subcollection is empty
+    if (snap.empty) {
+      snap = await adminDb
+        .collection("products")
+        .where("merchantId", "==", merchantId)
+        .where("active", "==", true)
+        .get();
+    }
 
     let items: Product[] = [];
     snap.forEach((doc) => {

@@ -67,6 +67,20 @@ BUYER AI ──> BUYER INTENT ──> MERCHANT AGENT ──> MERCHANT OFFER ─�
   8. `HUMAN_APPROVAL_GATE`: Routes high-value transactions (`> ₹50,000`) to `PENDING_APPROVAL`.
   9. `DUPLICATE_PROTECTION`: Idempotent state verification.
 
+### Phase 7: Razorpay Test Mode Payment & Settlement Gate
+- **Zero AI Access**: AI agents are strictly isolated from Razorpay credentials and order generation.
+- **Authoritative Amounts**: The backend reads contract amounts directly from Firestore (`finalAmount` converted to integer paise). Frontend amounts are ignored.
+- **HMAC-SHA256 Verification**: Server-side cryptographic signature verification (`POST /api/payments/verify`) using `RAZORPAY_KEY_SECRET`.
+- **Duplicate Order & Webhook Idempotency**: Atomic checks prevent duplicate order creation, while raw-body verified webhooks (`POST /api/payments/webhook`) ensure safe idempotent state transitions to `PAID`.
+- **5-Gate Deal Room Navigation**: Stage 5 settlement panel with interactive React Bits.
+
+### Phase 8: Complete Audit Trail & Deal Lifecycle Reconstruction
+- **Immutable Append-Only Audit Telemetry**: Centralized server-side audit service (`audit_events` collection) recording real, immutable decision telemetry across all system actors (`USER`, `BUYER_AGENT`, `MERCHANT_AGENT`, `DEAL_COMPILER`, `PACT_FIREWALL`, `RAZORPAY`, `SYSTEM`).
+- **Comprehensive Lifecycle Reconstruction**: Real-time lifecycle state machine (`BUYER REQUEST` → `BUYER AGENT` → `MERCHANT AGENT` → `DEAL COMPILER` → `PACT FIREWALL` → `RAZORPAY GATE` → `SETTLEMENT`) derived purely from verified audit records.
+- **Dynamic Search & Filtering**: Multi-dimensional filtering by Deal ID, Actor, Event Type, and free-text search with chronological (`Oldest → Newest` / `Newest → Oldest`) toggles.
+- **Expandable Structured Metadata Viewer**: Deep inspection of raw telemetry (confidence metrics, rule checks, order IDs) with automated sanitization of sensitive keys (API secrets, CVVs).
+- **Deal Room Deep Linking**: Quick direct link from any active deal contract in Deal Room directly to its filtered Audit Trail.
+
 ---
 
 ## 🛠️ Tech Stack

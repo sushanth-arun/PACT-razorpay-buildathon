@@ -31,12 +31,12 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 }) => {
   return (
     <SpotlightCard
-      spotlightColor="rgba(56, 189, 248, 0.15)"
-      className={cn("bg-slate-950/80 border border-slate-800 p-0 rounded-xl transition-all duration-200 hover:border-slate-700", className)}
+      spotlightColor="rgba(56, 189, 248, 0.2)"
+      className={cn("bg-slate-950/80 border border-slate-800 p-0 rounded-2xl transition-all duration-200 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-950/30", className)}
     >
       <motion.div
-        whileHover={{ y: -2 }}
-        transition={{ duration: 0.2 }}
+        whileHover={{ scale: 1.02 }}
+        transition={{ duration: 0.18, ease: "easeOut" }}
         className="group p-5 space-y-2.5 outline-none cursor-default"
       >
 

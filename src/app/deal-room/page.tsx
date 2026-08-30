@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -23,7 +24,12 @@ import {
   FileText,
   Flame,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  CreditCard,
+  Lock,
+  ExternalLink,
+  Check,
+  Store
 } from "lucide-react";
 import { SavedBuyerIntent } from "@/services/buyer-intent-service";
 import { MerchantOffer } from "@/lib/ai/merchant-offer-schema";
@@ -31,15 +37,100 @@ import { DealContract } from "@/lib/deal-compiler/schema";
 import { FirewallEvaluation } from "@/lib/firewall/schema";
 import { motion, AnimatePresence } from "framer-motion";
 import { Ripple } from "@/components/Ripple";
-import { Magnet } from "@/components/Magnet";
-import BorderGlow from "@/components/BorderGlow";
+import { useDealLifecycle } from "@/hooks/useDealLifecycle";
+import { DealStepper } from "@/components/ui/DealStepper";
+import { getMerchant } from "@/services/firestore";
+import { Merchant } from "@/types";
+
+// Razorpay standard checkout global interface
+interface RazorpaySuccessResponse {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+}
+
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpaySuccessResponse) => void;
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+    method?: string;
+  };
+  notes?: Record<string, string>;
+  theme?: {
+    color?: string;
+  };
+  config?: {
+    display?: {
+      blocks?: Record<string, unknown>;
+      sequence?: string[];
+      preferences?: {
+        show_default_blocks?: boolean;
+      };
+    };
+  };
+  modal?: {
+    ondismiss?: () => void;
+  };
+}
+
+interface RazorpayInstance {
+  open: () => void;
+  on: (event: string, callback: (response: { error?: { description?: string; reason?: string } }) => void) => void;
+}
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
+  }
+}
 
 
-const SAMPLE_PROMPT_CHIPS = [
-  "5 developer setups under ₹60,000",
+const MERCHANT_PROMPT_RECOMMENDATIONS: Record<string, string[]> = {
+  ergospace: [
+    "5 ergonomic chairs for engineering team under ₹60,000",
+    "3 executive leather chairs with dynamic lumbar within 5 days",
+    "10 ErgoChair Lite setups with 10% discount",
+    "Ergonomic lumbar support cushions for 15 developers",
+  ],
+  deskforge: [
+    "4 dual-motor motorized standing desks under ₹1,40,000",
+    "Solid walnut height-adjustable workstation with cable tray",
+    "8 sit-stand motorized desks for developer squad within 5 days",
+    "Ergonomic steel monitor arm and desk setup under ₹20,000",
+  ],
+  cybertech: [
+    "3 Thunderbolt 4 enterprise docking stations with 4K output",
+    "5 split ergonomic mechanical keyboards with OLED displays",
+    "Developer battlestation bundle under ₹80,000 with 8% discount",
+    "Apex code executive recliner chair with carbon skeleton",
+  ],
+  officepro: [
+    "Acoustic single privacy phone booth for open office under ₹2,00,000",
+    "4K enterprise video bar conference setup under ₹90,000",
+    "Sound-dampening executive workspace kit with fast delivery",
+    "Conference room AV equipment bundle for board room",
+  ],
+  nordicliving: [
+    "4 minimalist birch natural wood desks under ₹90,000",
+    "Scandinavian modular breakroom conference table for 8 seats",
+    "Natural circadian daylight task lamps for 10 workstations",
+    "Sustainable solid wood office furniture setup within 7 days",
+  ],
+};
+
+const DEFAULT_PROMPT_CHIPS = [
+  "5 ergonomic setups for developers under ₹60,000",
   "10 standing desks under ₹1,50,000 with 15% discount",
-  "Ergonomic chair for a startup team",
-  "I need some chairs.",
+  "Ergonomic setup with fast 5-day delivery",
+  "Commercial workspace package for startup team",
 ];
 
 const PROCESSING_STEPS = [
@@ -74,7 +165,13 @@ const FIREWALL_PROCESSING_STEPS = [
   "FINALIZING FIREWALL DECISION",
 ];
 
-export default function DealRoomPage() {
+function DealRoomContent() {
+  const searchParams = useSearchParams();
+  const queryMerchantId = searchParams.get("merchantId");
+  const [activeTargetMerchantId, setActiveTargetMerchantId] = useState<string>(queryMerchantId || "ergospace");
+  const [targetMerchant, setTargetMerchant] = useState<Merchant | null>(null);
+  const [availableMerchants, setAvailableMerchants] = useState<Array<{ id: string; name: string }>>([]);
+
   const [requestText, setRequestText] = useState("");
   const [loading, setLoading] = useState(false);
   const [processingStep, setProcessingStep] = useState(0);
@@ -104,11 +201,72 @@ export default function DealRoomPage() {
   const [firewallError, setFirewallError] = useState<string | null>(null);
   const [showRawFirewallJson, setShowRawFirewallJson] = useState(false);
 
-  // Active Stage Navigation State ("ALL" for 4-column overview, or 1, 2, 3, 4 for focused stage)
-  const [selectedStage, setSelectedStage] = useState<"ALL" | 1 | 2 | 3 | 4>("ALL");
+  // Phase 7: Razorpay Payment State
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentVerifying, setPaymentVerifying] = useState(false);
+  const [paymentResult, setPaymentResult] = useState<{
+    status: "IDLE" | "PENDING" | "PROCESSING" | "PAID" | "FAILED";
+    message?: string;
+    dealId?: string;
+    orderId?: string;
+    paymentId?: string;
+  }>({ status: "IDLE" });
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
-  // Check Gemini server-side health and restore session state on mount
+  // Active Stage Navigation State ("ALL" for full overview, or 1 to 6 for focused stage)
+  const [selectedStage, setSelectedStage] = useState<"ALL" | number>("ALL");
+
+  // Single derived authoritative Deal Room lifecycle state
+  const lifecycle = useDealLifecycle({
+    intentResult,
+    intentLoading: loading,
+    intentError: error,
+    offerResult,
+    offerLoading,
+    offerError,
+    dealContractResult,
+    compilerLoading,
+    compilerError,
+    firewallResult,
+    firewallLoading,
+    firewallError,
+    paymentResult,
+    paymentLoading,
+    paymentVerifying,
+    paymentError,
+  });
+
+  // Load target merchant info & all merchants
   React.useEffect(() => {
+    fetch("/api/merchants")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.merchants)) {
+          setAvailableMerchants(data.merchants.map((m: { id: string; name: string }) => ({ id: m.id, name: m.name })));
+        }
+      })
+      .catch(() => {});
+
+    getMerchant(activeTargetMerchantId).then((m) => {
+      if (m) setTargetMerchant(m);
+    });
+  }, [activeTargetMerchantId]);
+
+  // Clear any residual session cache and check Gemini health on entry
+  React.useEffect(() => {
+    // 1. Reset all sessionStorage keys on re-entering Deal Room
+    try {
+      sessionStorage.removeItem("pact_intent_result");
+      sessionStorage.removeItem("pact_offer_result");
+      sessionStorage.removeItem("pact_contract_result");
+      sessionStorage.removeItem("pact_firewall_result");
+      sessionStorage.removeItem("pact_payment_result");
+      sessionStorage.removeItem("pact_request_text");
+    } catch {
+      // ignore
+    }
+
+    // 2. Check Gemini server-side health
     fetch("/api/buyer-intent")
       .then((res) => res.json())
       .then((data) => {
@@ -116,22 +274,39 @@ export default function DealRoomPage() {
       })
       .catch(() => setIsGeminiConnected(false));
 
-    try {
-      const savedIntent = sessionStorage.getItem("pact_intent_result");
-      const savedOffer = sessionStorage.getItem("pact_offer_result");
-      const savedContract = sessionStorage.getItem("pact_contract_result");
-      const savedFirewall = sessionStorage.getItem("pact_firewall_result");
-      const savedText = sessionStorage.getItem("pact_request_text");
-
-      if (savedText) setRequestText(savedText);
-      if (savedIntent) setIntentResult(JSON.parse(savedIntent));
-      if (savedOffer) setOfferResult(JSON.parse(savedOffer));
-      if (savedContract) setDealContractResult(JSON.parse(savedContract));
-      if (savedFirewall) setFirewallResult(JSON.parse(savedFirewall));
-    } catch {
-      // ignore storage errors
+    // 3. Dynamically load Razorpay Checkout script
+    if (typeof window !== "undefined" && !window.Razorpay) {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.async = true;
+      document.body.appendChild(script);
     }
   }, []);
+
+  const handleStartNewDeal = () => {
+    try {
+      sessionStorage.removeItem("pact_intent_result");
+      sessionStorage.removeItem("pact_offer_result");
+      sessionStorage.removeItem("pact_contract_result");
+      sessionStorage.removeItem("pact_firewall_result");
+      sessionStorage.removeItem("pact_payment_result");
+      sessionStorage.removeItem("pact_request_text");
+    } catch {
+      // ignore
+    }
+    setRequestText("");
+    setIntentResult(null);
+    setOfferResult(null);
+    setDealContractResult(null);
+    setFirewallResult(null);
+    setPaymentResult({ status: "IDLE" });
+    setError(null);
+    setCompilerError(null);
+    setFirewallError(null);
+    setOfferError(null);
+    setPaymentError(null);
+    setSelectedStage("ALL");
+  };
 
 
   const handleSubmitRequest = async (e: React.FormEvent, forceFallback = false) => {
@@ -218,6 +393,7 @@ export default function DealRoomPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           buyerIntentId: intentResult.id,
+          merchantId: activeTargetMerchantId,
         }),
       });
 
@@ -374,14 +550,159 @@ export default function DealRoomPage() {
     }
   };
 
+  // Phase 7: Initiate Razorpay Test Mode Payment Order & Checkout Modal
+  const handleInitiatePayment = async () => {
+    if (!dealContractResult?.dealId || paymentLoading || paymentVerifying) return;
+
+    setPaymentLoading(true);
+    setPaymentError(null);
+
+    try {
+      // 1. Create Razorpay order on server (authoritative amount strictly from Firestore)
+      const res = await fetch("/api/payments/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dealId: dealContractResult.dealId,
+        }),
+      });
+
+      const orderData = await res.json();
+
+      if (!res.ok || !orderData.success) {
+        throw new Error(orderData.error || "Failed to create secure Razorpay payment order.");
+      }
+
+      setPaymentResult({
+        status: "PENDING",
+        orderId: orderData.orderId,
+      });
+
+      // 2. Open Razorpay Standard Checkout in Test Mode
+      if (typeof window !== "undefined" && window.Razorpay) {
+        const options: RazorpayOptions = {
+          key: orderData.keyId,
+          amount: orderData.amount,
+          currency: orderData.currency || "INR",
+          name: "PACT — ErgoSpace Commerce",
+          description: `Contract #${dealContractResult.dealId}: ${orderData.productSummary}`,
+          order_id: orderData.razorpayOrderId,
+          handler: async (response: RazorpaySuccessResponse) => {
+            // 3. Client receives response -> Submit to server for HMAC signature verification
+            setPaymentVerifying(true);
+            setPaymentResult({
+              status: "PROCESSING",
+              paymentId: response.razorpay_payment_id,
+              orderId: response.razorpay_order_id,
+            });
+
+            try {
+              const verifyRes = await fetch("/api/payments/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  dealId: dealContractResult.dealId,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              });
+
+              const verifyData = await verifyRes.json();
+
+              if (!verifyRes.ok || !verifyData.success) {
+                throw new Error(verifyData.error || "Payment signature verification failed.");
+              }
+
+              // Update deal contract local state to PAID
+              const paidContract = {
+                ...dealContractResult,
+                status: "PAID" as DealContract["status"],
+              };
+              setDealContractResult(paidContract);
+              setPaymentResult({
+                status: "PAID",
+                paymentId: response.razorpay_payment_id,
+                orderId: response.razorpay_order_id,
+                message: "Payment successfully verified! Deal status is now PAID.",
+              });
+
+              try {
+                sessionStorage.setItem("pact_contract_result", JSON.stringify(paidContract));
+                sessionStorage.setItem("pact_payment_result", JSON.stringify({
+                  status: "PAID",
+                  paymentId: response.razorpay_payment_id,
+                  orderId: response.razorpay_order_id,
+                }));
+              } catch {
+                // ignore
+              }
+            } catch (err: unknown) {
+              const errMsg = err instanceof Error ? err.message : "Payment verification failed.";
+              setPaymentError(errMsg);
+              setPaymentResult({
+                status: "FAILED",
+                message: errMsg,
+              });
+            } finally {
+              setPaymentVerifying(false);
+            }
+          },
+          prefill: {
+            name: "PACT Buyer Agent",
+            email: "buyer@pact-commerce.ai",
+            contact: "9876543210",
+          },
+          notes: {
+            dealId: dealContractResult.dealId,
+            paymentMode: "Razorpay Standard (Google Pay / UPI / Cards / Netbanking)",
+          },
+          theme: {
+            color: "#2563eb",
+          },
+          modal: {
+            ondismiss: () => {
+              setPaymentLoading(false);
+            },
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on("payment.failed", (response) => {
+          const failReason = response.error?.description || response.error?.reason || "Payment was rejected or cancelled.";
+          setPaymentError(failReason);
+          setPaymentResult({
+            status: "FAILED",
+            message: failReason,
+          });
+        });
+        rzp.open();
+      } else {
+        throw new Error("Razorpay Checkout SDK is still loading. Please try again in a moment.");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Payment order creation failed.";
+      setPaymentError(msg);
+      setPaymentResult({ status: "FAILED", message: msg });
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
   // Status Badge Logic
   const getHeaderStatusBadge = () => {
+    if (paymentVerifying || paymentLoading) {
+      return <StatusBadge status="payment_pending" label="PAYMENT IN PROGRESS" />;
+    }
+    if (dealContractResult?.status === "PAID" || paymentResult.status === "PAID") {
+      return <StatusBadge status="paid" label="PAID & SETTLED" />;
+    }
     if (firewallLoading || compilerLoading || loading || offerLoading) {
       return <StatusBadge status="validating" label="PROCESSING" />;
     }
     if (firewallResult) {
       if (firewallResult.overallStatus === "VALIDATED") {
-        return <StatusBadge status="validated" label="FIREWALL PASSED" />;
+        return <StatusBadge status="validated" label="FIREWALL VALIDATED" />;
       }
       if (firewallResult.overallStatus === "PENDING_APPROVAL") {
         return <StatusBadge status="pending_approval" label="APPROVAL REQUIRED" />;
@@ -397,7 +718,7 @@ export default function DealRoomPage() {
     if (intentResult) {
       return <StatusBadge status="validated" label="AI PARSED" />;
     }
-    if (error || offerError || compilerError || firewallError) {
+    if (error || offerError || compilerError || firewallError || paymentError) {
       return <StatusBadge status="rejected" label="REQUEST FAILED" />;
     }
     if (isGeminiConnected) {
@@ -435,140 +756,48 @@ export default function DealRoomPage() {
         badge={getHeaderStatusBadge()}
       />
 
-      {/* 🧭 4-STAGE INTERACTIVE LIFECYCLE PIPELINE MENU BAR */}
-      <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 shadow-xl space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800/80 pb-2.5 px-2">
-          <div className="flex items-center gap-2">
-            <Cpu className="w-4 h-4 text-blue-400" />
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
-              COMMERCIAL DEAL LIFECYCLE PROGRESSION
-            </span>
+      {/* 🧭 REACT BITS POWERED PACT DEAL LIFECYCLE STEPPER RAIL */}
+      <DealStepper
+        steps={lifecycle.steps}
+        selectedStep={selectedStage}
+        onSelectStep={(stepNum) => setSelectedStage(stepNum)}
+        overallStatus={lifecycle.overallLifecycleStatus}
+        dealId={dealContractResult?.dealId}
+      />
+
+      {/* Target Merchant Context Header */}
+      <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-emerald-950/80 border border-emerald-800/80 flex items-center justify-center text-emerald-400">
+            <Store className="w-4 h-4" />
           </div>
-          <div className="flex items-center gap-1.5 font-mono text-xs">
-            <span className="text-slate-400 mr-1">VIEW:</span>
-            <button
-              type="button"
-              onClick={() => setSelectedStage("ALL")}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                selectedStage === "ALL"
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-950/50"
-                  : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800"
-              }`}
-            >
-              ALL 4 STAGES
-            </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 font-bold uppercase text-[11px]">BUYING FROM:</span>
+              <span className="font-extrabold text-slate-100">{targetMerchant?.name || activeTargetMerchantId}</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">
+                ACTIVE AGENT
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-sans line-clamp-1">
+              {targetMerchant?.description || "Autonomous commercial seller on PACT"}
+            </p>
           </div>
         </div>
 
-        {/* 4 Interactive Stage Pills */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-          {/* Stage 1 Pill */}
-          <Magnet strength={6} className="w-full">
-            <button
-              type="button"
-              onClick={() => setSelectedStage(selectedStage === 1 ? "ALL" : 1)}
-              className={`w-full p-3 rounded-xl border text-left transition-all cursor-pointer font-mono ${
-                selectedStage === 1
-                  ? "bg-blue-950/80 border-blue-500 shadow-lg shadow-blue-950/60 ring-1 ring-blue-400/50"
-                  : intentResult
-                  ? "bg-slate-900/90 border-slate-700/80 hover:border-slate-600 text-slate-300"
-                  : "bg-slate-950/60 border-slate-800/80 text-slate-500 opacity-80"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-blue-400">1. BUYER INTENT</span>
-                <span className={`w-2 h-2 rounded-full ${intentResult ? "bg-emerald-400 shadow-sm shadow-emerald-400" : "bg-slate-600"}`} />
-              </div>
-              <p className="text-xs font-bold text-slate-100 mt-1 truncate">
-                {intentResult ? intentResult.productIntent : "Extract Intent"}
-              </p>
-              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800/80">
-                <span>{intentResult ? "AI PARSED & SAVED" : "Awaiting Input"}</span>
-                <span className="font-bold text-blue-400">{selectedStage === 1 ? "FOCUSED" : "CLICK TO FOCUS"}</span>
-              </div>
-            </button>
-          </Magnet>
-
-          {/* Stage 2 Pill */}
-          <Magnet strength={6} className="w-full">
-            <button
-              type="button"
-              onClick={() => setSelectedStage(selectedStage === 2 ? "ALL" : 2)}
-              className={`w-full p-3 rounded-xl border text-left transition-all cursor-pointer font-mono ${
-                selectedStage === 2
-                  ? "bg-emerald-950/80 border-emerald-500 shadow-lg shadow-emerald-950/60 ring-1 ring-emerald-400/50"
-                  : offerResult
-                  ? "bg-slate-900/90 border-slate-700/80 hover:border-slate-600 text-slate-300"
-                  : "bg-slate-950/60 border-slate-800/80 text-slate-500 opacity-80"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400">2. MERCHANT OFFER</span>
-                <span className={`w-2 h-2 rounded-full ${offerResult ? "bg-emerald-400 shadow-sm shadow-emerald-400" : "bg-slate-600"}`} />
-              </div>
-              <p className="text-xs font-bold text-slate-100 mt-1 truncate">
-                {offerResult ? (offerResult.status === "OFFER_GENERATED" ? `₹${offerResult.estimatedFinalAmount.toLocaleString("en-IN")}` : offerResult.status) : "Catalog Match"}
-              </p>
-              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800/80">
-                <span>{offerResult ? offerResult.status : "Awaiting Intent"}</span>
-                <span className="font-bold text-emerald-400">{selectedStage === 2 ? "FOCUSED" : "CLICK TO FOCUS"}</span>
-              </div>
-            </button>
-          </Magnet>
-
-          {/* Stage 3 Pill */}
-          <Magnet strength={6} className="w-full">
-            <button
-              type="button"
-              onClick={() => setSelectedStage(selectedStage === 3 ? "ALL" : 3)}
-              className={`w-full p-3 rounded-xl border text-left transition-all cursor-pointer font-mono ${
-                selectedStage === 3
-                  ? "bg-purple-950/80 border-purple-500 shadow-lg shadow-purple-950/60 ring-1 ring-purple-400/50"
-                  : dealContractResult
-                  ? "bg-slate-900/90 border-slate-700/80 hover:border-slate-600 text-slate-300"
-                  : "bg-slate-950/60 border-slate-800/80 text-slate-500 opacity-80"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-400">3. DEAL CONTRACT</span>
-                <span className={`w-2 h-2 rounded-full ${dealContractResult ? "bg-purple-400 shadow-sm shadow-purple-400" : "bg-slate-600"}`} />
-              </div>
-              <p className="text-xs font-bold text-slate-100 mt-1 truncate">
-                {dealContractResult ? `₹${dealContractResult.finalAmount.toLocaleString("en-IN")}` : "Deterministic Compiler"}
-              </p>
-              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800/80">
-                <span>{dealContractResult ? dealContractResult.status : "Awaiting Offer"}</span>
-                <span className="font-bold text-purple-400">{selectedStage === 3 ? "FOCUSED" : "CLICK TO FOCUS"}</span>
-              </div>
-            </button>
-          </Magnet>
-
-          {/* Stage 4 Pill */}
-          <Magnet strength={6} className="w-full">
-            <button
-              type="button"
-              onClick={() => setSelectedStage(selectedStage === 4 ? "ALL" : 4)}
-              className={`w-full p-3 rounded-xl border text-left transition-all cursor-pointer font-mono ${
-                selectedStage === 4
-                  ? "bg-orange-950/80 border-orange-500 shadow-lg shadow-orange-950/60 ring-1 ring-orange-400/50"
-                  : firewallResult
-                  ? "bg-slate-900/90 border-slate-700/80 hover:border-slate-600 text-slate-300"
-                  : "bg-slate-950/60 border-slate-800/80 text-slate-500 opacity-80"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-orange-400">4. PACT FIREWALL</span>
-                <span className={`w-2 h-2 rounded-full ${firewallResult ? (firewallResult.overallStatus === "VALIDATED" ? "bg-emerald-400" : firewallResult.overallStatus === "PENDING_APPROVAL" ? "bg-amber-400" : "bg-rose-400") : "bg-slate-600"}`} />
-              </div>
-              <p className="text-xs font-bold text-slate-100 mt-1 truncate">
-                {firewallResult ? firewallResult.overallStatus : "9 Security Gates"}
-              </p>
-              <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5 pt-1.5 border-t border-slate-800/80">
-                <span>{firewallResult ? `${firewallResult.passedCount}/9 Rules Passed` : "Awaiting Contract"}</span>
-                <span className="font-bold text-orange-400">{selectedStage === 4 ? "FOCUSED" : "CLICK TO FOCUS"}</span>
-              </div>
-            </button>
-          </Magnet>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-slate-400 text-[11px]">Switch Merchant:</span>
+          <select
+            value={activeTargetMerchantId}
+            onChange={(e) => setActiveTargetMerchantId(e.target.value)}
+            className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 text-xs font-mono focus:outline-none focus:border-blue-500"
+          >
+            {availableMerchants.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -582,7 +811,7 @@ export default function DealRoomPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
               <div className="flex items-center gap-2">
                 <Bot className="w-5 h-5 text-blue-400" />
-                <h2 className="text-base font-bold text-slate-100 font-mono">STAGE 1: BUYER AI NATURAL LANGUAGE INPUT</h2>
+                <h2 className="text-base font-bold text-slate-100 font-mono">BUYER AI NATURAL LANGUAGE INPUT</h2>
               </div>
               {isFallbackMode && (
                 <span className="text-xs font-mono px-2.5 py-1 rounded-md bg-amber-950/70 text-amber-400 border border-amber-800/60 flex items-center gap-1.5">
@@ -609,13 +838,13 @@ export default function DealRoomPage() {
 
             {/* Prompt Chips */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-mono text-slate-400 font-semibold mr-1">EXAMPLE PROMPTS:</span>
-              {SAMPLE_PROMPT_CHIPS.map((chip, i) => (
+              <span className="text-xs font-mono text-slate-400 font-semibold mr-1">RECOMMENDED PROMPTS:</span>
+              {(MERCHANT_PROMPT_RECOMMENDATIONS[activeTargetMerchantId] || DEFAULT_PROMPT_CHIPS).map((chip, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => setRequestText(chip)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 hover:text-slate-100 hover:border-slate-700 transition-colors"
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 hover:text-slate-100 hover:border-blue-700/60 hover:bg-slate-800/80 transition-colors cursor-pointer"
                 >
                   &quot;{chip}&quot;
                 </button>
@@ -683,8 +912,8 @@ export default function DealRoomPage() {
       </SpotlightCard>
       )}
 
-      {/* 3-Column / Focused Lifecycle Pipeline View */}
-      {(selectedStage === "ALL" || selectedStage === 1 || selectedStage === 2 || selectedStage === 3) && (
+      {/* Lifecycle Pipeline View (Stages 1-4) */}
+      {(selectedStage === "ALL" || selectedStage === 1 || selectedStage === 2 || selectedStage === 3 || selectedStage === 4) && (
         <div
           className={`grid gap-6 pt-2 items-start ${
             selectedStage === "ALL"
@@ -890,7 +1119,7 @@ export default function DealRoomPage() {
             </div>
           )}
 
-          {/* Column 2: MERCHANT OFFER */}
+          {/* Column 2: MERCHANT OFFER (Gate #2) */}
           {(selectedStage === "ALL" || selectedStage === 2) && (
             <div className="space-y-4">
               {offerResult ? (
@@ -1034,7 +1263,7 @@ export default function DealRoomPage() {
             </div>
           )}
 
-          {/* Column 3: PACT DEAL CONTRACT (Phase 5 Visual Centerpiece) */}
+          {/* Column 3: PACT DEAL CONTRACT (Gate #3: COMPILE) */}
           {(selectedStage === "ALL" || selectedStage === 3) && (
             <div className="space-y-4">
               {dealContractResult ? (
@@ -1300,7 +1529,7 @@ ${dealContractResult.validationStatus.checks.map((c) => `[${c.status}] ${c.rule}
         </div>
       )}
 
-      {/* STAGE 4: PACT FIREWALL POLICY EVALUATION PANEL (Phase 6 Centerpiece) */}
+      {/* STAGE 4: PACT FIREWALL POLICY EVALUATION PANEL (Gate #4) */}
       {(selectedStage === "ALL" || selectedStage === 4) && (dealContractResult || firewallResult || firewallLoading) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1308,27 +1537,17 @@ ${dealContractResult.validationStatus.checks.map((c) => `[${c.status}] ${c.rule}
           transition={{ duration: 0.4 }}
           className="pt-4"
         >
-          <BorderGlow
-            glowColor={
+          <SpotlightCard
+            spotlightColor={
               firewallResult?.overallStatus === "VALIDATED"
-                ? "142 76 50"
+                ? "rgba(16, 185, 129, 0.25)"
                 : firewallResult?.overallStatus === "PENDING_APPROVAL"
-                ? "38 92 50"
+                ? "rgba(245, 158, 11, 0.25)"
                 : firewallResult?.overallStatus === "REJECTED"
-                ? "350 89 60"
-                : "280 80 60"
+                ? "rgba(244, 63, 94, 0.25)"
+                : "rgba(249, 115, 22, 0.2)"
             }
-            colors={
-              firewallResult?.overallStatus === "VALIDATED"
-                ? ["#10b981", "#34d399", "#059669"]
-                : firewallResult?.overallStatus === "PENDING_APPROVAL"
-                ? ["#f59e0b", "#fbbf24", "#d97706"]
-                : firewallResult?.overallStatus === "REJECTED"
-                ? ["#f43f5e", "#fb7185", "#e11d48"]
-                : ["#a855f7", "#c084fc", "#9333ea"]
-            }
-            borderRadius={24}
-            className="w-full bg-slate-950/95 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl"
+            className="w-full bg-slate-950/95 border-2 border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-0"
           >
             <div className="p-5 sm:p-7 space-y-6 font-mono w-full max-w-full box-border overflow-hidden">
               {/* Firewall Panel Header */}
@@ -1340,7 +1559,7 @@ ${dealContractResult.validationStatus.checks.map((c) => `[${c.status}] ${c.rule}
                     </div>
                     <div className="min-w-0">
                       <h2 className="text-lg sm:text-xl font-extrabold tracking-wide text-slate-100 uppercase truncate">
-                        STAGE 4: PACT FIREWALL POLICY GATE
+                        PACT FIREWALL POLICY GATE
                       </h2>
                       <p className="text-xs text-slate-400 font-sans leading-relaxed">
                         Deterministic, zero-hallucination commercial governance enforcing live catalog, pricing, budget, and merchant policy constraints.
@@ -1677,10 +1896,278 @@ Generated deterministically by PACT Firewall Security Layer.
                 </div>
               )}
             </div>
-          </BorderGlow>
+          </SpotlightCard>
+        </motion.div>
+      )}
+
+      {/* STAGE 5: RAZORPAY TEST MODE PAYMENT SETTLEMENT (Gate #5) */}
+      {(selectedStage === "ALL" || selectedStage === 5) && (dealContractResult || firewallResult) && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="pt-4"
+        >
+          <SpotlightCard
+            spotlightColor={
+              dealContractResult?.status === "PAID" || paymentResult.status === "PAID"
+                ? "rgba(16, 185, 129, 0.25)"
+                : firewallResult?.overallStatus === "VALIDATED"
+                ? "rgba(59, 130, 246, 0.25)"
+                : "rgba(100, 116, 139, 0.2)"
+            }
+            className="w-full bg-slate-950/95 border-2 border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-0"
+          >
+            <div className="p-5 sm:p-7 space-y-6 font-mono w-full max-w-full box-border overflow-hidden">
+              {/* Payment Panel Header */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-blue-950/80 border border-blue-800/60 text-blue-400 shrink-0">
+                      <CreditCard className="w-6 h-6 animate-pulse" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg sm:text-xl font-extrabold tracking-wide text-slate-100 uppercase truncate">
+                          RAZORPAY SETTLEMENT (TEST MODE)
+                        </h2>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-950 border border-blue-800 text-blue-300">
+                          TEST MODE ONLY
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 font-sans leading-relaxed">
+                        Deterministic payment gateway layer. AI agents never touch payment credentials. Authoritative amounts enforced server-side.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 shrink-0">
+                  {dealContractResult?.status === "PAID" || paymentResult.status === "PAID" ? (
+                    <StatusBadge status="paid" label="PAID & SETTLED" className="text-xs px-3 py-1 font-bold" />
+                  ) : paymentVerifying ? (
+                    <StatusBadge status="validating" label="VERIFYING HMAC..." className="text-xs px-3 py-1 font-bold" />
+                  ) : paymentLoading ? (
+                    <StatusBadge status="payment_pending" label="CREATING ORDER..." className="text-xs px-3 py-1 font-bold" />
+                  ) : firewallResult?.overallStatus === "VALIDATED" ? (
+                    <StatusBadge status="validated" label="READY FOR PAYMENT" className="text-xs px-3 py-1 font-bold" />
+                  ) : (
+                    <StatusBadge status="neutral" label="AWAITING VALIDATION" className="text-xs px-3 py-1 font-bold" />
+                  )}
+                </div>
+              </div>
+
+              {/* Payment Error Alert Box */}
+              {paymentError && (
+                <div className="p-4 rounded-xl bg-rose-950/80 border border-rose-700 text-rose-200 text-xs font-mono flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                    <div>
+                      <span className="font-bold">Payment Notification: </span>
+                      <span>{paymentError}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentError(null)}
+                    className="text-slate-400 hover:text-slate-200 text-xs px-2 py-1"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
+              {/* CASE 1: Deal is PAID (Successful Settlement Screen) */}
+              {(dealContractResult?.status === "PAID" || paymentResult.status === "PAID") && (
+                <div className="p-6 rounded-2xl bg-emerald-950/50 border-2 border-emerald-700/80 space-y-4 shadow-xl shadow-emerald-950/30">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-800/60 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-emerald-900/80 border border-emerald-600 text-emerald-300">
+                        <Check className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-extrabold text-emerald-300 uppercase">
+                          ✓ PAYMENT CONFIRMED & SETTLED
+                        </h3>
+                        <p className="text-xs text-emerald-200 font-sans">
+                          Server verified HMAC signature and updated commercial contract to PAID state.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono text-emerald-400">Order #{paymentResult.orderId || "ord_confirmed"}</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="p-3.5 rounded-xl bg-slate-950/80 border border-emerald-900/80 space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase">SETTLED AMOUNT</span>
+                      <p className="text-lg font-extrabold text-emerald-400 font-mono">
+                        ₹{dealContractResult?.finalAmount.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-slate-950/80 border border-emerald-900/80 space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase">PAYMENT ID</span>
+                      <p className="text-sm font-bold text-slate-200 font-mono truncate">
+                        {paymentResult.paymentId || "pay_razorpay_verified"}
+                      </p>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-slate-950/80 border border-emerald-900/80 space-y-1">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase">GATEWAY PROVIDER</span>
+                      <p className="text-sm font-bold text-blue-400 font-mono">RAZORPAY TEST MODE</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CASE 2: Deal is VALIDATED and Eligible for Razorpay Payment */}
+              {dealContractResult?.status !== "PAID" && paymentResult.status !== "PAID" && firewallResult?.overallStatus === "VALIDATED" && (
+                <div className="space-y-6">
+                  <div className="p-6 rounded-2xl bg-blue-950/40 border border-blue-800/60 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-emerald-400 text-sm font-bold">
+                        <CheckCircle2 className="w-5 h-5" />
+                        <span>PACT Firewall Validation Passed</span>
+                      </div>
+                      <h3 className="text-xl font-extrabold text-slate-100">
+                        Ready for Razorpay Test Mode Payment
+                      </h3>
+                      <p className="text-xs text-slate-400 font-sans max-w-lg leading-relaxed">
+                        Authoritative deal amount of <strong className="text-slate-200">₹{dealContractResult?.finalAmount.toLocaleString("en-IN")}</strong> will be transmitted securely to the server-side Razorpay order creator.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-3 shrink-0">
+                      <div className="text-right">
+                        <span className="text-[11px] text-slate-400 font-mono uppercase">TOTAL PAYABLE AMOUNT</span>
+                        <p className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono">
+                          ₹{dealContractResult?.finalAmount.toLocaleString("en-IN")}
+                        </p>
+                      </div>
+
+                      <Ripple className="w-full sm:w-auto rounded-xl">
+                        <button
+                          type="button"
+                          onClick={handleInitiatePayment}
+                          disabled={paymentLoading || paymentVerifying}
+                          className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-mono text-sm font-bold transition-all shadow-xl shadow-blue-950/50 flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {paymentLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin text-white" />
+                              <span>CREATING SECURE ORDER...</span>
+                            </>
+                          ) : paymentVerifying ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin text-white" />
+                              <span>VERIFYING HMAC SIGNATURE...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard className="w-4 h-4 text-blue-200" />
+                              <span>PAY VIA RAZORPAY / GPAY (TEST MODE)</span>
+                              <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                            </>
+                          )}
+                        </button>
+                      </Ripple>
+                    </div>
+                  </div>
+
+                  {/* Security & Isolation Checkpoints */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+                      <div className="flex items-center gap-2 text-blue-400 text-xs font-bold">
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>HMAC-SHA256 SIGNATURE</span>
+                      </div>
+                      <p className="text-xs text-slate-400 font-sans">
+                        Cryptographic signature generated on server with secret key; invalid callbacks rejected.
+                      </p>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+                      <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>AUTHORITATIVE AMOUNT</span>
+                      </div>
+                      <p className="text-xs text-slate-400 font-sans">
+                        Frontend cannot override final amount. Razorpay order reads directly from Firestore.
+                      </p>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-1">
+                      <div className="flex items-center gap-2 text-purple-400 text-xs font-bold">
+                        <Cpu className="w-3.5 h-3.5" />
+                        <span>AI AGENT ISOLATION</span>
+                      </div>
+                      <p className="text-xs text-slate-400 font-sans">
+                        Gemini AI has 0 access to Razorpay credentials or payment creation pathways.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CASE 3: Deal is PENDING_APPROVAL */}
+              {firewallResult?.overallStatus === "PENDING_APPROVAL" && (
+                <div className="p-6 rounded-2xl bg-amber-950/40 border border-amber-800/60 space-y-3">
+                  <div className="flex items-center gap-2 text-amber-300 font-bold text-sm">
+                    <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
+                    <span>Payment Blocked: Human Approval Required</span>
+                  </div>
+                  <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                    This deal exceeds the merchant auto-settlement threshold (₹50,000). Payment order creation is disabled until human merchant sign-off is granted in Phase 8+.
+                  </p>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-amber-950 border border-amber-700 text-amber-300 font-mono text-xs">
+                    STATUS: PENDING_APPROVAL (PAYMENT LOCKED)
+                  </div>
+                </div>
+              )}
+
+              {/* CASE 4: Deal is REJECTED */}
+              {firewallResult?.overallStatus === "REJECTED" && (
+                <div className="p-6 rounded-2xl bg-rose-950/40 border border-rose-800/60 space-y-3">
+                  <div className="flex items-center gap-2 text-rose-300 font-bold text-sm">
+                    <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                    <span>Payment Blocked: PACT Firewall Blocked</span>
+                  </div>
+                  <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                    Payment is unavailable because this deal did not satisfy PACT commercial policy validation constraints.
+                  </p>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-rose-950 border border-rose-700 text-rose-300 font-mono text-xs">
+                    STATUS: REJECTED (NO PAYMENT CREATION)
+                  </div>
+                </div>
+              )}
+
+              {/* CASE 5: Firewall has not yet evaluated */}
+              {!firewallResult && (
+                <div className="p-6 rounded-2xl bg-slate-900/40 border border-dashed border-slate-800 text-center space-y-2">
+                  <Lock className="w-6 h-6 text-slate-500 mx-auto" />
+                  <h4 className="text-sm font-bold text-slate-300">Payment Gateway Locked</h4>
+                  <p className="text-xs text-slate-400 font-sans max-w-md mx-auto">
+                    The Razorpay Test Mode settlement gate only unlocks after Stage 4 PACT Firewall returns a <strong>VALIDATED</strong> decision.
+                  </p>
+                </div>
+              )}
+            </div>
+          </SpotlightCard>
         </motion.div>
       )}
 
     </PageContainer>
+  );
+}
+
+export default function DealRoomPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <PageContainer>
+          <div className="p-12 text-center text-slate-400 font-mono text-xs">
+            Loading PACT Deal Room Pipeline...
+          </div>
+        </PageContainer>
+      }
+    >
+      <DealRoomContent />
+    </React.Suspense>
   );
 }

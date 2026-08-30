@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Product } from "@/types";
 import { saveProduct } from "@/services/firestore";
-import { X, Check, Loader2, ShieldAlert } from "lucide-react";
+import { X, Check, Loader2, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ProductEditModalProps {
@@ -22,9 +22,9 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [price, setPrice] = useState<number>(0);
-  const [stock, setStock] = useState<number>(0);
-  const [deliveryDays, setDeliveryDays] = useState<number>(1);
+  const [price, setPrice] = useState<string>("");
+  const [stock, setStock] = useState<string>("");
+  const [deliveryDays, setDeliveryDays] = useState<string>("");
   const [active, setActive] = useState<boolean>(true);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -36,9 +36,9 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
       setName(product.name);
       setDescription(product.description || "");
       setCategory(product.category || "");
-      setPrice(product.price);
-      setStock(product.stock);
-      setDeliveryDays(product.deliveryDays);
+      setPrice(String(product.price ?? ""));
+      setStock(String(product.stock ?? ""));
+      setDeliveryDays(String(product.deliveryDays ?? ""));
       setActive(product.active);
       setError(null);
       setSuccess(false);
@@ -48,12 +48,16 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
   if (!isOpen || !product) return null;
 
   // Validation Rules
+  const numPrice = Number(price);
+  const numStock = Number(stock);
+  const numDeliveryDays = Number(deliveryDays);
+
   const errors: Record<string, string> = {};
   if (!name.trim()) errors.name = "Product name is required.";
   if (!category.trim()) errors.category = "Category is required.";
-  if (isNaN(price) || price < 0) errors.price = "Price must be >= 0.";
-  if (isNaN(stock) || stock < 0) errors.stock = "Stock must be >= 0.";
-  if (isNaN(deliveryDays) || deliveryDays <= 0) errors.deliveryDays = "Delivery SLA must be > 0 days.";
+  if (price.trim() === "" || isNaN(numPrice) || numPrice < 0) errors.price = "Price must be >= 0.";
+  if (stock.trim() === "" || isNaN(numStock) || numStock < 0) errors.stock = "Stock must be >= 0.";
+  if (deliveryDays.trim() === "" || isNaN(numDeliveryDays) || numDeliveryDays <= 0) errors.deliveryDays = "Delivery SLA must be > 0 days.";
 
   const isValid = Object.keys(errors).length === 0;
 
@@ -99,33 +103,33 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
           initial={{ opacity: 0, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: 100 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto"
+          transition={{ duration: 0.25 }}
+          className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-6 space-y-6"
         >
-          {/* Modal Header */}
-          <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
             <div>
-              <span className="text-[10px] font-mono text-blue-400 font-bold uppercase tracking-wider">EDIT CATALOG ITEM</span>
-              <h2 className="text-base font-bold text-slate-100 font-mono">{product.name}</h2>
+              <span className="text-[10px] font-mono font-bold text-blue-400 uppercase tracking-wider">EDIT CATALOG ITEM</span>
+              <h2 className="text-base font-bold text-slate-100 font-mono truncate max-w-[280px]">{product.name}</h2>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+              disabled={isSaving}
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Form Content */}
-          <form onSubmit={handleSave} className="p-5 space-y-4 flex-1">
+          <form onSubmit={handleSave} className="space-y-4">
             {error && (
               <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800/50 text-xs text-rose-300 flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 shrink-0 text-rose-400" />
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
                 <span>{error}</span>
               </div>
             )}
 
-            {/* Product Name */}
+            {/* Name */}
             <div className="space-y-1">
               <label className="text-xs font-mono font-medium text-slate-300">Product Name *</label>
               <input
@@ -165,10 +169,16 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
               <div className="space-y-1">
                 <label className="text-[11px] font-mono text-slate-300">Price (₹) *</label>
                 <input
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
                   value={price}
-                  onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                      setPrice(val);
+                    }
+                  }}
                   className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
                 />
                 {errors.price && <p className="text-[9px] text-rose-400 font-mono">{errors.price}</p>}
@@ -177,10 +187,16 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
               <div className="space-y-1">
                 <label className="text-[11px] font-mono text-slate-300">Stock Qty *</label>
                 <input
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
                   value={stock}
-                  onChange={(e) => setStock(parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "" || /^\d*$/.test(val)) {
+                      setStock(val);
+                    }
+                  }}
                   className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
                 />
                 {errors.stock && <p className="text-[9px] text-rose-400 font-mono">{errors.stock}</p>}
@@ -189,10 +205,16 @@ export const ProductEditModal: React.FC<ProductEditModalProps> = ({
               <div className="space-y-1">
                 <label className="text-[11px] font-mono text-slate-300">Delivery (Days) *</label>
                 <input
-                  type="number"
-                  min="1"
+                  type="text"
+                  inputMode="numeric"
                   value={deliveryDays}
-                  onChange={(e) => setDeliveryDays(parseInt(e.target.value) || 1)}
+                  placeholder="1"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "" || /^\d*$/.test(val)) {
+                      setDeliveryDays(val);
+                    }
+                  }}
                   className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
                 />
                 {errors.deliveryDays && <p className="text-[9px] text-rose-400 font-mono">{errors.deliveryDays}</p>}
