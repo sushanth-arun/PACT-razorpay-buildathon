@@ -52,7 +52,6 @@ export const AppSidebar: React.FC = () => {
   const merchantNavItems = [
     { name: "Dashboard", href: "/merchant/dashboard", icon: Store },
     { name: "Products", href: "/merchant/products", icon: Boxes },
-    { name: "Inventory", href: "/merchant/inventory", icon: Package },
     { name: "Policies", href: "/merchant/policies", icon: Sliders },
     { name: "Transactions", href: "/merchant/transactions", icon: Receipt },
     { name: "Audit Trail", href: "/merchant/audit", icon: History },
@@ -61,6 +60,13 @@ export const AppSidebar: React.FC = () => {
   const currentNav = role === "MERCHANT_ADMIN" ? merchantNavItems : buyerNavItems;
 
   const handleLogout = async () => {
+    try {
+      if (typeof window !== "undefined") {
+        sessionStorage.clear();
+      }
+    } catch {
+      // ignore
+    }
     await logout();
     router.push("/auth");
   };

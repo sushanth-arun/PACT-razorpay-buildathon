@@ -168,32 +168,32 @@ export default function MerchantDetailPage({
               <div className="p-5 space-y-3.5 flex flex-col h-full justify-between">
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-2">
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
+                    <span className="text-xs px-2.5 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-300 font-medium">
                       {product.category}
                     </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded border font-bold ${
-                      product.stock > 5 ? "bg-emerald-950 text-emerald-400 border-emerald-800/80" : "bg-amber-950 text-amber-400 border-amber-800/80"
+                    <span className={`text-xs px-2.5 py-0.5 rounded-md border font-bold ${
+                      product.stock > 5 ? "bg-emerald-950 text-emerald-300 border-emerald-800" : "bg-amber-950 text-amber-300 border-amber-800"
                     }`}>
                       {product.stock} in stock
                     </span>
                   </div>
 
-                  <h3 className="text-sm font-bold text-slate-100 font-sans line-clamp-1">{product.name}</h3>
-                  <p className="text-xs text-slate-400 font-sans line-clamp-2 leading-relaxed">
+                  <h3 className="text-base font-bold text-slate-100 font-sans line-clamp-1">{product.name}</h3>
+                  <p className="text-sm text-slate-400 font-sans line-clamp-2 leading-relaxed">
                     {product.description}
                   </p>
                 </div>
 
                 <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-slate-500 block">CATALOG PRICE</span>
-                    <span className="text-base font-black text-slate-100">
+                    <span className="text-xs text-slate-400 block font-bold">CATALOG PRICE</span>
+                    <span className="text-lg font-black text-slate-100">
                       ₹{product.price.toLocaleString("en-IN")}
                     </span>
                   </div>
 
-                  <div className="text-right text-[11px] text-slate-400 flex items-center gap-1">
-                    <Truck className="w-3.5 h-3.5 text-blue-400" />
+                  <div className="text-right text-xs text-slate-300 flex items-center gap-1 font-bold">
+                    <Truck className="w-4 h-4 text-blue-400" />
                     <span>{product.deliveryDays}d SLA</span>
                   </div>
                 </div>

@@ -104,6 +104,14 @@ export const DealContractSchema = z.object({
 
   validationStatus: ValidationStatusSchema,
 
+  // Optional manual approval fields
+  approvedBy: z.string().optional(),
+  approvedAt: z.string().optional(),
+  approvalNotes: z.string().optional(),
+  rejectedBy: z.string().optional(),
+  rejectedAt: z.string().optional(),
+  rejectionNotes: z.string().optional(),
+
   createdAt: z.string(),
   updatedAt: z.string(),
 });

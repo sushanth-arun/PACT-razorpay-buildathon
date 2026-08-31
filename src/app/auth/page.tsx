@@ -3,23 +3,24 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { UserRole } from "@/types";
 import SpotlightCard from "@/components/SpotlightCard";
 import { Magnet } from "@/components/Magnet";
+import Aurora from "@/components/Aurora";
+import DepthText from "@/components/DepthText";
 import { 
-  Bot, 
-  Store, 
+  Bot,
+  Store,
   Lock, 
   Mail, 
-  User as UserIcon, 
+  User as UserIcon,
+  KeyRound,
   ShieldCheck, 
   ArrowRight, 
   CheckCircle2, 
   AlertCircle,
-  Loader2,
-  Cpu,
-  KeyRound
+  Loader2
 } from "lucide-react";
-import { UserRole } from "@/types";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -119,342 +120,415 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden font-sans">
-      {/* Subtle radial ambient glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+      {/* React Bits Aurora Ambient Background (Only on Auth Page) */}
+      <Aurora
+        colorStops={["rgba(37, 99, 235, 0.4)", "rgba(147, 51, 234, 0.35)", "rgba(6, 182, 212, 0.35)", "rgba(236, 72, 153, 0.25)"]}
+        speed={0.8}
+      />
 
-      <div className="w-full max-w-md relative z-10">
-        <SpotlightCard
-          spotlightColor="rgba(59, 130, 246, 0.25)"
-          className="bg-slate-950/95 border border-slate-800 p-0 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl"
-        >
-          <div className="p-7 sm:p-8 space-y-6">
-            {/* Embedded PACT Logo & Badge */}
-            <div className="flex items-center justify-center gap-3 pb-1">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-950">
-                <Cpu className="w-6 h-6" />
+      <div className="w-full max-w-5xl relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        {/* Left Half: 3D DepthText PACT Only */}
+        <div className="lg:col-span-6 flex flex-col items-center justify-center text-center p-4">
+          <div className="overflow-visible py-6">
+            <DepthText
+              text="PACT"
+              layers={38}
+              depth={3.2}
+              faceColor="#f8fafc"
+              depthColor="#7c3aed"
+              tilt={9}
+              pointerTracking
+              smoothing={0.14}
+              perspective={850}
+              autoOrbit
+              orbitSpeed={0.35}
+              fontSize="clamp(5rem, 16vw, 9.5rem)"
+              fontWeight={900}
+              shadow
+            />
+          </div>
+        </div>
+
+        {/* Right Half: Login Form & Seeded Demo Credentials */}
+        <div className="lg:col-span-6 w-full max-w-md mx-auto">
+          <SpotlightCard
+            spotlightColor="rgba(124, 58, 237, 0.25)"
+            className="bg-slate-950/95 border border-slate-800 p-0 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl"
+          >
+            <div className="p-6 sm:p-7 space-y-5">
+              {/* Tab Switcher Slider: SIGN IN / CREATE ACCOUNT */}
+              <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLogin(true);
+                    setIsForgotPassword(false);
+                    setError(null);
+                    setSuccessMsg(null);
+                  }}
+                  className={`flex-1 py-2.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    isLogin && !isForgotPassword
+                      ? "bg-purple-600 text-white shadow-md shadow-purple-950/40"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  SIGN IN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsLogin(false);
+                    setIsForgotPassword(false);
+                    setError(null);
+                    setSuccessMsg(null);
+                  }}
+                  className={`flex-1 py-2.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    !isLogin && !isForgotPassword
+                      ? "bg-purple-600 text-white shadow-md shadow-purple-950/40"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  CREATE ACCOUNT
+                </button>
               </div>
-              <span className="font-mono font-black text-2xl tracking-wider text-white">PACT</span>
-            </div>
-            {/* Tab Switcher */}
-            <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-sm">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(true);
-                  setIsForgotPassword(false);
-                  setError(null);
-                  setSuccessMsg(null);
-                }}
-                className={`flex-1 py-3 rounded-lg font-bold transition-all cursor-pointer ${
-                  isLogin && !isForgotPassword
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-950"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                SIGN IN
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsLogin(false);
-                  setIsForgotPassword(false);
-                  setError(null);
-                  setSuccessMsg(null);
-                }}
-                className={`flex-1 py-3 rounded-lg font-bold transition-all cursor-pointer ${
-                  !isLogin && !isForgotPassword
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-950"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                CREATE ACCOUNT
-              </button>
-            </div>
 
-            {/* Form Content */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Role Selector on Signup */}
-              {!isLogin && !isForgotPassword && (
-                <div className="space-y-2">
-                  <label className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider block">
-                    SELECT YOUR ROLE
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setRole("BUYER")}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition-all text-left flex flex-col gap-1.5 ${
-                        role === "BUYER"
-                          ? "bg-cyan-950/70 border-cyan-500 text-white shadow-md shadow-cyan-950/50"
-                          : "bg-slate-900/70 border-slate-800 text-slate-400 hover:border-slate-700"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 font-mono font-bold text-sm text-cyan-400">
-                        <Bot className="w-5 h-5" />
-                        <span>AI BUYER</span>
-                      </div>
-                      <p className="text-xs text-slate-400 leading-tight">
-                        Discover & negotiate deals
-                      </p>
-                    </button>
+              {/* Authentication Form: Email & Password */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Role Selector on Signup */}
+                {!isLogin && !isForgotPassword && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider block">
+                      SELECT YOUR ROLE
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setRole("BUYER")}
+                        className={`p-3 rounded-xl border cursor-pointer transition-all text-left flex flex-col gap-1 ${
+                          role === "BUYER"
+                            ? "bg-cyan-950/70 border-cyan-500 text-white shadow-md shadow-cyan-950/50"
+                            : "bg-slate-900/70 border-slate-800 text-slate-400 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 font-mono font-bold text-xs text-cyan-400">
+                          <Bot className="w-4 h-4" />
+                          <span>AI BUYER</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-tight">
+                          Autonomous Buyer
+                        </p>
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setRole("MERCHANT_ADMIN")}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition-all text-left flex flex-col gap-1.5 ${
-                        role === "MERCHANT_ADMIN"
-                          ? "bg-emerald-950/70 border-emerald-500 text-white shadow-md shadow-emerald-950/50"
-                          : "bg-slate-900/70 border-slate-800 text-slate-400 hover:border-slate-700"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 font-mono font-bold text-sm text-emerald-400">
-                        <Store className="w-5 h-5" />
-                        <span>MERCHANT</span>
-                      </div>
-                      <p className="text-xs text-slate-400 leading-tight">
-                        Store catalog & policies
-                      </p>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setRole("MERCHANT_ADMIN")}
+                        className={`p-3 rounded-xl border cursor-pointer transition-all text-left flex flex-col gap-1 ${
+                          role === "MERCHANT_ADMIN"
+                            ? "bg-emerald-950/70 border-emerald-500 text-white shadow-md shadow-emerald-950/50"
+                            : "bg-slate-900/70 border-slate-800 text-slate-400 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 font-mono font-bold text-xs text-emerald-400">
+                          <Store className="w-4 h-4" />
+                          <span>MERCHANT</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-tight">
+                          Store Admin
+                        </p>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Display Name on Signup */}
-              {!isLogin && !isForgotPassword && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-slate-300 uppercase">
-                    Your Name
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="e.g. Sushanth Arun"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                    />
-                    <UserIcon className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
-                  </div>
-                </div>
-              )}
-
-              {/* Merchant Store Fields */}
-              {!isLogin && !isForgotPassword && role === "MERCHANT_ADMIN" && (
-                <div className="space-y-3.5 p-4 rounded-xl bg-emerald-950/20 border border-emerald-800/40">
+                {/* Display Name on Signup */}
+                {!isLogin && !isForgotPassword && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-mono text-emerald-400 uppercase font-bold">
-                      Merchant Store Name *
+                    <label className="text-xs font-mono text-slate-300 uppercase">
+                      Your Name
                     </label>
                     <div className="relative">
                       <input
                         type="text"
-                        placeholder="e.g. ErgoTech Works"
-                        value={merchantName}
-                        onChange={(e) => setMerchantName(e.target.value)}
-                        required
-                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-emerald-800/60 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                        placeholder="e.g. Sushanth Arun"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 transition-colors"
                       />
-                      <Store className="w-5 h-5 text-emerald-500 absolute left-3 top-3.5" />
+                      <UserIcon className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
                     </div>
                   </div>
+                )}
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-mono text-slate-300 uppercase">
-                      Store Description
-                    </label>
-                    <textarea
-                      rows={2}
-                      placeholder="High-performance ergonomic furniture..."
-                      value={merchantDescription}
-                      onChange={(e) => setMerchantDescription(e.target.value)}
-                      className="w-full p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors resize-none"
+                {/* Merchant Store Fields */}
+                {!isLogin && !isForgotPassword && role === "MERCHANT_ADMIN" && (
+                  <div className="space-y-3 p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-800/40">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono text-emerald-400 uppercase font-bold">
+                        Merchant Store Name *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="e.g. ErgoTech Works"
+                          value={merchantName}
+                          onChange={(e) => setMerchantName(e.target.value)}
+                          required
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-emerald-800/60 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                        />
+                        <Store className="w-5 h-5 text-emerald-500 absolute left-3 top-3" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-mono text-slate-300 uppercase">
+                        Store Description
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="High-performance ergonomic furniture..."
+                        value={merchantDescription}
+                        onChange={(e) => setMerchantDescription(e.target.value)}
+                        className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 transition-colors resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Email Address */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-slate-300 uppercase font-semibold">
+                    Email Address *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      required
+                      placeholder="name@company.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 transition-colors"
                     />
+                    <Mail className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
                   </div>
                 </div>
-              )}
 
-              {/* Email Address */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-mono text-slate-300 uppercase">
-                  Email Address *
-                </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    required
-                    placeholder="name@company.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                  <Mail className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
-                </div>
-              </div>
-
-              {/* Password Fields */}
-              {!isForgotPassword && (
+                {/* Password */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-mono text-slate-300 uppercase">
+                    <label className="text-xs font-mono text-slate-300 uppercase font-semibold">
                       Password *
                     </label>
                     {isLogin && (
                       <button
                         type="button"
                         onClick={() => {
-                          setIsForgotPassword(true);
+                          setIsForgotPassword(!isForgotPassword);
                           setError(null);
                           setSuccessMsg(null);
                         }}
-                        className="text-xs font-mono text-blue-400 hover:text-blue-300 transition-colors"
+                        className="text-xs font-mono text-purple-400 hover:text-purple-300 transition-colors"
                       >
-                        Forgot Password?
+                        {isForgotPassword ? "← Back to Login" : "Forgot Password?"}
                       </button>
                     )}
                   </div>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      required
-                      placeholder="••••••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 transition-colors font-mono"
-                    />
-                    <Lock className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
+                  {!isForgotPassword && (
+                    <div className="relative">
+                      <input
+                        type="password"
+                        required
+                        placeholder="••••••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 transition-colors font-mono"
+                      />
+                      <Lock className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirm Password on Signup */}
+                {!isLogin && !isForgotPassword && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-mono text-slate-300 uppercase font-semibold">
+                      Confirm Password *
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="password"
+                        required
+                        placeholder="••••••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 transition-colors font-mono"
+                      />
+                      <KeyRound className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Confirm Password on Signup */}
-              {!isLogin && !isForgotPassword && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-slate-300 uppercase">
-                    Confirm Password *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="password"
-                      required
-                      placeholder="••••••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-blue-500 transition-colors font-mono"
-                    />
-                    <KeyRound className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
+                {/* Feedback messages */}
+                {error && (
+                  <div className="p-3.5 rounded-xl bg-rose-950/50 border border-rose-800/80 text-rose-300 text-sm flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
+                    <span>{error}</span>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Feedback messages */}
-              {error && (
-                <div className="p-3.5 rounded-xl bg-rose-950/50 border border-rose-800/80 text-rose-300 text-sm flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
-                  <span>{error}</span>
-                </div>
-              )}
+                {successMsg && (
+                  <div className="p-3.5 rounded-xl bg-emerald-950/50 border border-emerald-800/80 text-emerald-300 text-sm flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+                    <span>{successMsg}</span>
+                  </div>
+                )}
 
-              {successMsg && (
-                <div className="p-3.5 rounded-xl bg-emerald-950/50 border border-emerald-800/80 text-emerald-300 text-sm flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
-                  <span>{successMsg}</span>
+                {/* Submit CTA */}
+                <div className="pt-2">
+                  <Magnet strength={6} className="w-full">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:via-indigo-500 hover:to-blue-500 text-white font-mono text-sm font-bold transition-all shadow-xl shadow-purple-950/60 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>PROCESSING...</span>
+                        </>
+                      ) : isForgotPassword ? (
+                        <>
+                          <span>SEND RESET LINK</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      ) : isLogin ? (
+                        <>
+                          <span>SIGN IN TO PACT</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      ) : (
+                        <>
+                          <span>CREATE {role} ACCOUNT</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                  </Magnet>
                 </div>
-              )}
+              </form>
 
-              {/* Submit CTA */}
-              <div className="pt-2">
-                <Magnet strength={6} className="w-full">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-mono text-sm font-bold transition-all shadow-xl shadow-blue-950/60 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>PROCESSING...</span>
-                      </>
-                    ) : isForgotPassword ? (
-                      <>
-                        <span>SEND RESET LINK</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    ) : isLogin ? (
-                      <>
-                        <span>SIGN IN TO PACT</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    ) : (
-                      <>
-                        <span>CREATE {role} ACCOUNT</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </Magnet>
-              </div>
-
-              {isForgotPassword && (
-                <div className="text-center pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsForgotPassword(false);
-                      setIsLogin(true);
-                    }}
-                    className="text-sm font-mono text-slate-400 hover:text-slate-200"
-                  >
-                    ← Back to Sign In
-                  </button>
+            {/* Quick Demo Credentials Footer (Only visible on Sign In tab) */}
+            {isLogin && !isForgotPassword && (
+              <div className="pt-5 border-t border-slate-200 dark:border-slate-800/80 font-mono text-xs text-slate-400 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs tracking-wider uppercase">
+                  <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>PRE-SEEDED DEMO ACCOUNTS (CLICK TO AUTO-FILL)</span>
+                  </div>
+                  <span className="text-slate-600 dark:text-slate-400 font-bold">PW: pact123456</span>
                 </div>
-              )}
-            </form>
-
-            {/* Quick Demo Credentials Footer */}
-            <div className="pt-5 border-t border-slate-800/80 font-mono text-xs text-slate-400 space-y-2.5">
-              <div className="flex items-center justify-between text-xs tracking-wider uppercase">
-                <div className="flex items-center gap-1.5 text-blue-400 font-bold">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>PRE-SEEDED DEMO ACCOUNTS</span>
-                </div>
-                <span className="text-slate-400 font-bold">PW: pact123456</span>
-              </div>
               <div className="grid grid-cols-1 gap-2 text-xs">
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
-                  <span className="text-slate-200 font-bold">AI Buyer:</span>
-                  <code className="text-blue-300 font-semibold">buyer@pact.ai</code>
-                  <span className="text-slate-400">Global Buyer</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
-                  <span className="text-emerald-300 font-bold">ErgoSpace:</span>
-                  <code className="text-slate-200 font-semibold">merchant@ergospace.com</code>
-                  <span className="text-slate-400">Seating & Desks</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
-                  <span className="text-emerald-300 font-bold">DeskForge:</span>
-                  <code className="text-slate-200 font-semibold">merchant@deskforge.com</code>
-                  <span className="text-slate-400">Motorized Desks</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
-                  <span className="text-emerald-300 font-bold">CyberTech:</span>
-                  <code className="text-slate-200 font-semibold">merchant@cybertech.com</code>
-                  <span className="text-slate-400">Battlestations</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
-                  <span className="text-emerald-300 font-bold">OfficePro:</span>
-                  <code className="text-slate-200 font-semibold">merchant@officepro.com</code>
-                  <span className="text-slate-400">Enterprise AV</span>
-                </div>
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
-                  <span className="text-emerald-300 font-bold">NordicLiving:</span>
-                  <code className="text-slate-200 font-semibold">merchant@nordicliving.com</code>
-                  <span className="text-slate-400">Minimalist Wood</span>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("buyer@pact.ai");
+                    setPassword("pact123456");
+                    setIsLogin(true);
+                    setError(null);
+                    setSuccessMsg("Auto-filled AI Buyer credentials!");
+                  }}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-cyan-50 dark:bg-slate-900/80 dark:hover:bg-cyan-950/40 border border-slate-200 hover:border-cyan-400 dark:border-slate-800 dark:hover:border-cyan-600 gap-1.5 transition-all text-left cursor-pointer group"
+                >
+                  <span className="text-cyan-700 dark:text-cyan-300 font-bold shrink-0 group-hover:text-cyan-800 dark:group-hover:text-cyan-200">AI Buyer:</span>
+                  <code className="text-blue-600 dark:text-blue-300 font-semibold truncate">buyer@pact.ai</code>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] shrink-0">Global Buyer</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("merchant@ergospace.com");
+                    setPassword("pact123456");
+                    setIsLogin(true);
+                    setError(null);
+                    setSuccessMsg("Auto-filled ErgoSpace Merchant credentials!");
+                  }}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 dark:bg-slate-900/80 dark:hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-400 dark:border-slate-800 dark:hover:border-emerald-600 gap-1.5 transition-all text-left cursor-pointer group"
+                >
+                  <span className="text-emerald-700 dark:text-emerald-300 font-bold shrink-0 group-hover:text-emerald-800 dark:group-hover:text-emerald-200">ErgoSpace:</span>
+                  <code className="text-slate-800 dark:text-slate-200 font-semibold truncate">merchant@ergospace.com</code>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] shrink-0">Seating & Desks</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("merchant@deskforge.com");
+                    setPassword("pact123456");
+                    setIsLogin(true);
+                    setError(null);
+                    setSuccessMsg("Auto-filled DeskForge Merchant credentials!");
+                  }}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 dark:bg-slate-900/80 dark:hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-400 dark:border-slate-800 dark:hover:border-emerald-600 gap-1.5 transition-all text-left cursor-pointer group"
+                >
+                  <span className="text-emerald-700 dark:text-emerald-300 font-bold shrink-0 group-hover:text-emerald-800 dark:group-hover:text-emerald-200">DeskForge:</span>
+                  <code className="text-slate-800 dark:text-slate-200 font-semibold truncate">merchant@deskforge.com</code>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] shrink-0">Motorized Desks</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("merchant@cybertech.com");
+                    setPassword("pact123456");
+                    setIsLogin(true);
+                    setError(null);
+                    setSuccessMsg("Auto-filled CyberTech Merchant credentials!");
+                  }}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 dark:bg-slate-900/80 dark:hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-400 dark:border-slate-800 dark:hover:border-emerald-600 gap-1.5 transition-all text-left cursor-pointer group"
+                >
+                  <span className="text-emerald-700 dark:text-emerald-300 font-bold shrink-0 group-hover:text-emerald-800 dark:group-hover:text-emerald-200">CyberTech:</span>
+                  <code className="text-slate-800 dark:text-slate-200 font-semibold truncate">merchant@cybertech.com</code>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] shrink-0">Battlestations</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("merchant@officepro.com");
+                    setPassword("pact123456");
+                    setIsLogin(true);
+                    setError(null);
+                    setSuccessMsg("Auto-filled OfficePro Merchant credentials!");
+                  }}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 dark:bg-slate-900/80 dark:hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-400 dark:border-slate-800 dark:hover:border-emerald-600 gap-1.5 transition-all text-left cursor-pointer group"
+                >
+                  <span className="text-emerald-700 dark:text-emerald-300 font-bold shrink-0 group-hover:text-emerald-800 dark:group-hover:text-emerald-200">OfficePro:</span>
+                  <code className="text-slate-800 dark:text-slate-200 font-semibold truncate">merchant@officepro.com</code>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] shrink-0">Enterprise AV</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("merchant@nordicliving.com");
+                    setPassword("pact123456");
+                    setIsLogin(true);
+                    setError(null);
+                    setSuccessMsg("Auto-filled NordicLiving Merchant credentials!");
+                  }}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 dark:bg-slate-900/80 dark:hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-400 dark:border-slate-800 dark:hover:border-emerald-600 gap-1.5 transition-all text-left cursor-pointer group"
+                >
+                  <span className="text-emerald-700 dark:text-emerald-300 font-bold shrink-0 group-hover:text-emerald-800 dark:group-hover:text-emerald-200">NordicLiving:</span>
+                  <code className="text-slate-800 dark:text-slate-200 font-semibold truncate">merchant@nordicliving.com</code>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] shrink-0">Minimalist Wood</span>
+                </button>
               </div>
             </div>
-          </div>
-        </SpotlightCard>
-      </div>
+          )}
+        </div>
+      </SpotlightCard>
     </div>
-  );
+  </div>
+</div>
+);
 }

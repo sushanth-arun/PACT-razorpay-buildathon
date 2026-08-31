@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { getAuthenticatedUserFromRequest } from "@/lib/auth/auth-service";
+import { formatMerchantName } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   try {
@@ -33,50 +34,61 @@ export async function GET(req: NextRequest) {
     }
 
     const ordersSnap = await query.limit(50).get();
-    
-    // Fetch associated deal and payment details for rich UI cards
     const orders = ordersSnap.docs.map((d) => d.data());
-    const dealIds = Array.from(new Set(orders.map((o) => o.dealId).filter(Boolean)));
-    const dealsMap: Record<string, FirebaseFirestore.DocumentData> = {};
 
-    if (dealIds.length > 0) {
-      const dealSnaps = await Promise.all(
-        dealIds.map((id) => adminDb!.collection("deals").doc(id).get())
-      );
-      for (const snap of dealSnaps) {
-        const data = snap.data();
-        if (snap.exists && data) dealsMap[snap.id] = data;
-      }
-    }
+    // Fetch all deals so in-progress / draft deals appear immediately in History
+    const allDealsSnap = await adminDb.collection("deals").orderBy("createdAt", "desc").limit(50).get();
+    const allDeals = allDealsSnap.docs.map((d) => d.data());
 
-    // Combine into rich transaction records
-    const transactions = orders
-      .filter((order) => {
-        // If deals collection was wiped or deal was deleted, omit orphaned records
-        if (!order.dealId) return false;
-        const deal = dealsMap[order.dealId];
-        return Boolean(deal);
-      })
-      .map((order) => {
-        const deal = dealsMap[order.dealId] || null;
-        return {
-          id: order.id,
-          orderId: order.id,
-          dealId: order.dealId,
-          merchantId: order.merchantId,
-          merchantName: deal?.merchantName || order.merchantId || "ErgoSpace",
-          amount: order.amount / 100, // paise to INR
-        status: order.status === "PAID" ? "PAID" : order.status === "CREATED" ? "PENDING" : order.status,
-        razorpayOrderId: order.razorpayOrderId,
-        createdAt: order.createdAt,
-        updatedAt: order.updatedAt,
-        itemsCount: deal?.items?.length || 1,
-        items: deal?.items || [],
-        discount: deal?.discount || { amount: 0, percentage: 0 },
-        finalAmount: deal?.finalAmount || (order.amount / 100),
-        subtotal: deal?.subtotal || (order.amount / 100),
+    // Map deals into transactions list
+    const transactions = allDeals.map((deal) => {
+      const matchingOrder = orders.find((o) => o.dealId === deal.dealId);
+      const isPaid = deal.status === "PAID" || matchingOrder?.status === "PAID";
+      return {
+        id: deal.dealId,
+        orderId: matchingOrder?.id || deal.dealId,
+        dealId: deal.dealId,
+        buyerIntentId: deal.buyerIntentId,
+        merchantOfferId: deal.merchantOfferId,
+        merchantId: deal.merchantId,
+        merchantName: formatMerchantName(deal.merchantName || deal.merchantId),
+        amount: deal.finalAmount || (matchingOrder ? matchingOrder.amount / 100 : 0),
+        status: isPaid ? "PAID" : deal.status,
+        razorpayOrderId: matchingOrder?.razorpayOrderId || null,
+        createdAt: deal.createdAt,
+        updatedAt: deal.updatedAt,
+        itemsCount: deal.items?.length || 0,
+        items: deal.items || [],
+        discount: deal.discount || { amount: 0, percentage: 0 },
+        finalAmount: deal.finalAmount || 0,
+        subtotal: deal.subtotal || 0,
       };
     });
+
+    // Also include any orders whose deals might not be in deals collection
+    for (const order of orders) {
+      if (!transactions.some((t) => t.dealId === order.dealId || t.orderId === order.id)) {
+        transactions.push({
+          id: order.id,
+          orderId: order.id,
+          dealId: order.dealId || order.id,
+          buyerIntentId: null,
+          merchantOfferId: null,
+          merchantId: order.merchantId,
+          merchantName: formatMerchantName(order.merchantId),
+          amount: order.amount / 100,
+          status: order.status === "PAID" ? "PAID" : order.status === "CREATED" ? "PENDING" : order.status,
+          razorpayOrderId: order.razorpayOrderId,
+          createdAt: order.createdAt,
+          updatedAt: order.updatedAt,
+          itemsCount: 1,
+          items: [],
+          discount: { amount: 0, percentage: 0 },
+          finalAmount: order.amount / 100,
+          subtotal: order.amount / 100,
+        });
+      }
+    }
 
     // Sort newest first
     transactions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());

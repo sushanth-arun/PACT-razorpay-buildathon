@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase/admin";
 import { getAuthenticatedUserFromRequest } from "@/lib/auth/auth-service";
+import { formatMerchantName } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,36 +43,41 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Transform into enriched real-time evaluated deals
-    const evaluations = rawEvals
-      .filter((e) => Boolean(dealsMap[e.dealId])) // drop orphaned docs
-      .map((e) => {
-        const deal = dealsMap[e.dealId];
-        return {
-          id: e.id,
-          dealId: e.dealId,
-          evaluatedAt: e.evaluatedAt,
-          overallStatus: e.overallStatus,
-          rulesCheckedCount: e.rulesCheckedCount || 9,
-          passedCount: e.passedCount || 0,
-          failedCount: e.failedCount || 0,
-          warningCount: e.warningCount || 0,
-          summary: e.summary,
-          evaluations: e.evaluations || [],
-          deal: {
-            id: deal.dealId || e.dealId,
-            merchantId: deal.merchantId,
-            merchantName: deal.merchantName || e.metadata?.merchantId || "Merchant Store",
-            status: deal.status,
-            finalAmount: deal.finalAmount || 0,
-            items: deal.items || [],
-            discount: deal.discount || { amount: 0, percentage: 0 },
-            subtotal: deal.subtotal || 0,
-            deliveryDays: deal.deliveryDays || 7,
-            slaCommitment: deal.slaCommitment,
-          },
-        };
+    // Transform into enriched real-time evaluated deals (Deduplicate by dealId to ensure 1 evaluation per deal)
+    const seenDealIds = new Set<string>();
+    const evaluations = [];
+
+    for (const e of rawEvals) {
+      if (!e.dealId || seenDealIds.has(e.dealId)) continue;
+      const deal = dealsMap[e.dealId];
+      if (!deal) continue;
+
+      seenDealIds.add(e.dealId);
+      evaluations.push({
+        id: e.id,
+        dealId: e.dealId,
+        evaluatedAt: e.evaluatedAt,
+        overallStatus: e.overallStatus,
+        rulesCheckedCount: e.rulesCheckedCount || 9,
+        passedCount: e.passedCount || 0,
+        failedCount: e.failedCount || 0,
+        warningCount: e.warningCount || 0,
+        summary: e.summary,
+        evaluations: e.evaluations || [],
+        deal: {
+          id: deal.dealId || e.dealId,
+          merchantId: deal.merchantId,
+          merchantName: formatMerchantName(deal.merchantName || e.metadata?.merchantId || deal.merchantId),
+          status: deal.status,
+          finalAmount: deal.finalAmount || 0,
+          items: deal.items || [],
+          discount: deal.discount || { amount: 0, percentage: 0 },
+          subtotal: deal.subtotal || 0,
+          deliveryDays: deal.deliveryDays || 7,
+          slaCommitment: deal.slaCommitment,
+        },
       });
+    }
 
     evaluations.sort((a, b) => new Date(b.evaluatedAt).getTime() - new Date(a.evaluatedAt).getTime());
 

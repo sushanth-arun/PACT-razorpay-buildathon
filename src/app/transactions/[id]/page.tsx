@@ -130,10 +130,10 @@ export default function TransactionDetailPage({
 
         <PageHeader
           title={`TRANSACTION #${transaction.id.toUpperCase()}`}
-          description={`Autonomous AI-negotiated deal settled via Razorpay Test Mode with ${transaction.merchantName}.`}
+          description={`Autonomous AI-negotiated deal recorded with ${transaction.merchantName || deal?.merchantName || "ErgoSpace"}.`}
           badge={
             <StatusBadge
-              status={transaction.status === "PAID" ? "paid" : "pending_approval"}
+              status={transaction.status === "PAID" ? "paid" : transaction.status === "VALIDATED" ? "validated" : "pending_approval"}
               label={transaction.status === "PAID" ? "SETTLED & VERIFIED" : transaction.status}
             />
           }
@@ -224,9 +224,36 @@ export default function TransactionDetailPage({
 
               <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
                 <span className="text-slate-500 text-[10px] uppercase font-bold">PACT FIREWALL STATUS</span>
-                <p className="font-bold text-emerald-400 text-xs flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>9/9 GATES VALIDATED</span>
+                <p className={`font-bold text-xs flex items-center gap-1.5 ${
+                  deal?.status === "VALIDATED" || deal?.status === "PAID"
+                    ? "text-emerald-400"
+                    : deal?.status === "PENDING_APPROVAL"
+                    ? "text-amber-400"
+                    : deal?.status === "REJECTED" || deal?.status === "COMPILATION_FAILED"
+                    ? "text-rose-400"
+                    : "text-blue-400"
+                }`}>
+                  {deal?.status === "VALIDATED" || deal?.status === "PAID" ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>9/9 GATES VALIDATED</span>
+                    </>
+                  ) : deal?.status === "PENDING_APPROVAL" ? (
+                    <>
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>8/9 GATES PASSED (PENDING APPROVAL)</span>
+                    </>
+                  ) : deal?.status === "REJECTED" ? (
+                    <>
+                      <ShieldCheck className="w-3.5 h-3.5 text-rose-400" />
+                      <span>FIREWALL REJECTED</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>{deal?.status || "DRAFT (NOT EVALUATED)"}</span>
+                    </>
+                  )}
                 </p>
               </div>
             </div>

@@ -162,10 +162,18 @@ export default function MerchantPoliciesPage() {
                   </span>
                 </div>
                 <input
-                  type="number"
-                  step={5000}
-                  value={form.maxAutoTransactionAmount}
-                  onChange={(e) => setForm({ ...form, maxAutoTransactionAmount: Number(e.target.value) })}
+                  type="text"
+                  inputMode="numeric"
+                  value={form.maxAutoTransactionAmount === 0 ? "" : form.maxAutoTransactionAmount}
+                  placeholder="0"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      setForm({ ...form, maxAutoTransactionAmount: 0 });
+                    } else if (/^\d+$/.test(val)) {
+                      setForm({ ...form, maxAutoTransactionAmount: parseInt(val, 10) });
+                    }
+                  }}
                   className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 font-bold focus:outline-none focus:border-blue-500"
                 />
                 <p className="text-[11px] text-slate-400 font-sans leading-relaxed">

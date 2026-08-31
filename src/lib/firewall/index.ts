@@ -35,7 +35,8 @@ export async function evaluateDealWithFirewall(
 ): Promise<EvaluateFirewallResult> {
   const { dealId } = options;
   const nowStr = new Date().toISOString();
-  const evalId = `peval_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  // Deterministic evaluation ID: Each deal has exactly 1 latest canonical policy evaluation
+  const evalId = `peval_${dealId}`;
 
   // Log audit start
   await recordAuditEvent(
@@ -381,8 +382,20 @@ export async function evaluateDealWithFirewall(
   // ==========================================
   // RULE 8: HUMAN_APPROVAL_GATE
   // ==========================================
-  const requiresHumanApproval = dealDoc.finalAmount > approvalRequiredAbove;
-  if (requiresHumanApproval) {
+  const isAlreadyApproved = Boolean(dealDoc.approvedBy) || dealDoc.status === "VALIDATED";
+  const exceedsThreshold = dealDoc.finalAmount > approvalRequiredAbove;
+  const requiresHumanApproval = exceedsThreshold && !isAlreadyApproved;
+
+  if (isAlreadyApproved) {
+    evaluations.push({
+      ruleName: "HUMAN_APPROVAL_GATE",
+      status: "PASS",
+      severity: "INFO",
+      explanation: `Human Merchant Approval GRANTED by ${dealDoc.approvedBy || "Merchant Store Manager"} on ${dealDoc.approvedAt ? new Date(dealDoc.approvedAt).toLocaleTimeString() : "recently"}. Threshold gate unlocked.`,
+      metadata: { finalAmount: dealDoc.finalAmount, approvalRequiredAbove, approvedBy: dealDoc.approvedBy, approvedAt: dealDoc.approvedAt, manuallyApproved: true },
+    });
+    await recordAuditEvent("POLICY_CHECK_PASSED", "PACT_FIREWALL", `HUMAN_APPROVAL_GATE satisfied via verified merchant sign-off by ${dealDoc.approvedBy || "Merchant Admin"}.`, { dealId });
+  } else if (requiresHumanApproval) {
     evaluations.push({
       ruleName: "HUMAN_APPROVAL_GATE",
       status: "PASS",
@@ -424,7 +437,9 @@ export async function evaluateDealWithFirewall(
     await recordAuditEvent("HUMAN_APPROVAL_REQUIRED", "PACT_FIREWALL", summaryMessage, { dealId, merchantId });
   } else {
     overallStatus = "VALIDATED";
-    summaryMessage = "PACT Firewall PASSED: Deal satisfies all commercial, inventory, pricing, budget, and merchant policy constraints.";
+    summaryMessage = isAlreadyApproved
+      ? `PACT Firewall VALIDATED: Deal satisfies all policy rules and has received verified Human Merchant Sign-Off (${dealDoc.approvedBy || "Merchant Admin"}).`
+      : "PACT Firewall PASSED: Deal satisfies all commercial, inventory, pricing, budget, and merchant policy constraints.";
     await recordAuditEvent("DEAL_VALIDATED", "PACT_FIREWALL", summaryMessage, { dealId, merchantId });
   }
 

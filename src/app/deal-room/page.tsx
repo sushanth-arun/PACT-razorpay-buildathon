@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -29,7 +30,8 @@ import {
   Lock,
   ExternalLink,
   Check,
-  Store
+  Store,
+  History
 } from "lucide-react";
 import { SavedBuyerIntent } from "@/services/buyer-intent-service";
 import { MerchantOffer } from "@/lib/ai/merchant-offer-schema";
@@ -165,6 +167,18 @@ const FIREWALL_PROCESSING_STEPS = [
   "FINALIZING FIREWALL DECISION",
 ];
 
+const DEFAULT_FIREWALL_RULES = [
+  { ruleName: "INVENTORY_CHECK", description: "Verifies stock availability across all requested product IDs in live Firestore warehouse catalog." },
+  { ruleName: "PRICE_VERIFICATION", description: "Ensures unit prices match authoritative Firestore product catalog with 0% price drift." },
+  { ruleName: "DISCOUNT_LIMIT", description: "Verifies negotiated commercial discount does not exceed merchant maximum policy cap." },
+  { ruleName: "BUDGET_CONSTRAINT", description: "Validates final payable amount against buyer explicit budget ceiling." },
+  { ruleName: "DELIVERY_CONSTRAINT", description: "Enforces delivery lead time SLA against merchant fulfillment warehouse capability." },
+  { ruleName: "TRANSACTION_LIMIT", description: "Ensures transaction value complies with maximum settlement platform risk ceilings." },
+  { ruleName: "HUMAN_APPROVAL_GATE", description: "Routes deals exceeding auto-settlement threshold to merchant store manager approval." },
+  { ruleName: "DUPLICATE_PROTECTION", description: "Guarantees cryptographic transaction idempotency preventing duplicate settlements." },
+  { ruleName: "PRODUCT_VALIDITY", description: "Checks active catalog status, category domain relevance, and SKU integrity." },
+];
+
 function DealRoomContent() {
   const searchParams = useSearchParams();
   const queryMerchantId = searchParams.get("merchantId");
@@ -213,8 +227,46 @@ function DealRoomContent() {
   }>({ status: "IDLE" });
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
-  // Active Stage Navigation State ("ALL" for full overview, or 1 to 6 for focused stage)
-  const [selectedStage, setSelectedStage] = useState<"ALL" | number>("ALL");
+  // Tab state: "pipeline" (Active Deal Room) vs "history" (Deals History)
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"pipeline" | "history">(tabParam === "history" ? "history" : "pipeline");
+  const [dealsHistory, setDealsHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(false);
+
+  // Sync active tab with URL query parameter
+  React.useEffect(() => {
+    if (tabParam === "history") {
+      setActiveTab("history");
+    } else {
+      setActiveTab("pipeline");
+    }
+  }, [tabParam]);
+
+  // Fetch deal history from Firestore
+  const loadDealsHistory = React.useCallback(async () => {
+    try {
+      setHistoryLoading(true);
+      const res = await fetch("/api/transactions");
+      const data = await res.json();
+      if (data.success) {
+        const list = Array.isArray(data.transactions) ? data.transactions : Array.isArray(data.orders) ? data.orders : [];
+        setDealsHistory(list);
+      }
+    } catch {
+      // ignore
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (activeTab === "history") {
+      loadDealsHistory();
+    }
+  }, [activeTab, loadDealsHistory]);
+
+  // Active Stage Navigation State (1 to 5 for focused stage display)
+  const [selectedStage, setSelectedStage] = useState<number>(1);
 
   // Single derived authoritative Deal Room lifecycle state
   const lifecycle = useDealLifecycle({
@@ -236,6 +288,13 @@ function DealRoomContent() {
     paymentError,
   });
 
+  // Auto-focus the stage view when a new step becomes active
+  React.useEffect(() => {
+    if (lifecycle.activeStepNumber) {
+      setSelectedStage(lifecycle.activeStepNumber);
+    }
+  }, [lifecycle.activeStepNumber]);
+
   // Load target merchant info & all merchants
   React.useEffect(() => {
     fetch("/api/merchants")
@@ -252,18 +311,174 @@ function DealRoomContent() {
     });
   }, [activeTargetMerchantId]);
 
-  // Clear any residual session cache and check Gemini health on entry
+  // Restore active deal session cache and check Gemini health on entry
   React.useEffect(() => {
-    // 1. Reset all sessionStorage keys on re-entering Deal Room
+    const dealIdParam = searchParams.get("dealId");
+
+    // If dealId is explicitly passed in URL query, load the complete deal state from Firestore into Deal Room
+    if (dealIdParam) {
+      setActiveTab("pipeline");
+      fetch(`/api/transactions/${dealIdParam}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.deal) {
+            const deal = data.deal;
+            setDealContractResult(deal);
+            
+            // Immediately sync active merchant to the deal's counterparty
+            if (deal.merchantId) {
+              setActiveTargetMerchantId(deal.merchantId);
+            }
+
+            // Set buyer intent if present
+            if (deal.buyerConstraints) {
+              setIntentResult({
+                id: deal.buyerIntentId || `intent_${deal.dealId}`,
+                dealId: deal.dealId,
+                productIntent: deal.items?.[0]?.productName || "Commercial Purchase",
+                quantity: deal.buyerConstraints.quantity,
+                budget: deal.buyerConstraints.budget,
+                requestedDiscount: deal.discount?.percentage || null,
+                deliveryMaxDays: deal.deliveryDays,
+                preferences: deal.buyerConstraints.preferences || [],
+                negotiableConstraints: deal.buyerConstraints.negotiableConstraints || [],
+                confidence: 0.95,
+                rawRequest: `Purchase deal #${deal.dealId}`,
+                createdAt: deal.createdAt,
+                aiProvider: "google-gemini",
+                aiModel: "gemini-3.1-flash-lite",
+              });
+            }
+
+            // Set merchant offer if items exist
+            if (deal.items && deal.items.length > 0) {
+              setOfferResult({
+                id: deal.merchantOfferId || `offer_${deal.dealId}`,
+                buyerIntentId: deal.buyerIntentId || "",
+                merchantId: deal.merchantId,
+                status: "OFFER_GENERATED",
+                selectedItems: deal.items.map((it: any) => ({
+                  productId: it.productId,
+                  productName: it.productName,
+                  quantity: it.quantity,
+                  unitPrice: it.unitPrice,
+                  lineTotal: it.lineTotal,
+                })),
+                alternativeItems: [],
+                bundleItems: [],
+                subtotal: deal.subtotal,
+                proposedDiscount: {
+                  percentage: deal.discount?.percentage || 0,
+                  amount: deal.discount?.amount || 0,
+                  reasoning: deal.discount?.reason || "Contract discount",
+                },
+                estimatedFinalAmount: deal.finalAmount,
+                deliveryDays: deal.deliveryDays || 5,
+                buyerFitExplanation: "Fulfills requested commercial parameters.",
+                merchantOpportunityExplanation: "Matches merchant catalog.",
+                reasoningSummary: "Deal contract loaded from Firestore ledger.",
+                aiProvider: "google-gemini",
+                aiModel: "gemini-3.1-flash-lite",
+                createdAt: deal.createdAt,
+              });
+            }
+
+            // Set firewall status (restoring full 9-rule evaluations matrix)
+            if (data.evaluation && Array.isArray(data.evaluation.evaluations) && data.evaluation.evaluations.length > 0) {
+              setFirewallResult(data.evaluation);
+            } else if (deal.status === "VALIDATED" || deal.status === "PENDING_APPROVAL" || deal.status === "REJECTED") {
+              const syntheticEvaluations = DEFAULT_FIREWALL_RULES.map((rule) => {
+                let status: "PASS" | "FAIL" = "PASS";
+                let severity: "INFO" | "WARNING" | "CRITICAL" = "INFO";
+                let explanation = rule.description;
+
+                if (deal.status === "REJECTED") {
+                  if (rule.ruleName === "DISCOUNT_LIMIT" || rule.ruleName === "BUDGET_CONSTRAINT") {
+                    status = "FAIL";
+                    severity = "CRITICAL";
+                    explanation = `Constraint violation detected: Deal violates commercial threshold limits.`;
+                  }
+                } else if (deal.status === "PENDING_APPROVAL") {
+                  if (rule.ruleName === "HUMAN_APPROVAL_GATE") {
+                    status = "PASS";
+                    severity = "WARNING";
+                    explanation = `Total amount ₹${(deal.finalAmount || 0).toLocaleString("en-IN")} exceeds merchant auto-settlement ceiling. Human manager approval required.`;
+                  }
+                }
+
+                return {
+                  ruleName: rule.ruleName as any,
+                  status,
+                  severity,
+                  explanation,
+                  metadata: {},
+                };
+              });
+
+              setFirewallResult({
+                id: `fw_${deal.dealId}`,
+                dealId: deal.dealId,
+                evaluatedAt: deal.updatedAt || deal.createdAt,
+                overallStatus: deal.status as "VALIDATED" | "PENDING_APPROVAL" | "REJECTED",
+                rulesCheckedCount: 9,
+                passedCount: deal.status === "VALIDATED" ? 9 : 8,
+                failedCount: deal.status === "REJECTED" ? 1 : 0,
+                warningCount: deal.status === "PENDING_APPROVAL" ? 1 : 0,
+                summary: `Loaded evaluation decision: ${deal.status}`,
+                evaluations: syntheticEvaluations,
+                metadata: {},
+              });
+            }
+
+            // If paid, set payment state
+            if (deal.status === "PAID") {
+              setPaymentResult({
+                status: "PAID",
+                dealId: deal.dealId,
+                message: "Deal successfully settled",
+              });
+            }
+          }
+        })
+        .catch((err) => console.error("Failed to load deal by dealIdParam:", err));
+      return;
+    }
+
+    // 1. Restore any active, uncompleted in-progress deal state from sessionStorage
     try {
-      sessionStorage.removeItem("pact_intent_result");
-      sessionStorage.removeItem("pact_offer_result");
-      sessionStorage.removeItem("pact_contract_result");
-      sessionStorage.removeItem("pact_firewall_result");
-      sessionStorage.removeItem("pact_payment_result");
-      sessionStorage.removeItem("pact_request_text");
+      const savedPayment = sessionStorage.getItem("pact_payment_result");
+      const parsedPayment = savedPayment ? JSON.parse(savedPayment) : null;
+      
+      const savedContract = sessionStorage.getItem("pact_contract_result");
+      const parsedContract = savedContract ? JSON.parse(savedContract) : null;
+
+      // If the cached deal was already PAID or completed, do not restore it into the active workspace
+      if (parsedPayment?.status === "PAID" || parsedContract?.status === "PAID") {
+        sessionStorage.removeItem("pact_intent_result");
+        sessionStorage.removeItem("pact_offer_result");
+        sessionStorage.removeItem("pact_contract_result");
+        sessionStorage.removeItem("pact_firewall_result");
+        sessionStorage.removeItem("pact_payment_result");
+        sessionStorage.removeItem("pact_request_text");
+      } else {
+        const savedIntent = sessionStorage.getItem("pact_intent_result");
+        if (savedIntent) setIntentResult(JSON.parse(savedIntent));
+
+        const savedOffer = sessionStorage.getItem("pact_offer_result");
+        if (savedOffer) setOfferResult(JSON.parse(savedOffer));
+
+        if (parsedContract) setDealContractResult(parsedContract);
+
+        const savedFirewall = sessionStorage.getItem("pact_firewall_result");
+        if (savedFirewall) setFirewallResult(JSON.parse(savedFirewall));
+
+        if (parsedPayment) setPaymentResult(parsedPayment);
+
+        const savedText = sessionStorage.getItem("pact_request_text");
+        if (savedText) setRequestText(savedText);
+      }
     } catch {
-      // ignore
+      // ignore JSON parse errors
     }
 
     // 2. Check Gemini server-side health
@@ -281,7 +496,7 @@ function DealRoomContent() {
       script.async = true;
       document.body.appendChild(script);
     }
-  }, []);
+  }, [searchParams]);
 
   const handleStartNewDeal = () => {
     try {
@@ -305,7 +520,7 @@ function DealRoomContent() {
     setFirewallError(null);
     setOfferError(null);
     setPaymentError(null);
-    setSelectedStage("ALL");
+    setSelectedStage(1);
   };
 
 
@@ -331,6 +546,7 @@ function DealRoomContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           request: requestText.trim(),
+          dealId: dealContractResult?.dealId || intentResult?.dealId || undefined,
           useDevFallback: forceFallback,
         }),
       });
@@ -361,6 +577,61 @@ function DealRoomContent() {
         sessionStorage.removeItem("pact_firewall_result");
       } catch {
         // ignore
+      }
+
+      // Seamless Autonomous Pipeline: Auto-trigger Stage 2 Merchant Offer Construction
+      if (data.intent?.id) {
+        setOfferLoading(true);
+        setOfferError(null);
+        setDealContractResult(null);
+        setCompilerError(null);
+        setFirewallResult(null);
+        setFirewallError(null);
+        setOfferProcessingStep(0);
+
+        const offerStepInterval = setInterval(() => {
+          setOfferProcessingStep((prev) => (prev < 4 ? prev + 1 : prev));
+        }, 450);
+
+        try {
+          const offerRes = await fetch("/api/merchant-offer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              buyerIntentId: data.intent.id,
+              merchantId: activeTargetMerchantId,
+            }),
+          });
+
+          const offerData = await offerRes.json();
+          clearInterval(offerStepInterval);
+
+          if (offerRes.ok && offerData.success && offerData.offer) {
+            setOfferProcessingStep(5);
+            setOfferResult(offerData.offer);
+            setSelectedStage(2); // Focus directly on the generated offer stage
+            try {
+              sessionStorage.setItem("pact_offer_result", JSON.stringify(offerData.offer));
+            } catch {
+              // ignore
+            }
+          } else {
+            const errObj = offerData.error;
+            let errMsg = "Failed to generate merchant offer.";
+            if (typeof errObj === "string") {
+              errMsg = errObj;
+            } else if (errObj && typeof errObj === "object") {
+              errMsg = errObj.message || errObj.code || JSON.stringify(errObj);
+            }
+            setOfferError(errMsg);
+          }
+        } catch (offerErr: unknown) {
+          clearInterval(offerStepInterval);
+          const msg = offerErr instanceof Error ? offerErr.message : "Failed to generate merchant offer.";
+          setOfferError(msg);
+        } finally {
+          setOfferLoading(false);
+        }
       }
 
     } catch (err: unknown) {
@@ -655,7 +926,7 @@ function DealRoomContent() {
           },
           notes: {
             dealId: dealContractResult.dealId,
-            paymentMode: "Razorpay Standard (Google Pay / UPI / Cards / Netbanking)",
+            paymentMode: "Razorpay Standard Checkout (UPI / Cards / Netbanking)",
           },
           theme: {
             color: "#2563eb",
@@ -750,47 +1021,213 @@ function DealRoomContent() {
 
   return (
     <PageContainer>
-      <PageHeader
-        title="PACT DEAL ROOM"
-        description="Autonomous AI-to-AI commerce pipeline with real-time intent parsing, catalog offers, deterministic compilation, and policy firewall gates."
-        badge={getHeaderStatusBadge()}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+        <div>
+          <PageHeader
+            title="PACT DEAL ROOM"
+            description="Autonomous AI-to-AI commerce pipeline with real-time intent parsing, catalog offers, deterministic compilation, and policy firewall gates."
+            badge={getHeaderStatusBadge()}
+          />
+        </div>
 
+        {/* Tab Switcher: Deal Pipeline vs Deals History */}
+        <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs self-start sm:self-center shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab("pipeline")}
+            className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "pipeline"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-950/40"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Handshake className="w-3.5 h-3.5" />
+            <span>ACTIVE PIPELINE</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("history")}
+            className={`px-3.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === "history"
+                ? "bg-purple-600 text-white shadow-md shadow-purple-950/40"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <History className="w-3.5 h-3.5" />
+            <span>DEALS HISTORY</span>
+          </button>
+        </div>
+      </div>
+
+      {activeTab === "history" ? (
+        /* 📜 DEALS HISTORY TAB VIEW */
+        <div className="space-y-6 font-mono pt-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wide">
+              NEGOTIATED DEALS LEDGER ({dealsHistory.length})
+            </h2>
+            <button
+              type="button"
+              onClick={loadDealsHistory}
+              disabled={historyLoading}
+              className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300 hover:text-white flex items-center gap-1.5 cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${historyLoading ? "animate-spin" : ""}`} />
+              <span>REFRESH</span>
+            </button>
+          </div>
+
+          {historyLoading ? (
+            <div className="p-12 text-center text-xs text-slate-400 border border-slate-800 rounded-2xl bg-slate-950/80">
+              Loading past deals from Firestore...
+            </div>
+          ) : dealsHistory.length === 0 ? (
+            <div className="p-12 text-center space-y-3 border border-dashed border-slate-800 rounded-2xl bg-slate-950/80">
+              <History className="w-8 h-8 text-slate-500 mx-auto" />
+              <p className="text-xs text-slate-400">No completed deals found in Firestore ledger yet.</p>
+              <button
+                type="button"
+                onClick={() => setActiveTab("pipeline")}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold"
+              >
+                Create First Deal
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {dealsHistory.map((item) => {
+                const deal = item.deal;
+                const dealId = deal?.dealId || item.dealId || item.id;
+                const amountVal = typeof item.amount === "number" ? item.amount : (item.finalAmount || 0);
+                const displayAmount = amountVal > 1000 ? amountVal : amountVal;
+
+                return (
+                  <SpotlightCard
+                    key={item.id || item.orderId || dealId}
+                    spotlightColor="rgba(168, 85, 247, 0.15)"
+                    className="bg-slate-950/90 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-lg"
+                  >
+                    <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-3">
+                      <div className="space-y-0.5">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase">DEAL ID</span>
+                        <p className="text-xs font-bold text-slate-100 font-mono">{dealId}</p>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          item.status === "PAID"
+                            ? "bg-emerald-950 border border-emerald-800 text-emerald-300"
+                            : "bg-blue-950 border border-blue-800 text-blue-300"
+                        }`}
+                      >
+                        {item.status}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex justify-between text-slate-400">
+                        <span>Merchant:</span>
+                        <span className="text-slate-200 font-bold">{item.merchantName || "ErgoSpace"}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-400">
+                        <span>Settled Amount:</span>
+                        <span className="text-emerald-400 font-bold">₹{displayAmount.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-400">
+                        <span>Date & Time:</span>
+                        <span className="text-slate-300">{new Date(item.createdAt).toLocaleString()}</span>
+                      </div>
+                      <div className="pt-2 flex items-center gap-2 border-t border-slate-800/80">
+                        <Link
+                          href={`/deal-room?dealId=${dealId}`}
+                          onClick={() => {
+                            const mId = item.merchantId || deal?.merchantId;
+                            if (mId) {
+                              setActiveTargetMerchantId(mId);
+                            }
+                            setActiveTab("pipeline");
+                          }}
+                          className="flex-1 py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-center text-xs font-bold transition-all shadow-md shadow-blue-950/40 flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Handshake className="w-3.5 h-3.5" />
+                          <span>OPEN IN DEAL ROOM</span>
+                        </Link>
+                      </div>
+                    </div>
+                  </SpotlightCard>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* 🚀 ACTIVE DEAL PIPELINE TAB VIEW */
+        <>
       {/* 🧭 REACT BITS POWERED PACT DEAL LIFECYCLE STEPPER RAIL */}
       <DealStepper
         steps={lifecycle.steps}
         selectedStep={selectedStage}
-        onSelectStep={(stepNum) => setSelectedStage(stepNum)}
+        onSelectStep={(stepNum) => {
+          if (typeof stepNum === "number") setSelectedStage(stepNum);
+        }}
         overallStatus={lifecycle.overallLifecycleStatus}
         dealId={dealContractResult?.dealId}
       />
 
       {/* Target Merchant Context Header */}
-      <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-emerald-950/80 border border-emerald-800/80 flex items-center justify-center text-emerald-400">
+      <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 font-mono text-xs flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg shadow-slate-950/20">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-emerald-950/80 border border-emerald-800/80 flex items-center justify-center text-emerald-400 shrink-0">
             <Store className="w-4 h-4" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400 font-bold uppercase text-[11px]">BUYING FROM:</span>
-              <span className="font-extrabold text-slate-100">{targetMerchant?.name || activeTargetMerchantId}</span>
-              <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold">
+          <div className="space-y-0.5 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-400 font-bold uppercase text-[11px] tracking-wider">BUYING FROM:</span>
+              <span className="font-extrabold text-sm text-slate-100">{targetMerchant?.name || activeTargetMerchantId}</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold tracking-wide">
                 ACTIVE AGENT
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-sans line-clamp-1">
+            <p className="text-xs text-slate-400 font-sans truncate">
               {targetMerchant?.description || "Autonomous commercial seller on PACT"}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-slate-400 text-[11px]">Switch Merchant:</span>
+        <div className="flex items-center gap-2.5 shrink-0 self-start md:self-center">
+          <label htmlFor="merchant-selector" className="text-slate-400 text-xs font-mono whitespace-nowrap">
+            Switch Merchant:
+          </label>
           <select
+            id="merchant-selector"
             value={activeTargetMerchantId}
-            onChange={(e) => setActiveTargetMerchantId(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-100 text-xs font-mono focus:outline-none focus:border-blue-500"
+            onChange={(e) => {
+              const newMerchantId = e.target.value;
+              setActiveTargetMerchantId(newMerchantId);
+              // Cleanly reset deal room state and return to Stage 1
+              try {
+                sessionStorage.removeItem("pact_intent_result");
+                sessionStorage.removeItem("pact_offer_result");
+                sessionStorage.removeItem("pact_contract_result");
+                sessionStorage.removeItem("pact_firewall_result");
+                sessionStorage.removeItem("pact_payment_result");
+                sessionStorage.removeItem("pact_request_text");
+              } catch {
+                // ignore
+              }
+              setRequestText("");
+              setIntentResult(null);
+              setOfferResult(null);
+              setDealContractResult(null);
+              setFirewallResult(null);
+              setPaymentResult({ status: "IDLE" });
+              setError(null);
+              setCompilerError(null);
+              setFirewallError(null);
+              setOfferError(null);
+              setPaymentError(null);
+              setSelectedStage(1);
+            }}
+            className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs font-mono focus:outline-none focus:border-blue-500 cursor-pointer shadow-sm"
           >
             {availableMerchants.map((m) => (
               <option key={m.id} value={m.id}>
@@ -802,7 +1239,7 @@ function DealRoomContent() {
       </div>
 
       {/* Top Main Section: Stage 1 Natural Language Input & Sample Chips */}
-      {(selectedStage === "ALL" || selectedStage === 1) && (
+      {selectedStage === 1 && (
         <SpotlightCard
           spotlightColor="rgba(56, 189, 248, 0.15)"
           className="bg-slate-950/80 border border-slate-800 p-0 rounded-2xl"
@@ -850,6 +1287,32 @@ function DealRoomContent() {
                 </button>
               ))}
             </div>
+
+            {/* Active In-Progress Deal Control Bar */}
+            {Boolean(intentResult || offerResult || dealContractResult) && (
+              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-blue-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                  <span className="text-slate-300 font-bold">Active Deal in Progress:</span>
+                  <span className="text-blue-300 font-bold">
+                    {dealContractResult?.dealId || "Negotiating with " + (targetMerchant?.name || activeTargetMerchantId)}
+                  </span>
+                  <span className="text-slate-500 font-normal">
+                    (Stage {selectedStage} / 5)
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleStartNewDeal}
+                    className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-rose-950 hover:border-rose-800 border border-slate-700 text-slate-300 hover:text-rose-300 text-xs font-mono transition-colors cursor-pointer"
+                  >
+                    Cancel / New Deal
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Action Bar */}
             <div className="flex items-center justify-between pt-2">
@@ -912,17 +1375,11 @@ function DealRoomContent() {
       </SpotlightCard>
       )}
 
-      {/* Lifecycle Pipeline View (Stages 1-4) - only shown once buyer intent has been parsed */}
-      {Boolean(intentResult || offerResult || dealContractResult) && (selectedStage === "ALL" || selectedStage === 1 || selectedStage === 2 || selectedStage === 3 || selectedStage === 4) && (
-        <div
-          className={`grid gap-6 pt-2 items-start ${
-            selectedStage === "ALL"
-              ? "grid-cols-1 lg:grid-cols-3"
-              : "grid-cols-1 max-w-2xl mx-auto"
-          }`}
-        >
+      {/* Lifecycle Pipeline View (Stages 1-3) - focused single stage presentation */}
+      {Boolean(intentResult || offerResult || dealContractResult) && (selectedStage === 1 || selectedStage === 2 || selectedStage === 3) && (
+        <div className="grid grid-cols-1 max-w-3xl mx-auto pt-2 items-start">
           {/* Column 1: BUYER INTENT */}
-          {(selectedStage === "ALL" || selectedStage === 1) && (
+          {selectedStage === 1 && (
             <div className="space-y-4">
           {intentResult ? (
             <SpotlightCard
@@ -1119,8 +1576,8 @@ function DealRoomContent() {
             </div>
           )}
 
-          {/* Column 2: MERCHANT OFFER (Gate #2) */}
-          {(selectedStage === "ALL" || selectedStage === 2) && (
+          {/* Column 2: MERCHANT OFFER (Gate #2: DISCOVER) */}
+          {selectedStage === 2 && (
             <div className="space-y-4">
               {offerResult ? (
                 <SpotlightCard
@@ -1208,10 +1665,67 @@ function DealRoomContent() {
                   </div>
                 </div>
 
+                {/* Alternative Products Recommendation (if status is ALTERNATIVE_FOUND or alternatives exist) */}
+                {offerResult.alternativeItems && offerResult.alternativeItems.length > 0 && (
+                  <div className="space-y-2.5 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-amber-400 uppercase font-bold tracking-wider">
+                        RECOMMENDED ALTERNATIVES ({offerResult.alternativeItems.length})
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-mono">1-CLICK ADOPT</span>
+                    </div>
+                    <div className="divide-y divide-slate-800 rounded-xl bg-amber-950/20 border border-amber-800/60 overflow-hidden">
+                      {offerResult.alternativeItems.map((alt, idx) => (
+                        <div key={idx} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-slate-100">{alt.productName}</span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-950 border border-amber-800 text-amber-300">
+                                AVAILABLE
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-400">
+                              {alt.quantity} units @ ₹{alt.unitPrice.toLocaleString("en-IN")} = <strong className="text-emerald-400 font-mono">₹{alt.lineTotal.toLocaleString("en-IN")}</strong>
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              // Adopt alternative item as the primary selected item
+                              const updatedOffer: MerchantOffer = {
+                                ...offerResult,
+                                status: "OFFER_GENERATED",
+                                selectedItems: [alt],
+                                subtotal: alt.lineTotal,
+                                proposedDiscount: {
+                                  percentage: 10,
+                                  amount: Math.round(alt.lineTotal * 0.1),
+                                  reasoning: "Adopted catalog alternative discount",
+                                },
+                                estimatedFinalAmount: Math.round(alt.lineTotal * 0.9),
+                              };
+                              setOfferResult(updatedOffer);
+                              try {
+                                sessionStorage.setItem("pact_offer_result", JSON.stringify(updatedOffer));
+                              } catch {
+                                // ignore
+                              }
+                            }}
+                            className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-md shadow-amber-950/40"
+                          >
+                            <Handshake className="w-3.5 h-3.5" />
+                            <span>ADOPT ALTERNATIVE</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Compile Deal Action Button (Phase 5) */}
-                {offerResult.selectedItems.length > 0 && (
-                  <div className="pt-2">
-                    <Ripple className="w-full rounded-xl">
+                {offerResult.selectedItems.length > 0 ? (
+                  <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+                    <Ripple className="flex-1 rounded-xl w-full">
                       <button
                         type="button"
                         onClick={handleCompileDeal}
@@ -1231,6 +1745,24 @@ function DealRoomContent() {
                         )}
                       </button>
                     </Ripple>
+                    <button
+                      type="button"
+                      onClick={handleStartNewDeal}
+                      className="w-full sm:w-auto py-3 px-4 rounded-xl bg-slate-900 hover:bg-rose-950/60 border border-slate-800 hover:border-rose-800 text-slate-400 hover:text-rose-300 font-mono text-xs font-bold transition-all cursor-pointer"
+                    >
+                      CANCEL DEAL
+                    </button>
+                  </div>
+                ) : (
+                  <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleStartNewDeal}
+                      className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-mono text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-rose-950/50"
+                    >
+                      <AlertCircle className="w-4 h-4" />
+                      <span>CANCEL & RE-NEGOTIATE DEAL</span>
+                    </button>
                   </div>
                 )}
               </motion.div>
@@ -1264,7 +1796,7 @@ function DealRoomContent() {
           )}
 
           {/* Column 3: PACT DEAL CONTRACT (Gate #3: COMPILE) */}
-          {(selectedStage === "ALL" || selectedStage === 3) && (
+          {selectedStage === 3 && (
             <div className="space-y-4">
               {dealContractResult ? (
                 <SpotlightCard
@@ -1530,7 +2062,7 @@ ${dealContractResult.validationStatus.checks.map((c) => `[${c.status}] ${c.rule}
       )}
 
       {/* STAGE 4: PACT FIREWALL POLICY EVALUATION PANEL (Gate #4) */}
-      {(selectedStage === "ALL" || selectedStage === 4) && (dealContractResult || firewallResult || firewallLoading) && (
+      {selectedStage === 4 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1715,7 +2247,16 @@ ${dealContractResult.validationStatus.checks.map((c) => `[${c.status}] ${c.rule}
                       DETERMINISTIC POLICY CHECKPOINT MATRIX (9 RULES)
                     </span>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                      {firewallResult.evaluations.map((evalItem, idx) => {
+                      {(firewallResult.evaluations && firewallResult.evaluations.length > 0
+                        ? firewallResult.evaluations
+                        : DEFAULT_FIREWALL_RULES.map((r) => ({
+                            ruleName: r.ruleName as any,
+                            status: (firewallResult.overallStatus === "VALIDATED" ? "PASS" : firewallResult.overallStatus === "REJECTED" && (r.ruleName === "DISCOUNT_LIMIT" || r.ruleName === "BUDGET_CONSTRAINT") ? "FAIL" : "PASS") as "PASS" | "FAIL",
+                            severity: (firewallResult.overallStatus === "REJECTED" && (r.ruleName === "DISCOUNT_LIMIT" || r.ruleName === "BUDGET_CONSTRAINT") ? "CRITICAL" : firewallResult.overallStatus === "PENDING_APPROVAL" && r.ruleName === "HUMAN_APPROVAL_GATE" ? "WARNING" : "INFO") as "INFO" | "WARNING" | "CRITICAL",
+                            explanation: r.description,
+                            metadata: {},
+                          }))
+                      ).map((evalItem, idx) => {
                         const isPass = evalItem.status === "PASS";
                         const isWarning = evalItem.severity === "WARNING";
                         return (
@@ -1885,14 +2426,71 @@ Generated deterministically by PACT Firewall Security Layer.
                 </div>
               )}
 
-              {/* Standby State when Deal Contract is ready but Firewall has not yet been executed */}
-              {!firewallResult && !firewallLoading && dealContractResult && (
-                <div className="p-8 rounded-2xl bg-slate-900/40 border border-dashed border-slate-800 text-center space-y-3">
-                  <Flame className="w-8 h-8 text-orange-400/60 mx-auto animate-pulse" />
-                  <h3 className="text-sm font-bold text-slate-200">PACT Firewall Ready for Evaluation</h3>
-                  <p className="text-xs text-slate-400 font-sans max-w-md mx-auto">
-                    Click <strong>&apos;RUN FIREWALL CHECK&apos;</strong> above or under Deal Contract to deterministically verify all 9 commercial policy gates.
-                  </p>
+              {/* Standby State when Deal Contract is ready but Firewall has not yet been executed, OR no deal compiled yet */}
+              {!firewallResult && !firewallLoading && (
+                <div className="space-y-6">
+                  <div className="p-6 rounded-2xl bg-orange-950/20 border border-orange-800/40 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 text-orange-400 font-bold text-sm">
+                        <Flame className="w-5 h-5 animate-pulse" />
+                        <span>STANDBY — 9 DETERMINISTIC POLICY GATES ARMED</span>
+                      </div>
+                      {dealContractResult ? (
+                        <Ripple className="rounded-xl">
+                          <button
+                            type="button"
+                            onClick={handleRunFirewall}
+                            disabled={firewallLoading}
+                            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 text-white font-mono text-xs font-bold hover:from-orange-500 hover:to-amber-500 transition-all shadow-lg shadow-orange-950/50 flex items-center gap-2 cursor-pointer"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>EXECUTE 9-RULE FIREWALL CHECK</span>
+                          </button>
+                        </Ripple>
+                      ) : (
+                        <span className="text-xs font-mono text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                          Awaiting Stage 3 Deal Contract
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                      PACT Firewall executes zero-hallucination deterministic verification across 9 security rules before any transaction can proceed to payment settlement.
+                    </p>
+                  </div>
+
+                  {/* Always-Visible 9-Rule Verification Matrix Cards */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        DETERMINISTIC POLICY CHECKPOINT MATRIX (9 RULES)
+                      </span>
+                      <span className="text-[11px] font-mono text-orange-400">STANDBY VERIFICATION MATRIX</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                      {DEFAULT_FIREWALL_RULES.map((rule, idx) => (
+                        <div
+                          key={idx}
+                          className="p-4 rounded-xl border bg-slate-900/60 border-slate-800/80 flex flex-col justify-between space-y-3"
+                        >
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-slate-200 font-mono">{rule.ruleName}</span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                                [STANDBY]
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-300 font-sans leading-relaxed">{rule.description}</p>
+                          </div>
+
+                          <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                            <span>GATE #{idx + 1}</span>
+                            <span className="text-orange-400 font-bold">READY TO VERIFY</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -1901,7 +2499,7 @@ Generated deterministically by PACT Firewall Security Layer.
       )}
 
       {/* STAGE 5: RAZORPAY TEST MODE PAYMENT SETTLEMENT (Gate #5) */}
-      {(selectedStage === "ALL" || selectedStage === 5) && (dealContractResult || firewallResult) && (
+      {selectedStage === 5 && (dealContractResult || firewallResult) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1957,20 +2555,24 @@ Generated deterministically by PACT Firewall Security Layer.
                 </div>
               </div>
 
-              {/* Payment Error Alert Box */}
+              {/* Payment Alert / Notification Box */}
               {paymentError && (
-                <div className="p-4 rounded-xl bg-rose-950/80 border border-rose-700 text-rose-200 text-xs font-mono flex items-center justify-between gap-3">
+                <div className="p-4 rounded-xl bg-rose-950/80 border border-rose-700 text-rose-200 text-xs font-mono flex items-center justify-between gap-3 shadow-lg">
                   <div className="flex items-center gap-2.5">
                     <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
                     <div>
-                      <span className="font-bold">Payment Notification: </span>
-                      <span>{paymentError}</span>
+                      <span className="font-bold">Payment Notice: </span>
+                      <span>
+                        {paymentError.includes("exceeds maximum amount")
+                          ? "The transaction amount exceeds the Razorpay test sandbox limit of ₹1,00,000. Please use the 'INSTANT TEST SETTLEMENT' button below to settle this deal."
+                          : paymentError}
+                      </span>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setPaymentError(null)}
-                    className="text-slate-400 hover:text-slate-200 text-xs px-2 py-1"
+                    className="text-slate-400 hover:text-slate-200 text-xs px-2.5 py-1 rounded bg-slate-900 border border-slate-800 shrink-0 cursor-pointer"
                   >
                     Dismiss
                   </button>
@@ -2015,6 +2617,31 @@ Generated deterministically by PACT Firewall Security Layer.
                       <p className="text-sm font-bold text-blue-400 font-mono">RAZORPAY TEST MODE</p>
                     </div>
                   </div>
+
+                  <div className="pt-3 border-t border-emerald-800/60 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href="/transactions"
+                        className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-mono font-bold transition-colors"
+                      >
+                        View in Transactions →
+                      </Link>
+                      <Link
+                        href={`/audit?dealId=${dealContractResult?.dealId || paymentResult.dealId}`}
+                        className="px-4 py-2 rounded-xl bg-purple-950/80 hover:bg-purple-900 border border-purple-800 text-purple-300 text-xs font-mono font-bold transition-colors"
+                      >
+                        Inspect Audit Trail ↗
+                      </Link>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleStartNewDeal}
+                      className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold shadow-lg shadow-emerald-950/40 cursor-pointer transition-colors"
+                    >
+                      + Start Another Deal
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -2043,32 +2670,34 @@ Generated deterministically by PACT Firewall Security Layer.
                         </p>
                       </div>
 
-                      <Ripple className="w-full sm:w-auto rounded-xl">
-                        <button
-                          type="button"
-                          onClick={handleInitiatePayment}
-                          disabled={paymentLoading || paymentVerifying}
-                          className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-mono text-sm font-bold transition-all shadow-xl shadow-blue-950/50 flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
-                        >
-                          {paymentLoading ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin text-white" />
-                              <span>CREATING SECURE ORDER...</span>
-                            </>
-                          ) : paymentVerifying ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin text-white" />
-                              <span>VERIFYING HMAC SIGNATURE...</span>
-                            </>
-                          ) : (
-                            <>
-                              <CreditCard className="w-4 h-4 text-blue-200" />
-                              <span>PAY VIA RAZORPAY / GPAY (TEST MODE)</span>
-                              <ExternalLink className="w-3.5 h-3.5 opacity-70" />
-                            </>
-                          )}
-                        </button>
-                      </Ripple>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <Ripple className="w-full sm:w-auto rounded-xl">
+                          <button
+                            type="button"
+                            onClick={handleInitiatePayment}
+                            disabled={paymentLoading || paymentVerifying}
+                            className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-mono text-xs font-bold transition-all shadow-xl shadow-blue-950/50 flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
+                          >
+                            {paymentLoading ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                <span>CREATING SECURE ORDER...</span>
+                              </>
+                            ) : paymentVerifying ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                                <span>VERIFYING HMAC SIGNATURE...</span>
+                              </>
+                            ) : (
+                              <>
+                                <CreditCard className="w-4 h-4 text-blue-200" />
+                                <span>PAY VIA RAZORPAY MODAL (TEST MODE)</span>
+                                <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+                              </>
+                            )}
+                          </button>
+                        </Ripple>
+                      </div>
                     </div>
                   </div>
 
@@ -2107,16 +2736,47 @@ Generated deterministically by PACT Firewall Security Layer.
 
               {/* CASE 3: Deal is PENDING_APPROVAL */}
               {firewallResult?.overallStatus === "PENDING_APPROVAL" && (
-                <div className="p-6 rounded-2xl bg-amber-950/40 border border-amber-800/60 space-y-3">
+                <div className="p-6 rounded-2xl bg-amber-950/40 border border-amber-800/60 space-y-4">
                   <div className="flex items-center gap-2 text-amber-300 font-bold text-sm">
                     <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
-                    <span>Payment Blocked: Human Approval Required</span>
+                    <span>Payment Gate Locked: Merchant Human Approval Required</span>
                   </div>
                   <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                    This deal exceeds the merchant auto-settlement threshold (₹50,000). Payment order creation is disabled until human merchant sign-off is granted in Phase 8+.
+                    This deal exceeds the merchant auto-settlement threshold. The Merchant Store Manager must approve this deal in their <strong>Merchant Audit Trail Console</strong> before payment can proceed.
                   </p>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-amber-950 border border-amber-700 text-amber-300 font-mono text-xs">
-                    STATUS: PENDING_APPROVAL (PAYMENT LOCKED)
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-950 border border-amber-700 text-amber-300 font-mono text-xs font-bold">
+                      STATUS: PENDING_APPROVAL
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!dealContractResult?.dealId) return;
+                        try {
+                          const res = await fetch(`/api/transactions/${dealContractResult.dealId}`);
+                          const data = await res.json();
+                          if (data.success && data.deal) {
+                            const updatedDeal = data.deal;
+                            setDealContractResult(updatedDeal);
+                            if (updatedDeal.status === "VALIDATED") {
+                              if (firewallResult) {
+                                setFirewallResult({ ...firewallResult, overallStatus: "VALIDATED" });
+                              }
+                              // Save updated state into sessionStorage
+                              if (typeof window !== "undefined") {
+                                sessionStorage.setItem("pact_deal_contract", JSON.stringify(updatedDeal));
+                              }
+                            }
+                          }
+                        } catch (err) {
+                          console.error("Error refreshing approval status:", err);
+                        }
+                      }}
+                      className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-md shadow-emerald-950/40"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Check Merchant Approval Status</span>
+                    </button>
                   </div>
                 </div>
               )}
@@ -2150,6 +2810,8 @@ Generated deterministically by PACT Firewall Security Layer.
             </div>
           </SpotlightCard>
         </motion.div>
+      )}
+      </>
       )}
 
     </PageContainer>

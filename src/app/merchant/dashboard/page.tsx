@@ -148,34 +148,14 @@ export default function MerchantDashboardPage() {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-blue-400 font-bold">
                 <Package className="w-4 h-4" />
-                <span>CATALOG MANAGEMENT</span>
+                <span>CATALOG & INVENTORY</span>
               </div>
               <p className="text-slate-400 font-sans text-xs">
-                Add, edit, deactivate products, update pricing, and adjust live delivery SLAs.
+                Add, edit, deactivate products, adjust live pricing, and manage real-time inventory stock levels.
               </p>
             </div>
             <span className="text-blue-400 font-bold flex items-center gap-1 pt-3">
-              Manage Products <ArrowRight className="w-3.5 h-3.5" />
-            </span>
-          </SpotlightCard>
-        </Link>
-
-        <Link href="/merchant/inventory">
-          <SpotlightCard
-            spotlightColor="rgba(16, 185, 129, 0.2)"
-            className="bg-slate-950/80 border border-slate-800 hover:border-emerald-500/60 p-5 rounded-2xl transition-all h-full flex flex-col justify-between"
-          >
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-emerald-400 font-bold">
-                <Boxes className="w-4 h-4" />
-                <span>INVENTORY OPS</span>
-              </div>
-              <p className="text-slate-400 font-sans text-xs">
-                One-click stock level adjustments, out-of-stock prevention, and bulk restocking.
-              </p>
-            </div>
-            <span className="text-emerald-400 font-bold flex items-center gap-1 pt-3">
-              Manage Stock Levels <ArrowRight className="w-3.5 h-3.5" />
+              Manage Products & Stock <ArrowRight className="w-3.5 h-3.5" />
             </span>
           </SpotlightCard>
         </Link>
@@ -196,6 +176,26 @@ export default function MerchantDashboardPage() {
             </div>
             <span className="text-amber-400 font-bold flex items-center gap-1 pt-3">
               Configure Policies <ArrowRight className="w-3.5 h-3.5" />
+            </span>
+          </SpotlightCard>
+        </Link>
+
+        <Link href="/merchant/audit">
+          <SpotlightCard
+            spotlightColor="rgba(16, 185, 129, 0.2)"
+            className="bg-slate-950/80 border border-slate-800 hover:border-emerald-500/60 p-5 rounded-2xl transition-all h-full flex flex-col justify-between"
+          >
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                <Boxes className="w-4 h-4" />
+                <span>AUDIT TRAIL & APPROVALS</span>
+              </div>
+              <p className="text-slate-400 font-sans text-xs">
+                Review store deal audit trails and approve or reject deals exceeding automated settlement caps.
+              </p>
+            </div>
+            <span className="text-emerald-400 font-bold flex items-center gap-1 pt-3">
+              View Audit & Approvals <ArrowRight className="w-3.5 h-3.5" />
             </span>
           </SpotlightCard>
         </Link>

@@ -41,7 +41,6 @@ export interface CompileResult {
 
 export async function compileDeal(options: CompileOptions): Promise<CompileResult> {
   const { buyerIntentId, merchantOfferId } = options;
-  const dealId = `deal_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const nowStr = new Date().toISOString();
 
   // 1. Retrieve Buyer Intent from Firestore
@@ -56,6 +55,8 @@ export async function compileDeal(options: CompileOptions): Promise<CompileResul
       console.error("Failed to retrieve buyer intent in compiler:", err);
     }
   }
+
+  const dealId = buyerIntentDoc?.dealId || `deal_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
   // 2. Retrieve Merchant Offer from Firestore
   let merchantOfferDoc: MerchantOffer | null = null;

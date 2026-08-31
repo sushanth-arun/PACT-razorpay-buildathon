@@ -129,10 +129,10 @@ export async function POST(req: NextRequest) {
     // Validate Selected Items against Authoritative Firestore Map
     for (const sel of aiProposal.selectedProductIds || []) {
       const dbProd = candidateMap.get(sel.productId);
-      if (dbProd && dbProd.active) {
+      if (dbProd && dbProd.active !== false) {
         const qtyToOffer = sel.quantity || requestedQty;
         // Verify inventory
-        const invCheck = await checkInventory(dbProd.id, qtyToOffer);
+        const invCheck = await checkInventory(dbProd.id, qtyToOffer, merchant.id);
         if (invCheck.sufficientStock) {
           selectedItems.push({
             productId: dbProd.id,
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
     // Validate Alternative Items
     for (const alt of aiProposal.alternativeProductIds || []) {
       const dbProd = candidateMap.get(alt.productId);
-      if (dbProd && dbProd.active && !selectedItems.some((s) => s.productId === dbProd.id)) {
+      if (dbProd && dbProd.active !== false && !selectedItems.some((s) => s.productId === dbProd.id)) {
         alternativeItems.push({
           productId: dbProd.id,
           productName: dbProd.name,
@@ -173,6 +173,21 @@ export async function POST(req: NextRequest) {
       });
     }) && selectedItems.length === 0;
 
+    // If AI proposed no selected items and no alternative items, but active catalog items matching category exist, populate alternatives automatically
+    if (selectedItems.length === 0 && alternativeItems.length === 0 && !isOutOfDomain) {
+      for (const prod of allActiveProducts.slice(0, 3)) {
+        if (prod.active !== false) {
+          alternativeItems.push({
+            productId: prod.id,
+            productName: prod.name,
+            quantity: requestedQty,
+            unitPrice: prod.price,
+            lineTotal: requestedQty * prod.price,
+          });
+        }
+      }
+    }
+
     // Determine Merchant Offer Status & Fallbacks
     let offerStatus: MerchantOfferStatus = "OFFER_GENERATED";
 
@@ -188,13 +203,26 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Items to use for arithmetic calculations (selected items, or top alternative if alternative found)
+    const itemsForCalculation = selectedItems.length > 0
+      ? selectedItems
+      : alternativeItems.length > 0
+      ? [alternativeItems[0]]
+      : [];
 
+    // Determine if the buyer explicitly requested a discount or budget negotiation
+    const buyerRequestedDiscount = Boolean(
+      (buyerIntent.requestedDiscount !== null && Number(buyerIntent.requestedDiscount) > 0) ||
+      (buyerIntent.negotiableConstraints && buyerIntent.negotiableConstraints.some(c => c.toLowerCase().includes("discount") || c.toLowerCase().includes("price") || c.toLowerCase().includes("budget"))) ||
+      (buyerIntent.rawRequest && /discount|deal|offer|off|concession|cheaper|bargain/i.test(buyerIntent.rawRequest))
+    );
 
+    const effectiveDiscountPercent = buyerRequestedDiscount ? (aiProposal.proposedDiscountPercent || 0) : 0;
 
     // 6. Deterministic Arithmetic Calculations (Line Total, Subtotal, Discount, Final Amount)
     const totals = calculateOfferTotals(
-      selectedItems,
-      aiProposal.proposedDiscountPercent || 0,
+      itemsForCalculation,
+      effectiveDiscountPercent,
       merchant.maxDiscountPercent
     );
 
@@ -284,10 +312,64 @@ export async function POST(req: NextRequest) {
 
     const validatedMerchantOffer: MerchantOffer = MerchantOfferSchema.parse(rawMerchantOffer);
 
-    // 10. Persist to Firestore & Audit Event
+    // 10. Persist to Firestore with Dual-Level Relational Containment
     if (adminDb) {
       try {
+        // 1. Root collection persistence
         await adminDb.collection(MERCHANT_OFFERS_COLLECTION).doc(offerId).set(validatedMerchantOffer);
+
+        // 2. Hierarchical containment: buyer_intents/{buyerIntentId}/merchant_offers/{offerId}
+        await adminDb
+          .collection(BUYER_INTENTS_COLLECTION)
+          .doc(buyerIntentId)
+          .collection(MERCHANT_OFFERS_COLLECTION)
+          .doc(offerId)
+          .set(validatedMerchantOffer);
+
+        // 3. Hierarchical Deal containment: deals/{dealId}/buyer_intents/{buyerIntentId}/merchant_offers/{offerId}
+        if (buyerIntent.dealId) {
+          // deals -> buyer_intents -> merchant_offers
+          await adminDb
+            .collection("deals")
+            .doc(buyerIntent.dealId)
+            .collection(BUYER_INTENTS_COLLECTION)
+            .doc(buyerIntentId)
+            .collection(MERCHANT_OFFERS_COLLECTION)
+            .doc(offerId)
+            .set(validatedMerchantOffer);
+
+          // Update parent subcollection intent doc
+          await adminDb
+            .collection("deals")
+            .doc(buyerIntent.dealId)
+            .collection(BUYER_INTENTS_COLLECTION)
+            .doc(buyerIntentId)
+            .update({
+              lastOfferId: offerId,
+              offerStatus: offerStatus,
+              merchantId: requestedMerchantId,
+              updatedAt: new Date().toISOString(),
+            });
+
+          // Also keep deals/{dealId}/merchant_offers/{offerId}
+          await adminDb
+            .collection("deals")
+            .doc(buyerIntent.dealId)
+            .collection(MERCHANT_OFFERS_COLLECTION)
+            .doc(offerId)
+            .set(validatedMerchantOffer);
+        }
+
+        // 4. Link Foreign Keys back to parent buyer_intent
+        await adminDb
+          .collection(BUYER_INTENTS_COLLECTION)
+          .doc(buyerIntentId)
+          .update({
+            lastOfferId: offerId,
+            offerStatus: offerStatus,
+            merchantId: requestedMerchantId,
+            updatedAt: new Date().toISOString(),
+          });
       } catch (dbErr) {
         console.warn("Failed to write merchant offer to Firestore:", dbErr);
       }

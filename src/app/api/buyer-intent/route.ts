@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rawUserRequest = body?.request;
+    const existingDealId = body?.dealId;
     const explicitFallbackReq = Boolean(body?.useDevFallback);
 
     // Environment flag for fallback: defaults to false
@@ -172,13 +173,16 @@ export async function POST(req: NextRequest) {
 
     // 3. Final Zod Verification & Firestore Persistence
     const validatedIntent = BuyerIntentSchema.parse(parsedIntent);
+    if (existingDealId && typeof existingDealId === "string") {
+      validatedIntent.dealId = existingDealId;
+    }
 
     // Record Audit Event 3: BUYER_INTENT_VALIDATED
     await recordAuditEvent(
       "BUYER_INTENT_VALIDATED",
       "BUYER_AGENT",
       `Structured buyer intent validated by Zod schema and persisted to Firestore.`,
-      { productIntent: validatedIntent.productIntent }
+      { productIntent: validatedIntent.productIntent, dealId: validatedIntent.dealId }
     );
 
     const savedDoc = await saveBuyerIntent(validatedIntent, aiProvider, currentModel);

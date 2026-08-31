@@ -21,6 +21,7 @@ export const BuyerIntentSchema = z.object({
   confidence: z.number().min(0).max(1).default(0.8),
   rawRequest: z.string(),
   createdAt: z.string(),
+  dealId: z.string().optional(),
 });
 
 export type BuyerIntent = z.infer<typeof BuyerIntentSchema>;

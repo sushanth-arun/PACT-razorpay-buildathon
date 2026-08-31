@@ -64,12 +64,16 @@ export async function searchProducts(
 
     if (options?.query) {
       const q = options.query.toLowerCase().trim();
-      items = items.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.description?.toLowerCase().includes(q) ||
-          p.category?.toLowerCase().includes(q)
-      );
+      const tokens = q.split(/\W+/).filter((t) => t.length > 2);
+
+      items = items.filter((p) => {
+        const fullText = `${p.name} ${p.category} ${p.description || ""}`.toLowerCase();
+        if (fullText.includes(q)) return true;
+        return tokens.some((tok) => {
+          const singular = tok.endsWith("s") ? tok.slice(0, -1) : tok;
+          return fullText.includes(tok) || (singular.length > 2 && fullText.includes(singular));
+        });
+      });
     }
 
     return items;
@@ -80,17 +84,32 @@ export async function searchProducts(
 }
 
 // Tool 3: Check Authoritative Inventory for a Product
-export async function checkInventory(productId: string, requestedQuantity: number) {
+export async function checkInventory(productId: string, requestedQuantity: number, merchantId: string = DEMO_MERCHANT_ID) {
   if (!adminDb) return { productId, requestedQuantity, availableStock: 0, sufficientStock: false };
   try {
-    const docSnap = await adminDb.collection("products").doc(productId).get();
+    // 1. Try root collection first
+    let docSnap = await adminDb.collection("products").doc(productId).get();
+    
+    // 2. If not found at root, check subcollection: merchants/{merchantId}/products/{productId}
+    if (!docSnap.exists) {
+      docSnap = await adminDb.collection("merchants").doc(merchantId).collection("products").doc(productId).get();
+    }
+
+    // 3. If still not found, search by id field in products collection
+    if (!docSnap.exists) {
+      const qSnap = await adminDb.collection("products").where("id", "==", productId).limit(1).get();
+      if (!qSnap.empty) {
+        docSnap = qSnap.docs[0];
+      }
+    }
+
     if (docSnap.exists) {
       const prod = docSnap.data() as Product;
       return {
         productId,
         requestedQuantity,
         availableStock: prod.stock,
-        sufficientStock: prod.stock >= requestedQuantity && prod.active,
+        sufficientStock: prod.stock >= requestedQuantity && (prod.active !== false),
       };
     }
   } catch (err) {

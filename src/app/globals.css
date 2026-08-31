@@ -122,11 +122,23 @@
     @apply border-border outline-ring/50;
   }
   html {
-    font-size: 16px;
+    font-size: 18.5px;
     @apply font-sans;
   }
   body {
-    @apply bg-slate-950 text-slate-100 transition-colors duration-300 text-sm leading-normal;
+    @apply bg-slate-950 text-slate-100 transition-colors duration-300 text-[16px] leading-relaxed tracking-normal;
+  }
+  h1 {
+    @apply text-3xl sm:text-4xl font-extrabold tracking-tight;
+  }
+  h2 {
+    @apply text-2xl sm:text-3xl font-extrabold tracking-tight;
+  }
+  h3 {
+    @apply text-xl sm:text-2xl font-bold tracking-tight;
+  }
+  h4 {
+    @apply text-lg sm:text-xl font-bold;
   }
 }
 
@@ -136,14 +148,47 @@ html:not(.dark) body {
   color: #0f172a !important;
 }
 
+/* Light Theme Sidebar Overrides */
 html:not(.dark) aside {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) aside header,
+html:not(.dark) aside > div:first-child {
   background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) aside nav a {
+  color: #475569 !important;
+}
+
+html:not(.dark) aside nav a:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) aside nav a[class*="bg-slate-800"] {
+  background-color: #e0e7ff !important;
+  color: #1e40af !important;
+  border: 1px solid #c7d2fe !important;
+  font-weight: 700 !important;
+}
+
+html:not(.dark) aside nav a[class*="bg-slate-800"] svg {
+  color: #2563eb !important;
+}
+
+html:not(.dark) aside .bg-slate-950,
+html:not(.dark) aside .bg-slate-900 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
 }
 
 html:not(.dark) header {
   background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
+  border-color: #e2e8f0 !important;
 }
 
 html:not(.dark) main {
@@ -154,20 +199,55 @@ html:not(.dark) .card-spotlight,
 html:not(.dark) [class*="bg-slate-950"],
 html:not(.dark) [class*="bg-slate-900"] {
   background-color: #ffffff !important;
-  border-color: #cbd5e1 !important;
+  border-color: #e2e8f0 !important;
   color: #0f172a !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
 }
 
+html:not(.dark) [class*="text-slate-50"],
 html:not(.dark) [class*="text-slate-100"],
-html:not(.dark) [class*="text-slate-200"] {
+html:not(.dark) [class*="text-slate-200"],
+html:not(.dark) [class*="text-gray-50"],
+html:not(.dark) [class*="text-gray-100"],
+html:not(.dark) [class*="text-gray-200"],
+html:not(.dark) [class*="text-zinc-50"],
+html:not(.dark) [class*="text-zinc-100"],
+html:not(.dark) [class*="text-zinc-200"],
+html:not(.dark) [class*="text-neutral-50"],
+html:not(.dark) [class*="text-neutral-100"],
+html:not(.dark) [class*="text-white"]:not(button *):not(button):not(.badge-white):not([class*="bg-"]):not([class*="from-"]) {
   color: #0f172a !important;
 }
 
 html:not(.dark) [class*="text-slate-300"],
 html:not(.dark) [class*="text-slate-400"],
-html:not(.dark) [class*="text-slate-500"] {
+html:not(.dark) [class*="text-slate-500"],
+html:not(.dark) [class*="text-gray-300"],
+html:not(.dark) [class*="text-gray-400"],
+html:not(.dark) [class*="text-gray-500"],
+html:not(.dark) [class*="text-zinc-300"],
+html:not(.dark) [class*="text-zinc-400"],
+html:not(.dark) [class*="text-neutral-300"],
+html:not(.dark) [class*="text-neutral-400"] {
+  color: #1e293b !important;
+}
+
+html:not(.dark) [class*="text-slate-600"],
+html:not(.dark) [class*="text-gray-600"] {
   color: #334155 !important;
+}
+
+html:not(.dark) p,
+html:not(.dark) span:not([class*="bg-"]):not([class*="badge"]),
+html:not(.dark) h1,
+html:not(.dark) h2,
+html:not(.dark) h3,
+html:not(.dark) h4,
+html:not(.dark) h5,
+html:not(.dark) h6,
+html:not(.dark) label,
+html:not(.dark) div:not([class*="bg-"]):not([class*="badge"]) {
+  color: inherit;
 }
 
 html:not(.dark) textarea,
@@ -177,8 +257,9 @@ html:not(.dark) input {
   border-color: #94a3b8 !important;
 }
 
-html:not(.dark) textarea::placeholder {
-  color: #64748b !important;
+html:not(.dark) textarea::placeholder,
+html:not(.dark) input::placeholder {
+  color: #475569 !important;
 }
 
 /* Light Theme Badges - Rich High Contrast Colors for Color Blind Accessibility */
@@ -214,33 +295,60 @@ html:not(.dark) [class*="bg-purple-900"] {
 }
 
 html:not(.dark) .text-purple-400,
-html:not(.dark) .text-purple-300 {
-  color: #6b21a8 !important;
+html:not(.dark) .text-purple-400,
+html:not(.dark) .text-purple-300,
+html:not(.dark) .text-purple-200,
+html:not(.dark) .text-purple-100 {
+  color: #581c87 !important;
 }
 
 html:not(.dark) [class*="bg-amber-950"],
 html:not(.dark) [class*="bg-amber-900"] {
   background-color: #fffbeb !important;
   border-color: #f59e0b !important;
-  color: #b45309 !important;
+  color: #78350f !important;
 }
 
-html:not(.dark) .text-amber-400 {
-  color: #b45309 !important;
+html:not(.dark) .text-amber-400,
+html:not(.dark) .text-amber-300,
+html:not(.dark) .text-amber-200,
+html:not(.dark) .text-amber-100 {
+  color: #78350f !important;
 }
 
 html:not(.dark) [class*="bg-rose-950"],
 html:not(.dark) [class*="bg-rose-900"],
-html:not(.dark) [class*="bg-rose-900\/60"] {
+html:not(.dark) [class*="bg-rose-900\/60"],
+html:not(.dark) [class*="bg-rose-950\/70"],
+html:not(.dark) [class*="bg-rose-950\/80"],
+html:not(.dark) [class*="bg-rose-950\/40"] {
   background-color: #fff1f2 !important;
   border-color: #f43f5e !important;
-  color: #9f1239 !important;
+  color: #881337 !important;
 }
 
 html:not(.dark) .text-rose-400,
 html:not(.dark) .text-rose-300,
+html:not(.dark) .text-rose-200,
+html:not(.dark) .text-rose-100,
 html:not(.dark) .text-rose-500 {
-  color: #9f1239 !important;
+  color: #881337 !important;
+}
+
+html:not(.dark) [class*="bg-emerald-950"],
+html:not(.dark) [class*="bg-emerald-900"],
+html:not(.dark) [class*="bg-emerald-950\/60"] {
+  background-color: #ecfdf5 !important;
+  border-color: #10b981 !important;
+  color: #064e3b !important;
+}
+
+html:not(.dark) .text-emerald-400,
+html:not(.dark) .text-emerald-300,
+html:not(.dark) .text-emerald-200,
+html:not(.dark) .text-emerald-100,
+html:not(.dark) .text-emerald-500 {
+  color: #064e3b !important;
 }
 
 /* Light Mode Action Buttons Contrast */
@@ -251,6 +359,16 @@ html:not(.dark) .bg-emerald-600 {
 
 html:not(.dark) .bg-blue-600 {
   background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+html:not(.dark) .bg-rose-600 {
+  background-color: #e11d48 !important;
+  color: #ffffff !important;
+}
+
+html:not(.dark) .bg-amber-600 {
+  background-color: #d97706 !important;
   color: #ffffff !important;
 }
 
