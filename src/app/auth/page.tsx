@@ -22,6 +22,23 @@ import {
   Loader2
 } from "lucide-react";
 
+interface DemoAccount {
+  id: string;
+  name: string;
+  email: string;
+  category: string;
+  role: "BUYER" | "MERCHANT";
+}
+
+const DEMO_ACCOUNTS: DemoAccount[] = [
+  { id: "buyer", name: "AI Buyer", email: "buyer@pact.ai", category: "Autonomous Buyer", role: "BUYER" },
+  { id: "ergospace", name: "ErgoSpace", email: "merchant@ergospace.com", category: "Seating & Desks", role: "MERCHANT" },
+  { id: "deskforge", name: "DeskForge", email: "merchant@deskforge.com", category: "Motorized Desks", role: "MERCHANT" },
+  { id: "cybertech", name: "CyberTech", email: "merchant@cybertech.com", category: "Battlestations", role: "MERCHANT" },
+  { id: "officepro", name: "OfficePro", email: "merchant@officepro.com", category: "Enterprise AV", role: "MERCHANT" },
+  { id: "nordicliving", name: "NordicLiving", email: "merchant@nordicliving.com", category: "Minimalist Wood", role: "MERCHANT" },
+];
+
 export default function AuthPage() {
   const router = useRouter();
   const { login, signup, resetPassword } = useAuth();
@@ -118,18 +135,27 @@ export default function AuthPage() {
     }
   };
 
+  const handleSelectDemoAccount = (acc: DemoAccount) => {
+    setEmail(acc.email);
+    setPassword("pact123456");
+    setIsLogin(true);
+    setIsForgotPassword(false);
+    setError(null);
+    setSuccessMsg(`Auto-filled ${acc.name} credentials!`);
+  };
+
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden font-sans">
+    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden font-sans">
       {/* React Bits Aurora Ambient Background (Only on Auth Page) */}
       <Aurora
         colorStops={["rgba(37, 99, 235, 0.4)", "rgba(147, 51, 234, 0.35)", "rgba(6, 182, 212, 0.35)", "rgba(236, 72, 153, 0.25)"]}
         speed={0.8}
       />
 
-      <div className="w-full max-w-5xl relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        {/* Left Half: 3D DepthText PACT Only */}
-        <div className="lg:col-span-6 flex flex-col items-center justify-center text-center p-4">
-          <div className="overflow-visible py-6">
+      <div className="w-full max-w-5xl relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        {/* Left Half: 3D DepthText PACT */}
+        <div className="lg:col-span-6 flex flex-col items-center justify-center text-center p-2 sm:p-4">
+          <div className="overflow-visible py-2 sm:py-4">
             <DepthText
               text="PACT"
               layers={38}
@@ -142,22 +168,22 @@ export default function AuthPage() {
               perspective={850}
               autoOrbit
               orbitSpeed={0.35}
-              fontSize="clamp(5rem, 16vw, 9.5rem)"
+              fontSize="clamp(5rem, 15vw, 9.5rem)"
               fontWeight={900}
               shadow
             />
           </div>
         </div>
 
-        {/* Right Half: Login Form & Seeded Demo Credentials */}
+        {/* Right Half: Auth Card */}
         <div className="lg:col-span-6 w-full max-w-md mx-auto">
           <SpotlightCard
-            spotlightColor="rgba(124, 58, 237, 0.25)"
-            className="bg-slate-950/95 border border-slate-800 p-0 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl"
+            spotlightColor="rgba(124, 58, 237, 0.22)"
+            className="bg-slate-950/95 border border-slate-800/90 p-0 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl"
           >
-            <div className="p-6 sm:p-7 space-y-5">
+            <div className="p-6 sm:p-7 space-y-4">
               {/* Tab Switcher Slider: SIGN IN / CREATE ACCOUNT */}
-              <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-xs">
+              <div className="flex items-center p-1 rounded-xl bg-slate-900/90 border border-slate-800 font-sans text-xs font-semibold">
                 <button
                   type="button"
                   onClick={() => {
@@ -166,13 +192,13 @@ export default function AuthPage() {
                     setError(null);
                     setSuccessMsg(null);
                   }}
-                  className={`flex-1 py-2.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  className={`flex-1 py-2 rounded-lg transition-all cursor-pointer ${
                     isLogin && !isForgotPassword
-                      ? "bg-purple-600 text-white shadow-md shadow-purple-950/40"
+                      ? "bg-purple-600 text-white font-bold shadow-md shadow-purple-950/40"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  SIGN IN
+                  Sign In
                 </button>
                 <button
                   type="button"
@@ -182,39 +208,39 @@ export default function AuthPage() {
                     setError(null);
                     setSuccessMsg(null);
                   }}
-                  className={`flex-1 py-2.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  className={`flex-1 py-2 rounded-lg transition-all cursor-pointer ${
                     !isLogin && !isForgotPassword
-                      ? "bg-purple-600 text-white shadow-md shadow-purple-950/40"
+                      ? "bg-purple-600 text-white font-bold shadow-md shadow-purple-950/40"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
-                  CREATE ACCOUNT
+                  Create Account
                 </button>
               </div>
 
-              {/* Authentication Form: Email & Password */}
-              <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Authentication Form */}
+              <form onSubmit={handleSubmit} className="space-y-3.5">
                 {/* Role Selector on Signup */}
                 {!isLogin && !isForgotPassword && (
-                  <div className="space-y-2">
-                    <label className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider block">
-                      SELECT YOUR ROLE
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-semibold text-slate-200 uppercase tracking-wider block">
+                      Select Your Role
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-2.5">
                       <button
                         type="button"
                         onClick={() => setRole("BUYER")}
-                        className={`p-3 rounded-xl border cursor-pointer transition-all text-left flex flex-col gap-1 ${
+                        className={`p-2.5 rounded-xl border cursor-pointer transition-all text-left flex flex-col gap-0.5 ${
                           role === "BUYER"
                             ? "bg-cyan-950/70 border-cyan-500 text-white shadow-md shadow-cyan-950/50"
                             : "bg-slate-900/70 border-slate-800 text-slate-400 hover:border-slate-700"
                         }`}
                       >
-                        <div className="flex items-center gap-1.5 font-mono font-bold text-xs text-cyan-400">
-                          <Bot className="w-4 h-4" />
-                          <span>AI BUYER</span>
+                        <div className="flex items-center gap-1.5 font-bold text-xs text-cyan-400">
+                          <Bot className="w-3.5 h-3.5" />
+                          <span>AI Buyer</span>
                         </div>
-                        <p className="text-[11px] text-slate-400 leading-tight">
+                        <p className="text-[11px] text-slate-300 leading-tight">
                           Autonomous Buyer
                         </p>
                       </button>
@@ -222,17 +248,17 @@ export default function AuthPage() {
                       <button
                         type="button"
                         onClick={() => setRole("MERCHANT_ADMIN")}
-                        className={`p-3 rounded-xl border cursor-pointer transition-all text-left flex flex-col gap-1 ${
+                        className={`p-2.5 rounded-xl border cursor-pointer transition-all text-left flex flex-col gap-0.5 ${
                           role === "MERCHANT_ADMIN"
                             ? "bg-emerald-950/70 border-emerald-500 text-white shadow-md shadow-emerald-950/50"
                             : "bg-slate-900/70 border-slate-800 text-slate-400 hover:border-slate-700"
                         }`}
                       >
-                        <div className="flex items-center gap-1.5 font-mono font-bold text-xs text-emerald-400">
-                          <Store className="w-4 h-4" />
-                          <span>MERCHANT</span>
+                        <div className="flex items-center gap-1.5 font-bold text-xs text-emerald-400">
+                          <Store className="w-3.5 h-3.5" />
+                          <span>Merchant</span>
                         </div>
-                        <p className="text-[11px] text-slate-400 leading-tight">
+                        <p className="text-[11px] text-slate-300 leading-tight">
                           Store Admin
                         </p>
                       </button>
@@ -242,8 +268,8 @@ export default function AuthPage() {
 
                 {/* Display Name on Signup */}
                 {!isLogin && !isForgotPassword && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-mono text-slate-300 uppercase">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-200 uppercase tracking-wide">
                       Your Name
                     </label>
                     <div className="relative">
@@ -252,18 +278,18 @@ export default function AuthPage() {
                         placeholder="e.g. Sushanth Arun"
                         value={displayName}
                         onChange={(e) => setDisplayName(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 transition-colors"
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-100 placeholder:text-slate-400 text-xs sm:text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
                       />
-                      <UserIcon className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
+                      <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     </div>
                   </div>
                 )}
 
                 {/* Merchant Store Fields */}
                 {!isLogin && !isForgotPassword && role === "MERCHANT_ADMIN" && (
-                  <div className="space-y-3 p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-800/40">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-emerald-400 uppercase font-bold">
+                  <div className="space-y-2.5 p-3 rounded-xl bg-emerald-950/20 border border-emerald-800/40">
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-emerald-300 uppercase font-semibold">
                         Merchant Store Name *
                       </label>
                       <div className="relative">
@@ -273,14 +299,14 @@ export default function AuthPage() {
                           value={merchantName}
                           onChange={(e) => setMerchantName(e.target.value)}
                           required
-                          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-emerald-800/60 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                          className="w-full pl-9 pr-3.5 py-2 rounded-xl bg-slate-900 border border-emerald-700/60 text-slate-100 placeholder:text-slate-400 text-xs sm:text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                         />
-                        <Store className="w-5 h-5 text-emerald-500 absolute left-3 top-3" />
+                        <Store className="w-4 h-4 text-emerald-400 absolute left-3 top-2.5" />
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-mono text-slate-300 uppercase">
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-slate-200 uppercase font-semibold">
                         Store Description
                       </label>
                       <textarea
@@ -288,15 +314,15 @@ export default function AuthPage() {
                         placeholder="High-performance ergonomic furniture..."
                         value={merchantDescription}
                         onChange={(e) => setMerchantDescription(e.target.value)}
-                        className="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 transition-colors resize-none"
+                        className="w-full p-2 rounded-xl bg-slate-900 border border-slate-700/80 text-slate-100 placeholder:text-slate-400 text-xs focus:outline-none focus:border-emerald-500 transition-colors resize-none"
                       />
                     </div>
                   </div>
                 )}
 
                 {/* Email Address */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-mono text-slate-300 uppercase font-semibold">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-200 uppercase tracking-wide">
                     Email Address *
                   </label>
                   <div className="relative">
@@ -306,16 +332,16 @@ export default function AuthPage() {
                       placeholder="name@company.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 transition-colors"
+                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-100 placeholder:text-slate-400 text-xs sm:text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors font-sans"
                     />
-                    <Mail className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   </div>
                 </div>
 
                 {/* Password */}
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-mono text-slate-300 uppercase font-semibold">
+                    <label className="text-[11px] font-semibold text-slate-200 uppercase tracking-wide">
                       Password *
                     </label>
                     {isLogin && (
@@ -326,9 +352,9 @@ export default function AuthPage() {
                           setError(null);
                           setSuccessMsg(null);
                         }}
-                        className="text-xs font-mono text-purple-400 hover:text-purple-300 transition-colors"
+                        className="text-[11px] font-medium text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
                       >
-                        {isForgotPassword ? "← Back to Login" : "Forgot Password?"}
+                        {isForgotPassword ? "← Back to Sign In" : "Forgot Password?"}
                       </button>
                     )}
                   </div>
@@ -340,17 +366,17 @@ export default function AuthPage() {
                         placeholder="••••••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 transition-colors font-mono"
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-100 placeholder:text-slate-400 text-xs sm:text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors font-sans"
                       />
-                      <Lock className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     </div>
                   )}
                 </div>
 
                 {/* Confirm Password on Signup */}
                 {!isLogin && !isForgotPassword && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-mono text-slate-300 uppercase font-semibold">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-200 uppercase tracking-wide">
                       Confirm Password *
                     </label>
                     <div className="relative">
@@ -360,54 +386,54 @@ export default function AuthPage() {
                         placeholder="••••••••••••"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-purple-500 transition-colors font-mono"
+                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-100 placeholder:text-slate-400 text-xs sm:text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors font-sans"
                       />
-                      <KeyRound className="w-5 h-5 text-slate-500 absolute left-3 top-3.5" />
+                      <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     </div>
                   </div>
                 )}
 
                 {/* Feedback messages */}
                 {error && (
-                  <div className="p-3.5 rounded-xl bg-rose-950/50 border border-rose-800/80 text-rose-300 text-sm flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 shrink-0 text-rose-400" />
+                  <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-700/80 text-rose-200 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
                     <span>{error}</span>
                   </div>
                 )}
 
                 {successMsg && (
-                  <div className="p-3.5 rounded-xl bg-emerald-950/50 border border-emerald-800/80 text-emerald-300 text-sm flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+                  <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-700/80 text-emerald-200 text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
                     <span>{successMsg}</span>
                   </div>
                 )}
 
                 {/* Submit CTA */}
-                <div className="pt-2">
-                  <Magnet strength={6} className="w-full">
+                <div className="pt-1">
+                  <Magnet strength={5} className="w-full">
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:via-indigo-500 hover:to-blue-500 text-white font-mono text-sm font-bold transition-all shadow-xl shadow-purple-950/60 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:via-indigo-500 hover:to-blue-500 text-white font-sans text-xs sm:text-sm font-bold transition-all shadow-lg shadow-purple-950/50 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 tracking-wide"
                     >
                       {loading ? (
                         <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          <span>PROCESSING...</span>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Processing...</span>
                         </>
                       ) : isForgotPassword ? (
                         <>
-                          <span>SEND RESET LINK</span>
+                          <span>Send Reset Link</span>
                           <ArrowRight className="w-4 h-4" />
                         </>
                       ) : isLogin ? (
                         <>
-                          <span>SIGN IN TO PACT</span>
+                          <span>Sign In to PACT</span>
                           <ArrowRight className="w-4 h-4" />
                         </>
                       ) : (
                         <>
-                          <span>CREATE {role} ACCOUNT</span>
+                          <span>Create {role === "BUYER" ? "AI Buyer" : "Merchant"} Account</span>
                           <ArrowRight className="w-4 h-4" />
                         </>
                       )}
@@ -416,119 +442,55 @@ export default function AuthPage() {
                 </div>
               </form>
 
-            {/* Quick Demo Credentials Footer (Only visible on Sign In tab) */}
-            {isLogin && !isForgotPassword && (
-              <div className="pt-5 border-t border-slate-200 dark:border-slate-800/80 font-mono text-xs text-slate-400 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs tracking-wider uppercase">
-                  <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-bold">
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>PRE-SEEDED DEMO ACCOUNTS (CLICK TO AUTO-FILL)</span>
+              {/* Pre-Seeded Demo Accounts: Compact 2-Column Grid */}
+              {isLogin && !isForgotPassword && (
+                <div className="pt-3.5 border-t border-slate-800/80 space-y-2">
+                  <div className="flex items-center justify-between gap-2 text-[11px] uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5 text-blue-400 font-bold">
+                      <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                      <span>DEMO ACCOUNTS (CLICK TO FILL)</span>
+                    </div>
+                    <span className="text-slate-300 font-semibold font-mono text-[10px]">PW: pact123456</span>
                   </div>
-                  <span className="text-slate-600 dark:text-slate-400 font-bold">PW: pact123456</span>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {DEMO_ACCOUNTS.map((acc) => {
+                      const isBuyer = acc.role === "BUYER";
+                      return (
+                        <button
+                          key={acc.id}
+                          type="button"
+                          onClick={() => handleSelectDemoAccount(acc)}
+                          className={`p-2 rounded-xl border text-left transition-all cursor-pointer group flex flex-col justify-between gap-1 ${
+                            isBuyer
+                              ? "bg-slate-900/80 hover:bg-cyan-950/40 border-slate-800 hover:border-cyan-500/70"
+                              : "bg-slate-900/80 hover:bg-emerald-950/40 border-slate-800 hover:border-emerald-500/70"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1">
+                            <span className={`text-xs font-bold truncate ${
+                              isBuyer ? "text-cyan-300 group-hover:text-cyan-200" : "text-emerald-300 group-hover:text-emerald-200"
+                            }`}>
+                              {acc.name}
+                            </span>
+                            <span className="text-[10px] text-slate-300 font-medium shrink-0 bg-slate-800/90 px-1.5 py-0.5 rounded border border-slate-700/60">
+                              {acc.category}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-300 group-hover:text-slate-100 truncate font-mono">
+                            {acc.email}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              <div className="grid grid-cols-1 gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail("buyer@pact.ai");
-                    setPassword("pact123456");
-                    setIsLogin(true);
-                    setError(null);
-                    setSuccessMsg("Auto-filled AI Buyer credentials!");
-                  }}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-cyan-50 dark:bg-slate-900/80 dark:hover:bg-cyan-950/40 border border-slate-200 hover:border-cyan-400 dark:border-slate-800 dark:hover:border-cyan-600 gap-1.5 transition-all text-left cursor-pointer group"
-                >
-                  <span className="text-cyan-700 dark:text-cyan-300 font-bold shrink-0 group-hover:text-cyan-800 dark:group-hover:text-cyan-200">AI Buyer:</span>
-                  <code className="text-blue-600 dark:text-blue-300 font-semibold truncate">buyer@pact.ai</code>
-                  <span className="text-slate-500 dark:text-slate-400 text-[11px] shrink-0">Global Buyer</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail("merchant@ergospace.com");
-                    setPassword("pact123456");
-                    setIsLogin(true);
-                    setError(null);
-                    setSuccessMsg("Auto-filled ErgoSpace Merchant credentials!");
-                  }}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 dark:bg-slate-900/80 dark:hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-400 dark:border-slate-800 dark:hover:border-emerald-600 gap-1.5 transition-all text-left cursor-pointer group"
-                >
-                  <span className="text-emerald-700 dark:text-emerald-300 font-bold shrink-0 group-hover:text-emerald-800 dark:group-hover:text-emerald-200">ErgoSpace:</span>
-                  <code className="text-slate-800 dark:text-slate-200 font-semibold truncate">merchant@ergospace.com</code>
-                  <span className="text-slate-500 dark:text-slate-400 text-[11px] shrink-0">Seating & Desks</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail("merchant@deskforge.com");
-                    setPassword("pact123456");
-                    setIsLogin(true);
-                    setError(null);
-                    setSuccessMsg("Auto-filled DeskForge Merchant credentials!");
-                  }}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 dark:bg-slate-900/80 dark:hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-400 dark:border-slate-800 dark:hover:border-emerald-600 gap-1.5 transition-all text-left cursor-pointer group"
-                >
-                  <span className="text-emerald-700 dark:text-emerald-300 font-bold shrink-0 group-hover:text-emerald-800 dark:group-hover:text-emerald-200">DeskForge:</span>
-                  <code className="text-slate-800 dark:text-slate-200 font-semibold truncate">merchant@deskforge.com</code>
-                  <span className="text-slate-500 dark:text-slate-400 text-[11px] shrink-0">Motorized Desks</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail("merchant@cybertech.com");
-                    setPassword("pact123456");
-                    setIsLogin(true);
-                    setError(null);
-                    setSuccessMsg("Auto-filled CyberTech Merchant credentials!");
-                  }}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 dark:bg-slate-900/80 dark:hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-400 dark:border-slate-800 dark:hover:border-emerald-600 gap-1.5 transition-all text-left cursor-pointer group"
-                >
-                  <span className="text-emerald-700 dark:text-emerald-300 font-bold shrink-0 group-hover:text-emerald-800 dark:group-hover:text-emerald-200">CyberTech:</span>
-                  <code className="text-slate-800 dark:text-slate-200 font-semibold truncate">merchant@cybertech.com</code>
-                  <span className="text-slate-500 dark:text-slate-400 text-[11px] shrink-0">Battlestations</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail("merchant@officepro.com");
-                    setPassword("pact123456");
-                    setIsLogin(true);
-                    setError(null);
-                    setSuccessMsg("Auto-filled OfficePro Merchant credentials!");
-                  }}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 dark:bg-slate-900/80 dark:hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-400 dark:border-slate-800 dark:hover:border-emerald-600 gap-1.5 transition-all text-left cursor-pointer group"
-                >
-                  <span className="text-emerald-700 dark:text-emerald-300 font-bold shrink-0 group-hover:text-emerald-800 dark:group-hover:text-emerald-200">OfficePro:</span>
-                  <code className="text-slate-800 dark:text-slate-200 font-semibold truncate">merchant@officepro.com</code>
-                  <span className="text-slate-500 dark:text-slate-400 text-[11px] shrink-0">Enterprise AV</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail("merchant@nordicliving.com");
-                    setPassword("pact123456");
-                    setIsLogin(true);
-                    setError(null);
-                    setSuccessMsg("Auto-filled NordicLiving Merchant credentials!");
-                  }}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 dark:bg-slate-900/80 dark:hover:bg-emerald-950/40 border border-slate-200 hover:border-emerald-400 dark:border-slate-800 dark:hover:border-emerald-600 gap-1.5 transition-all text-left cursor-pointer group"
-                >
-                  <span className="text-emerald-700 dark:text-emerald-300 font-bold shrink-0 group-hover:text-emerald-800 dark:group-hover:text-emerald-200">NordicLiving:</span>
-                  <code className="text-slate-800 dark:text-slate-200 font-semibold truncate">merchant@nordicliving.com</code>
-                  <span className="text-slate-500 dark:text-slate-400 text-[11px] shrink-0">Minimalist Wood</span>
-                </button>
-              </div>
+              )}
             </div>
-          )}
+          </SpotlightCard>
         </div>
-      </SpotlightCard>
+      </div>
     </div>
-  </div>
-</div>
-);
+  );
 }
+
