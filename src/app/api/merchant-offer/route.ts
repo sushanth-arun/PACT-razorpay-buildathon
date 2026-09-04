@@ -3,7 +3,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { BUYER_INTENTS_COLLECTION, recordAuditEvent } from "@/services/buyer-intent-service";
 import { BuyerIntent, BuyerIntentSchema } from "@/lib/ai/schemas";
 import { Merchant, Product } from "@/types";
-import { DEMO_MERCHANT_ID } from "@/services/seed";
+import { DEMO_MERCHANT_ID, DEMO_MERCHANTS } from "@/services/seed";
 import {
   getMerchantPolicies,
   searchProducts,
@@ -53,7 +53,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const requestedMerchantId = body?.merchantId || (buyerIntent as unknown as { targetMerchantId?: string }).targetMerchantId || DEMO_MERCHANT_ID;
+    let requestedMerchantId = body?.merchantId || (buyerIntent as unknown as { targetMerchantId?: string }).targetMerchantId || "all";
+
+    // If 'all' (Multi-Store Auto-Discovery), search across all available merchants to find the single best-matching store
+    if (!requestedMerchantId || requestedMerchantId === "all") {
+      let bestStoreId = DEMO_MERCHANT_ID;
+      const intentLower = (buyerIntent.productIntent || buyerIntent.rawRequest || "").toLowerCase();
+
+      // Check keywords across known merchants
+      const matchedScores: Record<string, number> = {};
+      for (const m of DEMO_MERCHANTS) {
+        matchedScores[m.id] = 0;
+        const products = await searchProducts(m.id, { query: buyerIntent.productIntent });
+        if (products.length > 0) {
+          matchedScores[m.id] += products.length * 2;
+        }
+        for (const prod of m.initialProducts) {
+          if (intentLower.includes(prod.name.toLowerCase()) || intentLower.includes(prod.category.toLowerCase())) {
+            matchedScores[m.id] += 3;
+          }
+        }
+      }
+
+      let maxScore = -1;
+      for (const [sId, score] of Object.entries(matchedScores)) {
+        if (score > maxScore) {
+          maxScore = score;
+          bestStoreId = sId;
+        }
+      }
+      requestedMerchantId = bestStoreId;
+    }
 
     // 2. Retrieve Merchant Data & Governance Policies
     const merchant: Merchant | null = await getMerchantPolicies(requestedMerchantId);
@@ -80,7 +110,7 @@ export async function POST(req: NextRequest) {
     // Fallback search if query filter was too strict
     const allActiveProducts: Product[] = candidateProducts.length > 0
       ? candidateProducts
-      : await searchProducts(DEMO_MERCHANT_ID);
+      : await searchProducts(merchant.id);
 
     // Record Audit Event 3: CATALOG_SEARCH_COMPLETED
     await recordAuditEvent(

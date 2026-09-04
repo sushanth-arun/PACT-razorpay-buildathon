@@ -214,7 +214,7 @@ const DEFAULT_FIREWALL_RULES = [
 function DealRoomContent() {
   const searchParams = useSearchParams();
   const queryMerchantId = searchParams.get("merchantId");
-  const [activeTargetMerchantId, setActiveTargetMerchantId] = useState<string>(queryMerchantId || "ergospace");
+  const [activeTargetMerchantId, setActiveTargetMerchantId] = useState<string>(queryMerchantId || "all");
   const [targetMerchant, setTargetMerchant] = useState<Merchant | null>(null);
   const [availableMerchants, setAvailableMerchants] = useState<Array<{ id: string; name: string }>>([]);
   const [promptCategory, setPromptCategory] = useState<string>("all");
@@ -263,9 +263,9 @@ function DealRoomContent() {
       };
     }
 
-    // Single merchant detected, check if it's different from the currently selected merchant
+    // Single merchant detected
     const singleMatch = matchedStores[0];
-    if (singleMatch.merchantId !== activeTargetMerchantId) {
+    if (activeTargetMerchantId !== "all" && singleMatch.merchantId !== activeTargetMerchantId) {
       return {
         type: "SWITCH_RECOMMENDED" as const,
         suggestedMerchantId: singleMatch.merchantId,
@@ -719,6 +719,10 @@ function DealRoomContent() {
           if (offerRes.ok && offerData.success && offerData.offer) {
             setOfferProcessingStep(5);
             setOfferResult(offerData.offer);
+            // If we were in auto discovery mode, sync active store to the matched merchant
+            if (offerData.offer.merchantId && offerData.offer.merchantId !== activeTargetMerchantId) {
+              setActiveTargetMerchantId(offerData.offer.merchantId);
+            }
             setSelectedStage(2); // Focus directly on the generated offer stage
             try {
               sessionStorage.setItem("pact_offer_result", JSON.stringify(offerData.offer));
@@ -1294,16 +1298,20 @@ function DealRoomContent() {
           </div>
           <div className="space-y-0.5 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-extrabold text-sm text-slate-100">{targetMerchant?.name || activeTargetMerchantId}</span>
+              <span className="font-extrabold text-sm text-slate-100">
+                {activeTargetMerchantId === "all" ? "All Stores (Network Discovery)" : targetMerchant?.name || activeTargetMerchantId}
+              </span>
               <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold tracking-wide">
-                ACTIVE SELLER
+                {activeTargetMerchantId === "all" ? "MULTI-STORE AUTO DISCOVERY" : "ACTIVE SELLER"}
               </span>
             </div>
             <p 
-              title={targetMerchant?.description || "Autonomous commercial seller on PACT"}
+              title={activeTargetMerchantId === "all" ? "Autonomous discovery across all verified merchant catalogs in the PACT network." : (targetMerchant?.description || "Autonomous commercial seller on PACT")}
               className="text-xs text-slate-400 font-sans truncate hover:whitespace-normal hover:overflow-visible transition-all duration-200 cursor-help"
             >
-              {targetMerchant?.description || "Autonomous commercial seller on PACT"}
+              {activeTargetMerchantId === "all" 
+                ? "Autonomous discovery across all verified merchant catalogs in the PACT network." 
+                : (targetMerchant?.description || "Autonomous commercial seller on PACT")}
             </p>
           </div>
         </div>
@@ -1345,6 +1353,7 @@ function DealRoomContent() {
             }}
             className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-100 text-xs font-mono focus:outline-none focus:border-blue-500 cursor-pointer shadow-sm"
           >
+            <option value="all">All Stores (Network Discovery)</option>
             {availableMerchants.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
