@@ -218,7 +218,6 @@ function DealRoomContent() {
   const [activeTargetMerchantId, setActiveTargetMerchantId] = useState<string>(queryMerchantId || "all");
   const [targetMerchant, setTargetMerchant] = useState<Merchant | null>(null);
   const [availableMerchants, setAvailableMerchants] = useState<Array<{ id: string; name: string }>>([]);
-  const [promptCategory, setPromptCategory] = useState<string>("all");
 
   const [requestText, setRequestText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1327,7 +1326,6 @@ function DealRoomContent() {
             onChange={(e) => {
               const newMerchantId = e.target.value;
               setActiveTargetMerchantId(newMerchantId);
-              setPromptCategory(newMerchantId);
               // Cleanly reset deal room state and return to Stage 1
               try {
                 sessionStorage.removeItem("pact_intent_result");
@@ -1438,7 +1436,6 @@ function DealRoomContent() {
                         type="button"
                         onClick={() => {
                           setActiveTargetMerchantId(s.merchantId);
-                          setPromptCategory(s.merchantId);
                         }}
                         className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer shadow-md shadow-amber-950/40"
                       >
@@ -1452,7 +1449,6 @@ function DealRoomContent() {
                     type="button"
                     onClick={() => {
                       setActiveTargetMerchantId(detectedMerchantAnalysis.suggestedMerchantId);
-                      setPromptCategory(detectedMerchantAnalysis.suggestedMerchantId);
                     }}
                     className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-md shadow-amber-950/40"
                   >
@@ -1463,51 +1459,35 @@ function DealRoomContent() {
               </motion.div>
             )}
 
-            {/* Prompt Recommendation Filter & Chips */}
+            {/* Dynamic Prompt Recommendations based on Active Switch Merchant Selection */}
             <div className="space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/60 pb-2">
+              <div className="flex items-center justify-between gap-2 border-b border-slate-800/60 pb-2">
                 <span className="text-xs font-mono text-slate-400 font-semibold flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                  <span>EXPLORE PROMPTS BY MERCHANT:</span>
+                  <span>
+                    RECOMMENDED PROMPTS {activeTargetMerchantId === "all" ? "(ALL MERCHANTS)" : `FOR ${(targetMerchant?.name || activeTargetMerchantId).toUpperCase()}`}:
+                  </span>
                 </span>
-                <div className="flex flex-wrap items-center gap-1.5">
+                {activeTargetMerchantId !== "all" && (
                   <button
                     type="button"
-                    onClick={() => setPromptCategory("all")}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-colors cursor-pointer ${
-                      promptCategory === "all"
-                        ? "bg-blue-600 text-white font-bold"
-                        : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200"
-                    }`}
+                    onClick={() => setActiveTargetMerchantId("all")}
+                    className="text-[11px] font-mono text-blue-400 hover:text-blue-300 hover:underline cursor-pointer"
                   >
-                    All Stores
+                    Reset to All Stores
                   </button>
-                  {availableMerchants.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => setPromptCategory(m.id)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-colors cursor-pointer ${
-                        promptCategory === m.id
-                          ? "bg-blue-600 text-white font-bold"
-                          : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200"
-                      }`}
-                    >
-                      {m.name}
-                    </button>
-                  ))}
-                </div>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                {(MERCHANT_PROMPT_RECOMMENDATIONS[promptCategory] || MERCHANT_PROMPT_RECOMMENDATIONS.all).map((item, i) => (
+                {(MERCHANT_PROMPT_RECOMMENDATIONS[activeTargetMerchantId] || MERCHANT_PROMPT_RECOMMENDATIONS.all).map((item, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => {
                       setRequestText(item.prompt);
-                      if (activeTargetMerchantId !== item.merchantId) {
-                        setActiveTargetMerchantId(item.merchantId);
+                      if (activeTargetMerchantId === "all" && activeTargetMerchantId !== item.merchantId) {
+                        // Keep or set store as preferred
                       }
                     }}
                     className="group px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 hover:text-slate-100 hover:border-blue-700/60 hover:bg-slate-800/80 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
