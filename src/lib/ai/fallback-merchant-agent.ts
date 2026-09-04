@@ -28,15 +28,35 @@ export function runFallbackMerchantAgent(
     };
   }
 
-  // Pick top matching product
-  const primary = inStockCandidates[0];
-  const alternatives = inStockCandidates.slice(1, 3);
-
+  // Check if combo/bundle/gift request
+  const isCombo = /combo|bundle|gift|setup|kit|package/i.test(buyerIntent.productIntent || "");
+  
   // Propose discount up to policy cap
-  let proposedDiscount = 5;
+  let proposedDiscount = 0;
   if (buyerIntent.requestedDiscount === "best possible" || typeof buyerIntent.requestedDiscount === "number") {
     proposedDiscount = Math.min(10, merchant.maxDiscountPercent);
   }
+
+  if (isCombo && inStockCandidates.length >= 2) {
+    const selected = inStockCandidates.slice(0, 2);
+    const alternatives = inStockCandidates.slice(2, 4);
+    return {
+      selectedProductIds: selected.map((p) => ({ productId: p.id, quantity: 1 })),
+      alternativeProductIds: alternatives.map((a) => ({ productId: a.id, quantity: 1 })),
+      bundleProductIds: [],
+      proposedDiscountPercent: proposedDiscount,
+      discountReasoning: proposedDiscount > 0
+        ? `Proposed ${proposedDiscount}% bundle discount within merchant policy cap (${merchant.maxDiscountPercent}% max).`
+        : "No discount requested.",
+      buyerFitExplanation: `Curated a premium gift bundle featuring ${selected.map((s) => s.name).join(" and ")} tailored for your executive gifting need.`,
+      merchantOpportunityExplanation: `Increases average order value (AOV) and packages complementary products efficiently.`,
+      reasoningSummary: `Packaged ${selected.length} items (${selected.map((s) => s.name).join(", ")}) into a curated combo proposal.`,
+    };
+  }
+
+  // Pick top matching product
+  const primary = inStockCandidates[0];
+  const alternatives = inStockCandidates.slice(1, 3);
 
   return {
     selectedProductIds: [{ productId: primary.id, quantity: reqQty }],

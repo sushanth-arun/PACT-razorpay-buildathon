@@ -103,14 +103,19 @@ export async function POST(req: NextRequest) {
     );
 
     // 3. Retrieve Candidate Products from Firestore
-    const candidateProducts: Product[] = await searchProducts(merchant.id, {
-      query: buyerIntent.productIntent,
-    });
+    const isComboOrGeneralQuery = /combo|bundle|gift|setup|kit|package|all|collection|pack/i.test(buyerIntent.productIntent || "");
+    let allActiveProducts: Product[] = [];
 
-    // Fallback search if query filter was too strict
-    const allActiveProducts: Product[] = candidateProducts.length > 0
-      ? candidateProducts
-      : await searchProducts(merchant.id);
+    if (isComboOrGeneralQuery) {
+      allActiveProducts = await searchProducts(merchant.id);
+    } else {
+      const candidateProducts: Product[] = await searchProducts(merchant.id, {
+        query: buyerIntent.productIntent,
+      });
+      allActiveProducts = candidateProducts.length > 0
+        ? candidateProducts
+        : await searchProducts(merchant.id);
+    }
 
     // Record Audit Event 3: CATALOG_SEARCH_COMPLETED
     await recordAuditEvent(
