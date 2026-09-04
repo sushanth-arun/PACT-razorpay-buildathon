@@ -19,7 +19,7 @@ export type StatusType =
 
 interface StatusBadgeProps {
   status: StatusType;
-  label?: string;
+  label?: React.ReactNode;
   className?: string;
 }
 

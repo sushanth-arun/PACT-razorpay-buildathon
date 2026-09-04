@@ -26,6 +26,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getMerchantProducts, saveProduct } from "@/services/firestore";
 import { DEMO_MERCHANT_ID } from "@/services/seed";
 import { Product } from "@/types";
+import { CountUp } from "@/components/CountUp";
 
 export default function MerchantProductsPage() {
   const { merchantId: authMerchantId } = useAuth();
@@ -135,7 +136,16 @@ export default function MerchantProductsPage() {
         <PageHeader
           title="CATALOG & INVENTORY MANAGEMENT"
           description="Maintain products, price points, and real-time inventory stock available for autonomous AI Buyer negotiations."
-          badge={<StatusBadge status="active" label={`${products.length} PRODUCTS IN STORE`} />}
+          badge={
+            <StatusBadge
+              status="active"
+              label={
+                <span className="flex items-center gap-1">
+                  <CountUp to={products.length} /> PRODUCTS IN STORE
+                </span>
+              }
+            />
+          }
         />
 
         <div className="flex items-center gap-3">
@@ -176,7 +186,7 @@ export default function MerchantProductsPage() {
         >
           <div onClick={() => setStockFilter(stockFilter === "HEALTHY" ? "ALL" : "HEALTHY")} className="space-y-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">HEALTHY STOCK (≥ 5)</span>
-            <p className="text-2xl font-black text-emerald-400">{healthyStockCount} Items</p>
+            <p className="text-2xl font-black text-emerald-400"><CountUp to={healthyStockCount} suffix=" Items" /></p>
           </div>
         </SpotlightCard>
 
@@ -188,7 +198,7 @@ export default function MerchantProductsPage() {
         >
           <div onClick={() => setStockFilter(stockFilter === "LOW" ? "ALL" : "LOW")} className="space-y-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">LOW STOCK (&lt; 5)</span>
-            <p className="text-2xl font-black text-amber-400">{lowStockCount} Items</p>
+            <p className="text-2xl font-black text-amber-400"><CountUp to={lowStockCount} suffix=" Items" /></p>
           </div>
         </SpotlightCard>
 
@@ -200,7 +210,7 @@ export default function MerchantProductsPage() {
         >
           <div onClick={() => setStockFilter(stockFilter === "OUT" ? "ALL" : "OUT")} className="space-y-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">OUT OF STOCK (0)</span>
-            <p className="text-2xl font-black text-rose-400">{outOfStockCount} Items</p>
+            <p className="text-2xl font-black text-rose-400"><CountUp to={outOfStockCount} suffix=" Items" /></p>
           </div>
         </SpotlightCard>
       </div>
@@ -303,7 +313,7 @@ export default function MerchantProductsPage() {
                       </span>
                     </td>
                     <td className="p-3.5 font-bold text-slate-200">
-                      ₹{p.price.toLocaleString("en-IN")}
+                      <CountUp to={p.price} prefix="₹" />
                     </td>
                     <td className="p-3.5">
                       <div className="flex items-center gap-2">
@@ -350,7 +360,7 @@ export default function MerchantProductsPage() {
                       </div>
                     </td>
                     <td className="p-3.5 text-slate-400">
-                      {p.deliveryDays}d
+                      <CountUp to={p.deliveryDays} suffix="d" />
                     </td>
                     <td className="p-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -404,7 +414,7 @@ export default function MerchantProductsPage() {
                       ? "bg-amber-950 text-amber-400 border-amber-800/80"
                       : "bg-rose-950 text-rose-400 border-rose-800/80"
                   }`}>
-                    {product.stock} in stock
+                    <CountUp to={product.stock} suffix=" in stock" />
                   </span>
                 </div>
 
@@ -421,12 +431,12 @@ export default function MerchantProductsPage() {
                   <div>
                     <span className="text-[10px] text-slate-500 block">BASE PRICE</span>
                     <span className="text-base font-black text-slate-100">
-                      ₹{product.price.toLocaleString("en-IN")}
+                      <CountUp to={product.price} prefix="₹" />
                     </span>
                   </div>
                   <div className="text-right text-[11px] text-slate-400 flex items-center gap-1">
                     <Truck className="w-3.5 h-3.5 text-blue-400" />
-                    <span>{product.deliveryDays}d SLA</span>
+                    <span><CountUp to={product.deliveryDays} suffix="d SLA" /></span>
                   </div>
                 </div>
 

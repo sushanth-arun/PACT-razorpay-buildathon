@@ -10,7 +10,7 @@ import { CountUp } from "@/components/CountUp";
 interface MetricCardProps {
   title: string;
   value: string | number;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   hoverDetail?: string;
   icon?: React.ComponentType<{ className?: string }>;
   trend?: {

@@ -21,6 +21,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { DEMO_MERCHANT_ID } from "@/services/seed";
 import { TransactionRecord } from "@/types";
+import { CountUp } from "@/components/CountUp";
 
 export default function MerchantTransactionsPage() {
   const { merchantId: authMerchantId } = useAuth();
@@ -53,7 +54,16 @@ export default function MerchantTransactionsPage() {
       <PageHeader
         title="MERCHANT SETTLEMENT TRANSACTIONS"
         description="Live stream of orders negotiated by your Merchant Agent and settled into your Razorpay account."
-        badge={<StatusBadge status="active" label={`${transactions.length} STORE ORDERS`} />}
+        badge={
+          <StatusBadge
+            status="active"
+            label={
+              <span className="flex items-center gap-1">
+                <CountUp to={transactions.length} /> STORE ORDERS
+              </span>
+            }
+          />
+        }
       />
 
       <SpotlightCard
@@ -115,15 +125,19 @@ export default function MerchantTransactionsPage() {
                         <td className="py-4 px-4 text-slate-300">
                           <span className="inline-flex items-center gap-1.5 font-bold text-slate-200">
                             <Package className="w-3.5 h-3.5 text-blue-400" />
-                            <span>{tx.itemsCount} {tx.itemsCount === 1 ? "product" : "products"}</span>
+                            <span>
+                              <CountUp to={tx.itemsCount || 0} /> {tx.itemsCount === 1 ? "product" : "products"}
+                            </span>
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-slate-400">₹{(tx.subtotal || tx.amount).toLocaleString("en-IN")}</td>
+                        <td className="py-4 px-4 text-slate-400">
+                          <CountUp to={tx.subtotal || tx.amount} prefix="₹" />
+                        </td>
                         <td className="py-4 px-4 text-emerald-400 font-bold">
-                          {tx.discount?.percentage ? `${tx.discount.percentage}%` : "0%"}
+                          <CountUp to={tx.discount?.percentage || 0} suffix="%" />
                         </td>
                         <td className="py-4 px-4 font-black text-slate-100 text-sm">
-                          ₹{(tx.finalAmount || tx.amount).toLocaleString("en-IN")}
+                          <CountUp to={tx.finalAmount || tx.amount} prefix="₹" />
                         </td>
                         <td className="py-4 px-4">
                           <StatusBadge
@@ -159,7 +173,7 @@ export default function MerchantTransactionsPage() {
                               <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                                   <Package className="w-3.5 h-3.5 text-emerald-400" />
-                                  <span>ORDERED PRODUCTS BREAKDOWN ({tx.items?.length || 0})</span>
+                                  <span className="flex items-center gap-1">ORDERED PRODUCTS BREAKDOWN (<CountUp to={tx.items?.length || 0} />)</span>
                                 </span>
                                 <span className="text-[10px] text-slate-400 font-mono">
                                   Razorpay Order: {tx.razorpayOrderId || "N/A"}
@@ -178,19 +192,19 @@ export default function MerchantTransactionsPage() {
                                           <h4 className="font-bold text-slate-100 text-xs line-clamp-1">
                                             {item.productName || `Product SKU: ${item.productId}`}
                                           </h4>
-                                          <span className="px-2 py-0.5 rounded bg-blue-950 border border-blue-800 text-blue-300 text-[10px] font-bold shrink-0">
-                                            ×{item.quantity}
+                                          <span className="px-2 py-0.5 rounded bg-blue-950 border border-blue-800 text-blue-300 text-[10px] font-bold shrink-0 flex items-center gap-0.5">
+                                            ×<CountUp to={item.quantity} />
                                           </span>
                                         </div>
                                         <p className="text-[11px] text-slate-400 font-sans line-clamp-1">
-                                          Unit Price: ₹{item.unitPrice.toLocaleString("en-IN")}
+                                          Unit Price: <CountUp to={item.unitPrice} prefix="₹" />
                                         </p>
                                       </div>
 
                                       <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
                                         <span className="text-[10px] text-slate-500 font-mono">Line Total</span>
                                         <span className="font-black text-emerald-400">
-                                          ₹{(item.lineTotal || item.unitPrice * item.quantity).toLocaleString("en-IN")}
+                                          <CountUp to={item.lineTotal || item.unitPrice * item.quantity} prefix="₹" />
                                         </span>
                                       </div>
                                     </div>

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
+import { CountUp } from "@/components/CountUp";
 
 interface TransactionSummary {
   id: string;
@@ -72,7 +73,11 @@ export default function TransactionsPage() {
         badge={
           <StatusBadge
             status={transactions.length > 0 ? "active" : "neutral"}
-            label={`${transactions.length} RECORDED TRANSACTIONS`}
+            label={
+              <span className="flex items-center gap-1">
+                <CountUp to={transactions.length} /> RECORDED TRANSACTIONS
+              </span>
+            }
           />
         }
       />
@@ -86,7 +91,7 @@ export default function TransactionsPage() {
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-slate-400 uppercase">SETTLED VALUE</span>
             <p className="text-2xl font-black text-emerald-400">
-              ₹{totalSpent.toLocaleString("en-IN")}
+              <CountUp to={totalSpent} prefix="₹" />
             </p>
           </div>
         </SpotlightCard>
@@ -97,8 +102,10 @@ export default function TransactionsPage() {
         >
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-slate-400 uppercase">COMPLETED CONTRACTS</span>
-            <p className="text-2xl font-black text-slate-100">
-              {transactions.filter((t) => t.status === "PAID").length} / {transactions.length}
+            <p className="text-2xl font-black text-slate-100 flex items-center gap-1">
+              <CountUp to={transactions.filter((t) => t.status === "PAID").length} />
+              <span>/</span>
+              <CountUp to={transactions.length} />
             </p>
           </div>
         </SpotlightCard>
@@ -107,7 +114,7 @@ export default function TransactionsPage() {
       {/* Transactions Stack & List */}
       <div className="space-y-3 font-mono">
         <div className="flex items-center justify-between px-1 text-xs font-bold text-slate-400">
-          <span>RECENT TRANSACTIONS ({transactions.length})</span>
+          <span className="flex items-center gap-1">RECENT TRANSACTIONS (<CountUp to={transactions.length} />)</span>
           <span>CLICK CARD TO EXPAND DECISION CONTEXT</span>
         </div>
 
@@ -188,11 +195,11 @@ export default function TransactionsPage() {
                         <div className="flex items-center justify-between sm:justify-end gap-4">
                           <div className="text-right">
                             <span className="text-xs font-black text-slate-100 text-base">
-                              ₹{(tx.finalAmount || tx.amount).toLocaleString("en-IN")}
+                              <CountUp to={tx.finalAmount || tx.amount} prefix="₹" />
                             </span>
                             {tx.discount && tx.discount.percentage > 0 && (
                               <span className="text-[10px] text-emerald-400 block">
-                                {tx.discount.percentage}% Discount Applied
+                                <CountUp to={tx.discount.percentage} suffix="%" /> Discount Applied
                               </span>
                             )}
                           </div>
@@ -210,17 +217,17 @@ export default function TransactionsPage() {
                           {/* Item Breakdown */}
                           {tx.items && tx.items.length > 0 && (
                             <div className="space-y-2 bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/60">
-                              <span className="text-[11px] font-bold text-slate-400 uppercase">
-                                CONTRACTED ITEMS ({tx.items.length})
+                              <span className="text-[11px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                                CONTRACTED ITEMS (<CountUp to={tx.items.length} />)
                               </span>
                               <div className="space-y-1.5 pt-1">
                                 {tx.items.map((it, i) => (
                                   <div key={i} className="flex items-center justify-between text-slate-300">
-                                    <span>
-                                      {it.productName} <strong className="text-blue-400">×{it.quantity}</strong>
+                                    <span className="flex items-center gap-1">
+                                      {it.productName} <strong className="text-blue-400">×<CountUp to={it.quantity} /></strong>
                                     </span>
                                     <span className="font-bold text-slate-100">
-                                      ₹{(it.lineTotal || it.unitPrice * it.quantity).toLocaleString("en-IN")}
+                                      <CountUp to={it.lineTotal || it.unitPrice * it.quantity} prefix="₹" />
                                     </span>
                                   </div>
                                 ))}

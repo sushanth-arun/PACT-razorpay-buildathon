@@ -22,6 +22,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { CountUp } from "@/components/CountUp";
 
 interface TransactionDetail {
   id: string;
@@ -169,12 +170,12 @@ export default function TransactionDetailPage({
                     <div key={i} className="py-3 flex items-center justify-between">
                       <div>
                         <p className="font-bold text-slate-200 font-sans text-sm">{item.productName}</p>
-                        <p className="text-[11px] text-slate-500">
-                          Qty: <strong className="text-slate-300">{item.quantity}</strong> × ₹{item.unitPrice.toLocaleString("en-IN")}
+                        <p className="text-[11px] text-slate-500 flex items-center gap-1">
+                          Qty: <strong className="text-slate-300"><CountUp to={item.quantity} /></strong> × <CountUp to={item.unitPrice} prefix="₹" />
                         </p>
                       </div>
                       <span className="font-extrabold text-slate-100 text-sm">
-                        ₹{(item.lineTotal || item.unitPrice * item.quantity).toLocaleString("en-IN")}
+                        <CountUp to={item.lineTotal || item.unitPrice * item.quantity} prefix="₹" />
                       </span>
                     </div>
                   ))}
@@ -184,23 +185,23 @@ export default function TransactionDetailPage({
                 <div className="pt-4 border-t border-slate-800 space-y-2 text-xs">
                   <div className="flex justify-between text-slate-400">
                     <span>Catalog Subtotal</span>
-                    <span className="text-slate-200">₹{(deal.subtotal || transaction.amount).toLocaleString("en-IN")}</span>
+                    <span className="text-slate-200"><CountUp to={deal.subtotal || transaction.amount} prefix="₹" /></span>
                   </div>
                   {deal.discount && deal.discount.amount > 0 && (
                     <div className="flex justify-between text-emerald-400">
-                      <span>Negotiated Discount ({deal.discount.percentage}%)</span>
-                      <span>-₹{deal.discount.amount.toLocaleString("en-IN")}</span>
+                      <span>Negotiated Discount (<CountUp to={deal.discount.percentage} suffix="%" />)</span>
+                      <span>-<CountUp to={deal.discount.amount} prefix="₹" /></span>
                     </div>
                   )}
                   <div className="flex justify-between text-slate-100 text-base font-black pt-2 border-t border-slate-800/60">
                     <span>Settled Total</span>
-                    <span className="text-emerald-400">₹{transaction.amount.toLocaleString("en-IN")}</span>
+                    <span className="text-emerald-400"><CountUp to={transaction.amount} prefix="₹" /></span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="p-4 bg-slate-900/60 rounded-xl text-slate-400">
-                Single contracted package execution: ₹{transaction.amount.toLocaleString("en-IN")}
+              <div className="p-4 bg-slate-900/60 rounded-xl text-slate-400 flex items-center gap-1">
+                Single contracted package execution: <CountUp to={transaction.amount} prefix="₹" />
               </div>
             )}
           </SpotlightCard>

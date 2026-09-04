@@ -19,6 +19,7 @@ import {
   Search
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { CountUp } from "@/components/CountUp";
 
 interface DiscoveredMerchant {
   id: string;
@@ -81,7 +82,11 @@ export default function MerchantsPage() {
         badge={
           <StatusBadge
             status={merchants.length > 0 ? "active" : "neutral"}
-            label={`${merchants.length} ACTIVE MERCHANTS`}
+            label={
+              <span className="flex items-center gap-1">
+                <CountUp to={merchants.length} /> ACTIVE MERCHANTS
+              </span>
+            }
           />
         }
       />
@@ -135,7 +140,7 @@ export default function MerchantsPage() {
         {/* Left Column: Interactive Layered Merchant Stack */}
         <div className="lg:col-span-7 space-y-3.5">
           <div className="flex items-center justify-between px-1 text-xs font-mono text-slate-400 font-bold">
-            <span>AVAILABLE MERCHANTS ({filteredMerchants.length})</span>
+            <span className="flex items-center gap-1">AVAILABLE MERCHANTS (<CountUp to={filteredMerchants.length} />)</span>
             <span className="text-[11px] text-slate-500">Click to inspect capabilities</span>
           </div>
 
@@ -205,7 +210,7 @@ export default function MerchantsPage() {
                           <div className="text-right shrink-0 font-mono">
                             <span className="text-xs text-slate-400 block">Catalog</span>
                             <span className="text-sm font-extrabold text-slate-200">
-                              {merchant.activeProductCount} items
+                              <CountUp to={merchant.activeProductCount} suffix=" items" />
                             </span>
                           </div>
                         </div>
@@ -221,7 +226,7 @@ export default function MerchantsPage() {
                             </span>
                           ))}
                           <span className="text-blue-400 ml-auto flex items-center gap-1 font-bold">
-                            Max Discount: {merchant.maxDiscountPercent}%
+                            Max Discount: <CountUp to={merchant.maxDiscountPercent} suffix="%" />
                           </span>
                         </div>
                       </div>
@@ -272,7 +277,7 @@ export default function MerchantsPage() {
                       <span>INVENTORY</span>
                     </div>
                     <p className="text-lg font-black text-slate-100">
-                      {selectedMerchant.activeProductCount} Active
+                      <CountUp to={selectedMerchant.activeProductCount} suffix=" Active" />
                     </p>
                   </div>
 
@@ -282,7 +287,7 @@ export default function MerchantsPage() {
                       <span>MAX DISCOUNT</span>
                     </div>
                     <p className="text-lg font-black text-emerald-400">
-                      {selectedMerchant.maxDiscountPercent}% Cap
+                      <CountUp to={selectedMerchant.maxDiscountPercent} suffix="% Cap" />
                     </p>
                   </div>
                 </div>

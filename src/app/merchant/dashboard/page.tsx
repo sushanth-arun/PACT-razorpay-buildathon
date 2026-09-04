@@ -24,6 +24,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getMerchant, getMerchantProducts } from "@/services/firestore";
 import { DEMO_MERCHANT_ID } from "@/services/seed";
 import { Merchant, Product, TransactionRecord } from "@/types";
+import { CountUp } from "@/components/CountUp";
 
 export default function MerchantDashboardPage() {
   const { merchantId: authMerchantId } = useAuth();
@@ -113,26 +114,42 @@ export default function MerchantDashboardPage() {
         <MetricCard
           title="Catalog Items"
           value={products.length}
-          subtitle={`${activeProducts.length} active in AI negotiation`}
+          subtitle={
+            <span className="flex items-center gap-1">
+              <CountUp to={activeProducts.length} /> active in AI negotiation
+            </span>
+          }
           icon={Package}
         />
         <MetricCard
           title="Low / Out of Stock"
           value={lowStockProducts.length + outOfStockProducts.length}
-          subtitle={`${outOfStockProducts.length} zero stock items`}
+          subtitle={
+            <span className="flex items-center gap-1">
+              <CountUp to={outOfStockProducts.length} /> zero stock items
+            </span>
+          }
           icon={Boxes}
           trend={outOfStockProducts.length > 0 ? { value: `${outOfStockProducts.length} OOS`, isPositive: false } : undefined}
         />
         <MetricCard
           title="Max Negotiated Discount"
           value={`${merchant?.maxDiscountPercent ?? 15}%`}
-          subtitle={`Min margin ${merchant?.minimumMarginPercent ?? 20}%`}
+          subtitle={
+            <span className="flex items-center gap-1">
+              Min margin <CountUp to={merchant?.minimumMarginPercent ?? 20} suffix="%" />
+            </span>
+          }
           icon={Percent}
         />
         <MetricCard
           title="Settled Revenue"
           value={`₹${totalRevenue.toLocaleString("en-IN")}`}
-          subtitle={`${transactions.filter((t) => t.status === "PAID").length} Razorpay orders`}
+          subtitle={
+            <span className="flex items-center gap-1">
+              <CountUp to={transactions.filter((t) => t.status === "PAID").length} /> Razorpay orders
+            </span>
+          }
           icon={DollarSign}
           trend={{ value: "LIVE", isPositive: true }}
         />
@@ -204,7 +221,7 @@ export default function MerchantDashboardPage() {
       {/* Recent Merchant Agent Settlements */}
       <div className="space-y-3 font-mono text-xs">
         <div className="flex items-center justify-between px-1 font-bold text-slate-400">
-          <span>RECENT SETTLED TRANSACTIONS ({transactions.length})</span>
+          <span className="flex items-center gap-1">RECENT SETTLED TRANSACTIONS (<CountUp to={transactions.length} />)</span>
           <Link href="/merchant/transactions" className="text-blue-400 hover:underline">
             View All Transactions →
           </Link>
@@ -227,7 +244,7 @@ export default function MerchantDashboardPage() {
                 </div>
                 <div className="text-right">
                   <span className="font-bold text-slate-100 text-sm">
-                    ₹{(tx.finalAmount || tx.amount).toLocaleString("en-IN")}
+                    <CountUp to={tx.finalAmount || tx.amount} prefix="₹" />
                   </span>
                   <p className="text-[10px] text-emerald-400">{tx.status}</p>
                 </div>

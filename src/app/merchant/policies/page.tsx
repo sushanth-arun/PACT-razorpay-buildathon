@@ -20,6 +20,7 @@ import { useAuth } from "@/context/AuthContext";
 import { getMerchant, updateMerchantPolicies } from "@/services/firestore";
 import { DEMO_MERCHANT_ID } from "@/services/seed";
 import { Merchant } from "@/types";
+import { CountUp } from "@/components/CountUp";
 
 export default function MerchantPoliciesPage() {
   const { merchantId: authMerchantId } = useAuth();
@@ -111,7 +112,7 @@ export default function MerchantPoliciesPage() {
                     <Percent className="w-3.5 h-3.5 text-amber-400" />
                     <span>Maximum Negotiated Discount</span>
                   </label>
-                  <span className="text-sm font-black text-amber-400">{form.maxDiscountPercent}% Cap</span>
+                  <span className="text-sm font-black text-amber-400"><CountUp to={form.maxDiscountPercent} suffix="% Cap" /></span>
                 </div>
                 <input
                   type="range"
@@ -134,7 +135,7 @@ export default function MerchantPoliciesPage() {
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Minimum Profit Margin</span>
                   </label>
-                  <span className="text-sm font-black text-emerald-400">{form.minimumMarginPercent}% Min</span>
+                  <span className="text-sm font-black text-emerald-400"><CountUp to={form.minimumMarginPercent} suffix="% Min" /></span>
                 </div>
                 <input
                   type="range"
@@ -158,7 +159,7 @@ export default function MerchantPoliciesPage() {
                     <span>Autonomous Settlement Cap</span>
                   </label>
                   <span className="text-sm font-black text-blue-400">
-                    ₹{form.maxAutoTransactionAmount.toLocaleString("en-IN")}
+                    <CountUp to={form.maxAutoTransactionAmount} prefix="₹" />
                   </span>
                 </div>
                 <input

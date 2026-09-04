@@ -32,6 +32,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { DEMO_MERCHANT_ID } from "@/services/seed";
 import { AuditEvent, AuditActor, AuditEventType } from "@/lib/audit/schema";
+import { CountUp } from "@/components/CountUp";
 
 const ACTOR_CONFIG: Record<
   AuditActor,
@@ -358,8 +359,8 @@ function MerchantAuditContent() {
                         </div>
                         <div className="flex items-center gap-3 pt-1 text-[11px] text-slate-400">
                           <span>{new Date(d.createdAt).toLocaleTimeString()}</span>
-                          <span className="text-slate-200 font-bold">₹{d.finalAmount.toLocaleString("en-IN")}</span>
-                          <span className="text-emerald-400 font-bold">({d.eventsCount} Events)</span>
+                          <span className="text-slate-200 font-bold"><CountUp to={d.finalAmount} prefix="₹" /></span>
+                          <span className="text-emerald-400 font-bold flex items-center gap-1">(<CountUp to={d.eventsCount} /> Events)</span>
                         </div>
                       </div>
 
@@ -410,7 +411,7 @@ function MerchantAuditContent() {
 
                   <div className="flex items-center gap-2">
                     <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-emerald-400 font-bold">
-                      ₹{activeDeal.finalAmount.toLocaleString("en-IN")}
+                      <CountUp to={activeDeal.finalAmount} prefix="₹" />
                     </span>
                     <span className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
                       Status: {activeDeal.status}
@@ -426,7 +427,7 @@ function MerchantAuditContent() {
                       <span>HUMAN MERCHANT APPROVAL REQUIRED</span>
                     </div>
                     <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                      This transaction of <strong>₹{activeDeal.finalAmount.toLocaleString("en-IN")}</strong> exceeds your store automated approval threshold (₹50,000). Review the audit history below and execute your decision:
+                      This transaction of <strong><CountUp to={activeDeal.finalAmount} prefix="₹" /></strong> exceeds your store automated approval threshold (₹50,000). Review the audit history below and execute your decision:
                     </p>
                     <div className="flex items-center gap-3 pt-1">
                       <button

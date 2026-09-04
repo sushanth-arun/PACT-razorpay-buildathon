@@ -20,6 +20,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { CountUp } from "@/components/CountUp";
 
 interface RuleEvaluation {
   ruleId: string;
@@ -137,28 +138,28 @@ export default function RealTimeEvaluationDashboard() {
         <SpotlightCard spotlightColor="rgba(168, 85, 247, 0.15)" className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase">EVALUATED DEALS</span>
-            <p className="text-2xl font-black text-slate-100">{metrics.total}</p>
+            <p className="text-2xl font-black text-slate-100"><CountUp to={metrics.total} /></p>
           </div>
         </SpotlightCard>
 
         <SpotlightCard spotlightColor="rgba(16, 185, 129, 0.15)" className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-emerald-400 uppercase">FIREWALL PASSED</span>
-            <p className="text-2xl font-black text-emerald-400">{metrics.validated}</p>
+            <p className="text-2xl font-black text-emerald-400"><CountUp to={metrics.validated} /></p>
           </div>
         </SpotlightCard>
 
         <SpotlightCard spotlightColor="rgba(244, 63, 94, 0.15)" className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-rose-400 uppercase">POLICY BLOCKED</span>
-            <p className="text-2xl font-black text-rose-400">{metrics.blocked}</p>
+            <p className="text-2xl font-black text-rose-400"><CountUp to={metrics.blocked} /></p>
           </div>
         </SpotlightCard>
 
         <SpotlightCard spotlightColor="rgba(168, 85, 247, 0.15)" className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-purple-400 uppercase">VALUE EVALUATED</span>
-            <p className="text-2xl font-black text-purple-300">₹{metrics.totalValueEvaluated.toLocaleString("en-IN")}</p>
+            <p className="text-2xl font-black text-purple-300"><CountUp to={metrics.totalValueEvaluated} prefix="₹" /></p>
           </div>
         </SpotlightCard>
       </div>
@@ -190,7 +191,7 @@ export default function RealTimeEvaluationDashboard() {
           {/* Left Column: Live Deals Evaluated Stream */}
           <div className="lg:col-span-5 space-y-3 font-mono">
             <div className="flex items-center justify-between px-1 text-xs font-bold text-slate-300 uppercase">
-              <span>EVALUATED TRANSACTIONS ({evaluations.length})</span>
+              <span className="flex items-center gap-1">EVALUATED TRANSACTIONS (<CountUp to={evaluations.length} />)</span>
               <span className="text-[11px] text-slate-500">REAL-TIME FIRESTORE</span>
             </div>
 
@@ -220,7 +221,7 @@ export default function RealTimeEvaluationDashboard() {
                         <p className="text-[11px] text-slate-400 font-sans line-clamp-1">{ev.summary}</p>
                         <div className="flex items-center gap-3 pt-1 text-[10px] text-slate-500">
                           <span>{new Date(ev.evaluatedAt).toLocaleTimeString()}</span>
-                          <span className="text-slate-300 font-bold">₹{ev.deal.finalAmount.toLocaleString("en-IN")}</span>
+                          <span className="text-slate-300 font-bold"><CountUp to={ev.deal.finalAmount} prefix="₹" /></span>
                         </div>
                       </div>
 
@@ -236,8 +237,8 @@ export default function RealTimeEvaluationDashboard() {
                         >
                           {ev.overallStatus}
                         </span>
-                        <span className="text-[10px] text-slate-400">
-                          {ev.passedCount}/{ev.rulesCheckedCount} Rules
+                        <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
+                          <CountUp to={ev.passedCount} />/<CountUp to={ev.rulesCheckedCount} /> Rules
                         </span>
                       </div>
                     </div>
@@ -312,14 +313,14 @@ export default function RealTimeEvaluationDashboard() {
                       <div key={i} className="p-3 flex items-center justify-between">
                         <div>
                           <span className="font-bold text-slate-200">{item.productName}</span>
-                          <span className="text-slate-500 text-[11px] ml-2">x{item.quantity}</span>
+                          <span className="text-slate-500 text-[11px] ml-2">x<CountUp to={item.quantity} /></span>
                         </div>
-                        <span className="text-slate-300">₹{item.lineTotal.toLocaleString("en-IN")}</span>
+                        <span className="text-slate-300"><CountUp to={item.lineTotal} prefix="₹" /></span>
                       </div>
                     ))}
                     <div className="p-3 flex items-center justify-between bg-slate-900/90 font-bold">
                       <span className="text-slate-400">Total Contract Value</span>
-                      <span className="text-emerald-400">₹{activeEvaluation.deal.finalAmount.toLocaleString("en-IN")}</span>
+                      <span className="text-emerald-400"><CountUp to={activeEvaluation.deal.finalAmount} prefix="₹" /></span>
                     </div>
                   </div>
                 </div>
@@ -327,8 +328,8 @@ export default function RealTimeEvaluationDashboard() {
                 {/* Deterministic Rules Checked */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-300 uppercase">
-                      9 DETERMINISTIC SECURITY GATES ({activeEvaluation.passedCount}/{activeEvaluation.rulesCheckedCount} Passed)
+                    <span className="text-xs font-bold text-slate-300 uppercase flex items-center gap-1">
+                      9 DETERMINISTIC SECURITY GATES (<CountUp to={activeEvaluation.passedCount} />/<CountUp to={activeEvaluation.rulesCheckedCount} /> Passed)
                     </span>
                   </div>
 

@@ -16,6 +16,7 @@ import {
   Truck
 } from "lucide-react";
 import { Merchant, Product } from "@/types";
+import { CountUp } from "@/components/CountUp";
 
 export default function MerchantDetailPage({
   params,
@@ -110,16 +111,16 @@ export default function MerchantDetailPage({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
               <span className="text-[11px] font-bold text-slate-400 uppercase">ACTIVE CATALOG</span>
-              <p className="text-2xl font-extrabold text-slate-100">{products.length} Products</p>
+              <p className="text-2xl font-extrabold text-slate-100"><CountUp to={products.length} suffix=" Products" /></p>
             </div>
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
               <span className="text-[11px] font-bold text-emerald-400 uppercase">MAX NEGOTIATED DISCOUNT</span>
-              <p className="text-2xl font-extrabold text-emerald-400">{merchant.maxDiscountPercent}% Cap</p>
+              <p className="text-2xl font-extrabold text-emerald-400"><CountUp to={merchant.maxDiscountPercent} suffix="% Cap" /></p>
             </div>
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
               <span className="text-[11px] font-bold text-blue-400 uppercase">AUTO-SETTLEMENT LIMIT</span>
               <p className="text-2xl font-extrabold text-blue-400">
-                ₹{merchant.maxAutoTransactionAmount.toLocaleString("en-IN")}
+                <CountUp to={merchant.maxAutoTransactionAmount} prefix="₹" />
               </p>
             </div>
             <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-1">
@@ -154,7 +155,7 @@ export default function MerchantDetailPage({
       {/* Catalog Products List */}
       <div className="space-y-4">
         <div className="flex items-center justify-between px-1 font-mono text-xs font-bold text-slate-400">
-          <span>AVAILABLE PRODUCT CATALOG ({products.length})</span>
+          <span className="flex items-center gap-1">AVAILABLE PRODUCT CATALOG (<CountUp to={products.length} />)</span>
           <span>REAL-TIME FIRESTORE INVENTORY</span>
         </div>
 
@@ -174,7 +175,7 @@ export default function MerchantDetailPage({
                     <span className={`text-xs px-2.5 py-0.5 rounded-md border font-bold ${
                       product.stock > 5 ? "bg-emerald-950 text-emerald-300 border-emerald-800" : "bg-amber-950 text-amber-300 border-amber-800"
                     }`}>
-                      {product.stock} in stock
+                      <CountUp to={product.stock} suffix=" in stock" />
                     </span>
                   </div>
 
@@ -188,13 +189,13 @@ export default function MerchantDetailPage({
                   <div>
                     <span className="text-xs text-slate-400 block font-bold">CATALOG PRICE</span>
                     <span className="text-lg font-black text-slate-100">
-                      ₹{product.price.toLocaleString("en-IN")}
+                      <CountUp to={product.price} prefix="₹" />
                     </span>
                   </div>
 
                   <div className="text-right text-xs text-slate-300 flex items-center gap-1 font-bold">
                     <Truck className="w-4 h-4 text-blue-400" />
-                    <span>{product.deliveryDays}d SLA</span>
+                    <span><CountUp to={product.deliveryDays} suffix="d SLA" /></span>
                   </div>
                 </div>
               </div>

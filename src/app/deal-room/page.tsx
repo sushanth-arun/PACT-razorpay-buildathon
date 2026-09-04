@@ -43,6 +43,7 @@ import { useDealLifecycle } from "@/hooks/useDealLifecycle";
 import { DealStepper } from "@/components/ui/DealStepper";
 import { getMerchant } from "@/services/firestore";
 import { Merchant } from "@/types";
+import { CountUp } from "@/components/CountUp";
 
 // Razorpay standard checkout global interface
 interface RazorpaySuccessResponse {
@@ -1247,7 +1248,7 @@ function DealRoomContent() {
                       </div>
                       <div className="flex justify-between text-slate-400">
                         <span>Settled Amount:</span>
-                        <span className="text-emerald-400 font-bold">₹{displayAmount.toLocaleString("en-IN")}</span>
+                        <span className="text-emerald-400 font-bold"><CountUp to={displayAmount} prefix="₹" /></span>
                       </div>
                       <div className="flex justify-between text-slate-400">
                         <span>Date & Time:</span>
@@ -1684,7 +1685,7 @@ function DealRoomContent() {
                     <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-1">
                       <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">BUDGET</span>
                       <p className="text-base font-bold text-emerald-400">
-                        {intentResult.budget !== null ? `₹${intentResult.budget.toLocaleString("en-IN")}` : <span className="text-slate-500 italic font-normal text-sm">Not specified</span>}
+                        {intentResult.budget !== null ? <CountUp to={intentResult.budget} prefix="₹" /> : <span className="text-slate-500 italic font-normal text-sm">Not specified</span>}
                       </p>
                     </div>
                   </div>
@@ -1882,10 +1883,10 @@ function DealRoomContent() {
                         <div key={idx} className="p-3.5 space-y-1.5">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-bold text-slate-100">{item.productName}</span>
-                            <span className="text-sm font-bold text-emerald-400">₹{item.lineTotal.toLocaleString("en-IN")}</span>
+                            <span className="text-sm font-bold text-emerald-400"><CountUp to={item.lineTotal} prefix="₹" /></span>
                           </div>
                           <div className="flex items-center justify-between text-xs text-slate-400">
-                            <span>{item.quantity} units @ ₹{item.unitPrice.toLocaleString("en-IN")}</span>
+                            <span className="flex items-center gap-1"><CountUp to={item.quantity} /> units @ <CountUp to={item.unitPrice} prefix="₹" /></span>
                             <span className="text-[11px] text-emerald-400 font-bold font-mono">IN STOCK</span>
                           </div>
                         </div>
@@ -1903,21 +1904,21 @@ function DealRoomContent() {
                   <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 space-y-2.5 text-xs">
                     <div className="flex items-center justify-between text-slate-300">
                       <span className="text-sm">Subtotal</span>
-                      <span className="font-bold text-sm text-slate-100">₹{offerResult.subtotal.toLocaleString("en-IN")}</span>
+                      <span className="font-bold text-sm text-slate-100"><CountUp to={offerResult.subtotal} prefix="₹" /></span>
                     </div>
                     <div className="flex items-center justify-between text-amber-400">
-                      <span className="text-sm">Proposed Discount ({offerResult.proposedDiscount.percentage}%)</span>
-                      <span className="font-bold text-sm">-₹{offerResult.proposedDiscount.amount.toLocaleString("en-IN")}</span>
+                      <span className="text-sm">Proposed Discount (<CountUp to={offerResult.proposedDiscount.percentage} suffix="%" />)</span>
+                      <span className="font-bold text-sm">-<CountUp to={offerResult.proposedDiscount.amount} prefix="₹" /></span>
                     </div>
                     {offerResult.status !== "NO_VALID_OFFER" && (
                       <div className="flex items-center justify-between text-slate-300">
                         <span className="text-sm">Delivery SLA</span>
-                        <span className="font-bold text-sm text-slate-100">{offerResult.deliveryDays} days</span>
+                        <span className="font-bold text-sm text-slate-100"><CountUp to={offerResult.deliveryDays} suffix=" days" /></span>
                       </div>
                     )}
                     <div className="pt-2.5 border-t border-slate-800 flex items-center justify-between text-base font-bold text-slate-100">
                       <span>Estimated Total</span>
-                      <span className="text-emerald-400 text-lg font-extrabold">₹{offerResult.estimatedFinalAmount.toLocaleString("en-IN")}</span>
+                      <span className="text-emerald-400 text-lg font-extrabold"><CountUp to={offerResult.estimatedFinalAmount} prefix="₹" /></span>
                     </div>
                   </div>
                 ) : (
@@ -2164,10 +2165,10 @@ function DealRoomContent() {
                         <div key={idx} className="p-3.5 space-y-1.5">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-bold text-slate-100">{item.productName}</span>
-                            <span className="text-sm font-bold text-purple-400">₹{item.lineTotal.toLocaleString("en-IN")}</span>
+                            <span className="text-sm font-bold text-purple-400"><CountUp to={item.lineTotal} prefix="₹" /></span>
                           </div>
                           <div className="flex items-center justify-between text-xs text-slate-400">
-                            <span>{item.quantity} units @ ₹{item.unitPrice.toLocaleString("en-IN")}</span>
+                            <span className="flex items-center gap-1"><CountUp to={item.quantity} /> units @ <CountUp to={item.unitPrice} prefix="₹" /></span>
                             <span className="text-[11px] text-emerald-400 font-bold">CATALOG VERIFIED</span>
                           </div>
                         </div>
@@ -2180,19 +2181,19 @@ function DealRoomContent() {
                 <div className="p-4 rounded-xl bg-slate-900/80 border border-purple-900/60 space-y-2.5 text-xs">
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="text-sm">Subtotal</span>
-                    <span className="font-bold text-sm text-slate-100">₹{dealContractResult.subtotal.toLocaleString("en-IN")}</span>
+                    <span className="font-bold text-sm text-slate-100"><CountUp to={dealContractResult.subtotal} prefix="₹" /></span>
                   </div>
                   <div className="flex items-center justify-between text-amber-400">
-                    <span className="text-sm">Discount ({dealContractResult.discount.percentage}%)</span>
-                    <span className="font-bold text-sm">-₹{dealContractResult.discount.amount.toLocaleString("en-IN")}</span>
+                    <span className="text-sm">Discount (<CountUp to={dealContractResult.discount.percentage} suffix="%" />)</span>
+                    <span className="font-bold text-sm">-<CountUp to={dealContractResult.discount.amount} prefix="₹" /></span>
                   </div>
                   <div className="flex items-center justify-between text-slate-300">
                     <span className="text-sm">Delivery SLA</span>
-                    <span className="font-bold text-sm text-slate-100">{dealContractResult.deliveryDays} days</span>
+                    <span className="font-bold text-sm text-slate-100"><CountUp to={dealContractResult.deliveryDays} suffix=" days" /></span>
                   </div>
                   <div className="pt-2.5 border-t border-purple-900/80 flex items-center justify-between text-base font-extrabold text-slate-100">
                     <span className="tracking-wider uppercase">FINAL AMOUNT</span>
-                    <span className="text-emerald-400 text-xl font-mono">₹{dealContractResult.finalAmount.toLocaleString("en-IN")}</span>
+                    <span className="text-emerald-400 text-xl font-mono"><CountUp to={dealContractResult.finalAmount} prefix="₹" /></span>
                   </div>
                 </div>
 
