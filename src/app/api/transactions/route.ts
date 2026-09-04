@@ -36,9 +36,6 @@ export async function GET(req: NextRequest) {
     const ordersSnap = await query.limit(50).get();
     const orders = ordersSnap.docs.map((d) => d.data());
 
-    // Fetch deals from Firestore
-    let dealsQuery: FirebaseFirestore.Query = adminDb.collection("deals").orderBy("createdAt", "desc");
-
     // Determine target merchant ID for tenant isolation
     const targetMerchantId = (authUser?.role === "MERCHANT_ADMIN" && authUser.merchantId)
       ? authUser.merchantId
@@ -46,25 +43,17 @@ export async function GET(req: NextRequest) {
       ? merchantIdParam
       : merchantIdParam || null;
 
-    if (targetMerchantId && targetMerchantId !== "all") {
-      dealsQuery = dealsQuery.where("merchantId", "==", targetMerchantId.toLowerCase());
-    }
+    // Fetch deals from Firestore without composite index constraints to ensure query resilience
+    let dealsQuery: FirebaseFirestore.Query = adminDb.collection("deals");
 
     if (dealIdParam) {
       dealsQuery = dealsQuery.where("dealId", "==", dealIdParam);
     }
 
-    const allDealsSnap = await dealsQuery.limit(50).get();
+    const allDealsSnap = await dealsQuery.limit(100).get();
     let allDeals = allDealsSnap.docs.map((d) => d.data());
 
-    // If query by exact match yielded fewer deals, check without index constraint and filter in memory for robust matching
-    if (allDeals.length === 0 && targetMerchantId && targetMerchantId !== "all") {
-      const fallbackSnap = await adminDb.collection("deals").orderBy("createdAt", "desc").limit(50).get();
-      const lowerTarget = targetMerchantId.toLowerCase();
-      allDeals = fallbackSnap.docs
-        .map((d) => d.data())
-        .filter((d) => (d.merchantId || "").toLowerCase() === lowerTarget);
-    } else if (targetMerchantId && targetMerchantId !== "all") {
+    if (targetMerchantId && targetMerchantId !== "all") {
       const lowerTarget = targetMerchantId.toLowerCase();
       allDeals = allDeals.filter((d) => {
         const dMerchant = (d.merchantId || "").toLowerCase();
