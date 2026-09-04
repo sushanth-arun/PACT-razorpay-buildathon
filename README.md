@@ -10,7 +10,7 @@ PACT is an enterprise-grade autonomous AI-to-AI commerce pipeline that connects 
 ## 🏗️ System Architecture & Deal Flow
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1e293b', 'primaryTextColor': '#f8fafc', 'primaryBorderColor': '#3b82f6', 'lineColor': '#60a5fa', 'secondaryColor': '#0f172a', 'tertiaryColor': '#1e1e2e', 'textColor': '#f8fafc', 'fontSize': '14px' }}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1e293b', 'primaryTextColor': '#ffffff', 'primaryBorderColor': '#3b82f6', 'lineColor': '#60a5fa', 'secondaryColor': '#0f172a', 'tertiaryColor': '#1e1e2e', 'textColor': '#ffffff', 'fontSize': '14px' }}}%%
 flowchart TD
     subgraph Buyer_Layer["1. BUYER INTENT STAGE"]
         A["Buyer Natural Language Prompt"] --> B["Autonomous Intent Engine"]
@@ -18,29 +18,46 @@ flowchart TD
     end
 
     subgraph Merchant_Layer["2. MERCHANT REASONING STAGE"]
-        C --> D["Active Merchant AI Agent"]
-        D <--> E[("Authoritative Firestore Catalog<br/>Stock, Baseline Unit Prices, Margin Caps")]
-        D --> F["Deterministic Offer Proposal<br/>Selected SKUs, Validated Margin Discount"]
+        D["Active Merchant AI Agent"]
+        E[("Authoritative Firestore Catalog<br/>Stock, Baseline Unit Prices, Margin Caps")]
+        F["Deterministic Offer Proposal<br/>Selected SKUs, Validated Margin Discount"]
+        D <--> E
+        D --> F
     end
+
+    Buyer_Layer --> Merchant_Layer
 
     subgraph Compiler_Layer["3. DETERMINISTIC DEAL COMPILER"]
-        F --> G["PACT Deal Compiler Engine<br/>Zero LLM Arithmetic"]
-        G --> H["Compiled Deal Contract Spec<br/>Subtotal, Discount, Authoritative Payable"]
+        G["PACT Deal Compiler Engine<br/>Zero LLM Arithmetic"]
+        H["Compiled Deal Contract Spec<br/>Subtotal, Discount, Authoritative Payable"]
+        G --> H
     end
+
+    Merchant_Layer --> Compiler_Layer
 
     subgraph Firewall_Layer["4. PACT FIREWALL POLICY GATE"]
-        H --> I{"PACT Firewall Engine<br/>9 Zero-Trust Server Rules"}
-        I -->|Fails Stock, Price Drift, Discount, Budget| J["REJECTED<br/>Audit Logged"]
-        I -->|Exceeds Limit / Threshold| K["PENDING_APPROVAL<br/>Merchant Admin Gate"]
-        I -->|All 9 Policy Gates Passed| L["VALIDATED & SIGNED"]
+        I{"PACT Firewall Engine<br/>9 Zero-Trust Server Rules"}
+        J["REJECTED<br/>Audit Logged"]
+        K["PENDING_APPROVAL<br/>Merchant Admin Gate"]
+        L["VALIDATED & SIGNED"]
+        I -->|Fails Checks| J
+        I -->|Exceeds Limit| K
+        I -->|All 9 Gates Passed| L
     end
 
+    Compiler_Layer --> Firewall_Layer
+
     subgraph Settlement_Layer["5. RAZORPAY SETTLEMENT RAIL"]
-        L --> M["Razorpay Isolated Order Service<br/>Direct Firestore Amount in Integer Paise"]
-        M --> N["Razorpay Standard Checkout Checkout.js"]
-        N --> O["Server-Side HMAC-SHA256 Signature Verification"]
-        O --> P[("Immutable Transaction Settlement & Audit Trail")]
+        M["Razorpay Isolated Order Service<br/>Direct Firestore Amount in Integer Paise"]
+        N["Razorpay Standard Checkout Checkout.js"]
+        O["Server-Side HMAC-SHA256 Signature Verification"]
+        P[("Immutable Transaction Settlement & Audit Trail")]
+        M --> N
+        N --> O
+        O --> P
     end
+
+    Firewall_Layer --> Settlement_Layer
 
     style Buyer_Layer fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#93c5fd
     style Merchant_Layer fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#6ee7b7
@@ -93,7 +110,7 @@ Before any transaction can proceed to payment, the deal contract must pass 9 ato
 
 ### 4. Razorpay Secure Settlement Rail
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'actorBkg': '#1e293b', 'actorBorder': '#3b82f6', 'actorTextColor': '#ffffff', 'signalColor': '#93c5fd', 'signalTextColor': '#f8fafc', 'noteBkgColor': '#1e1b4b', 'noteTextColor': '#e0e7ff', 'noteBorderColor': '#6366f1', 'activationBorderColor': '#3b82f6', 'activationBkgColor': '#1e293b', 'sequenceNumberColor': '#ffffff' }}}%%
+%%{init: {'theme': 'base', 'themeVariables': { 'actorBkg': '#090d16', 'actorBorder': '#3b82f6', 'actorTextColor': '#ffffff', 'signalColor': '#60a5fa', 'signalTextColor': '#f8fafc', 'noteBkgColor': '#000000', 'noteTextColor': '#ffffff', 'noteBorderColor': '#38bdf8', 'activationBorderColor': '#3b82f6', 'activationBkgColor': '#1e293b', 'sequenceNumberColor': '#ffffff' }}}%%
 sequenceDiagram
     autonumber
     participant UI as Deal Room (Stage 5)
