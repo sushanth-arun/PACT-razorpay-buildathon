@@ -27,6 +27,7 @@ import {
   Search
 } from "lucide-react";
 import { AuditEvent, AuditActor, AuditEventType } from "@/lib/audit/schema";
+import { CountUp } from "@/components/CountUp";
 
 const ACTOR_CONFIG: Record<
   AuditActor,
@@ -237,28 +238,28 @@ export default function AuditTrailDashboard() {
         <SpotlightCard spotlightColor="rgba(168, 85, 247, 0.15)" className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase">RECORDED DEALS</span>
-            <p className="text-2xl font-black text-slate-100">{metrics.totalDeals}</p>
+            <p className="text-2xl font-black text-slate-100"><CountUp to={metrics.totalDeals} /></p>
           </div>
         </SpotlightCard>
 
         <SpotlightCard spotlightColor="rgba(59, 130, 246, 0.15)" className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-blue-400 uppercase">AUDIT EVENTS</span>
-            <p className="text-2xl font-black text-blue-400">{metrics.totalEvents}</p>
+            <p className="text-2xl font-black text-blue-400"><CountUp to={metrics.totalEvents} /></p>
           </div>
         </SpotlightCard>
 
         <SpotlightCard spotlightColor="rgba(16, 185, 129, 0.15)" className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-emerald-400 uppercase">PASSED GATES</span>
-            <p className="text-2xl font-black text-emerald-400">{metrics.successCount}</p>
+            <p className="text-2xl font-black text-emerald-400"><CountUp to={metrics.successCount} /></p>
           </div>
         </SpotlightCard>
 
         <SpotlightCard spotlightColor="rgba(244, 63, 94, 0.15)" className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-rose-400 uppercase">BLOCKED / FAILED</span>
-            <p className="text-2xl font-black text-rose-400">{metrics.failedCount}</p>
+            <p className="text-2xl font-black text-rose-400"><CountUp to={metrics.failedCount} /></p>
           </div>
         </SpotlightCard>
       </div>
@@ -290,7 +291,7 @@ export default function AuditTrailDashboard() {
           {/* Left Column: Deal List */}
           <div className="lg:col-span-5 space-y-3 font-mono">
             <div className="flex items-center justify-between px-1 text-xs font-bold text-slate-300 uppercase">
-              <span>DEALS WITH AUDIT TRAIL ({deals.length})</span>
+              <span className="flex items-center gap-1">DEALS WITH AUDIT TRAIL (<CountUp to={deals.length} />)</span>
               <span className="text-[11px] text-slate-500">SELECT DEAL</span>
             </div>
 
@@ -320,8 +321,8 @@ export default function AuditTrailDashboard() {
                         </div>
                         <div className="flex items-center gap-3 pt-1 text-[11px] text-slate-400">
                           <span>{new Date(d.createdAt).toLocaleTimeString()}</span>
-                          <span className="text-slate-200 font-bold">₹{d.finalAmount.toLocaleString("en-IN")}</span>
-                          <span className="text-purple-400 font-bold">({d.eventsCount} Events)</span>
+                          <span className="text-slate-200 font-bold"><CountUp to={d.finalAmount} prefix="₹" /></span>
+                          <span className="text-purple-400 font-bold flex items-center gap-1">(<CountUp to={d.eventsCount} /> Events)</span>
                         </div>
                       </div>
 
@@ -370,7 +371,7 @@ export default function AuditTrailDashboard() {
 
                   <div className="flex items-center gap-2">
                     <span className="text-xs px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-emerald-400 font-bold">
-                      ₹{activeDeal.finalAmount.toLocaleString("en-IN")}
+                      <CountUp to={activeDeal.finalAmount} prefix="₹" />
                     </span>
                   </div>
                 </div>
@@ -433,7 +434,15 @@ export default function AuditTrailDashboard() {
                                 className="text-[11px] font-mono text-purple-400 hover:text-purple-300 flex items-center gap-1 cursor-pointer"
                               >
                                 {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                                <span>{isExpanded ? "Hide Metadata" : `Inspect Metadata (${Object.keys(evt.metadata).length} fields)`}</span>
+                                <span>
+                                  {isExpanded ? (
+                                    "Hide Metadata"
+                                  ) : (
+                                    <span className="flex items-center gap-1">
+                                      Inspect Metadata (<CountUp to={Object.keys(evt.metadata).length} /> fields)
+                                    </span>
+                                  )}
+                                </span>
                               </button>
 
                               {isExpanded && (
