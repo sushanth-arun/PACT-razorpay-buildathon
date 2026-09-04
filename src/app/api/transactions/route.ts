@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       : merchantIdParam || null;
 
     if (targetMerchantId && targetMerchantId !== "all") {
-      dealsQuery = dealsQuery.where("merchantId", "==", targetMerchantId);
+      dealsQuery = dealsQuery.where("merchantId", "==", targetMerchantId.toLowerCase());
     }
 
     if (dealIdParam) {
@@ -57,8 +57,14 @@ export async function GET(req: NextRequest) {
     const allDealsSnap = await dealsQuery.limit(50).get();
     let allDeals = allDealsSnap.docs.map((d) => d.data());
 
-    // Additional in-memory check for merchant isolation to guarantee zero leakage
-    if (targetMerchantId && targetMerchantId !== "all") {
+    // If query by exact match yielded fewer deals, check without index constraint and filter in memory for robust matching
+    if (allDeals.length === 0 && targetMerchantId && targetMerchantId !== "all") {
+      const fallbackSnap = await adminDb.collection("deals").orderBy("createdAt", "desc").limit(50).get();
+      const lowerTarget = targetMerchantId.toLowerCase();
+      allDeals = fallbackSnap.docs
+        .map((d) => d.data())
+        .filter((d) => (d.merchantId || "").toLowerCase() === lowerTarget);
+    } else if (targetMerchantId && targetMerchantId !== "all") {
       const lowerTarget = targetMerchantId.toLowerCase();
       allDeals = allDeals.filter((d) => {
         const dMerchant = (d.merchantId || "").toLowerCase();
