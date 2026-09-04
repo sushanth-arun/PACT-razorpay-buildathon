@@ -10,36 +10,60 @@ PACT is an enterprise-grade autonomous AI-to-AI commerce pipeline that connects 
 ## 🏗️ System Architecture & Deal Flow
 
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#1e293b', 'primaryTextColor': '#f8fafc', 'primaryBorderColor': '#3b82f6', 'lineColor': '#60a5fa', 'secondaryColor': '#0f172a', 'tertiaryColor': '#1e1e2e', 'textColor': '#f8fafc', 'fontSize': '14px' }}}%%
 flowchart TD
     subgraph Buyer_Layer["1. BUYER INTENT STAGE"]
-        A[Buyer Natural Language Prompt] --> B[Autonomous Intent Engine]
-        B --> C[Structured Buyer Constraints\nQty, Budget, Max Delivery SLA]
+        A["Buyer Natural Language Prompt"] --> B["Autonomous Intent Engine"]
+        B --> C["Structured Buyer Constraints<br/>Qty, Budget, Max Delivery SLA"]
     end
 
     subgraph Merchant_Layer["2. MERCHANT REASONING STAGE"]
-        C --> D[Active Merchant AI Agent]
-        D <--> E[(Authoritative Firestore Catalog\nStock, Baseline Unit Prices, Margin Caps)]
-        D --> F[Deterministic Offer Proposal\nSelected SKUs, Validated Margin Discount]
+        C --> D["Active Merchant AI Agent"]
+        D <--> E[("Authoritative Firestore Catalog<br/>Stock, Baseline Unit Prices, Margin Caps")]
+        D --> F["Deterministic Offer Proposal<br/>Selected SKUs, Validated Margin Discount"]
     end
 
     subgraph Compiler_Layer["3. DETERMINISTIC DEAL COMPILER"]
-        F --> G[PACT Deal Compiler Engine\nZero LLM Arithmetic]
-        G --> H[Compiled Deal Contract Spec\nSubtotal, Discount, Authoritative Payable]
+        F --> G["PACT Deal Compiler Engine<br/>Zero LLM Arithmetic"]
+        G --> H["Compiled Deal Contract Spec<br/>Subtotal, Discount, Authoritative Payable"]
     end
 
     subgraph Firewall_Layer["4. PACT FIREWALL POLICY GATE"]
-        H --> I{PACT Firewall Engine\n9 Zero-Trust Server Rules}
-        I -->|Fails Stock, Price Drift, Discount, Budget| J[REJECTED\nAudit Logged]
-        I -->|Exceeds Limit / Threshold| K[PENDING_APPROVAL\nMerchant Admin Gate]
-        I -->|All 9 Policy Gates Passed| L[VALIDATED & SIGNED]
+        H --> I{"PACT Firewall Engine<br/>9 Zero-Trust Server Rules"}
+        I -->|Fails Stock, Price Drift, Discount, Budget| J["REJECTED<br/>Audit Logged"]
+        I -->|Exceeds Limit / Threshold| K["PENDING_APPROVAL<br/>Merchant Admin Gate"]
+        I -->|All 9 Policy Gates Passed| L["VALIDATED & SIGNED"]
     end
 
     subgraph Settlement_Layer["5. RAZORPAY SETTLEMENT RAIL"]
-        L --> M[Razorpay Isolated Order Service\nDirect Firestore Amount in Integer Paise]
-        M --> N[Razorpay Standard Checkout Checkout.js]
-        N --> O[Server-Side HMAC-SHA256 Signature Verification]
-        O --> P[(Immutable Transaction Settlement & Audit Trail)]
+        L --> M["Razorpay Isolated Order Service<br/>Direct Firestore Amount in Integer Paise"]
+        M --> N["Razorpay Standard Checkout Checkout.js"]
+        N --> O["Server-Side HMAC-SHA256 Signature Verification"]
+        O --> P[("Immutable Transaction Settlement & Audit Trail")]
     end
+
+    style Buyer_Layer fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#93c5fd
+    style Merchant_Layer fill:#0f172a,stroke:#10b981,stroke-width:2px,color:#6ee7b7
+    style Compiler_Layer fill:#0f172a,stroke:#8b5cf6,stroke-width:2px,color:#c4b5fd
+    style Firewall_Layer fill:#0f172a,stroke:#f59e0b,stroke-width:2px,color:#fde68a
+    style Settlement_Layer fill:#0f172a,stroke:#06b6d4,stroke-width:2px,color:#a5f3fc
+
+    style A fill:#1e293b,stroke:#3b82f6,stroke-width:1.5px,color:#ffffff
+    style B fill:#1e293b,stroke:#3b82f6,stroke-width:1.5px,color:#ffffff
+    style C fill:#1e293b,stroke:#3b82f6,stroke-width:1.5px,color:#ffffff
+    style D fill:#1e293b,stroke:#10b981,stroke-width:1.5px,color:#ffffff
+    style E fill:#1e293b,stroke:#10b981,stroke-width:1.5px,color:#ffffff
+    style F fill:#1e293b,stroke:#10b981,stroke-width:1.5px,color:#ffffff
+    style G fill:#1e293b,stroke:#8b5cf6,stroke-width:1.5px,color:#ffffff
+    style H fill:#1e293b,stroke:#8b5cf6,stroke-width:1.5px,color:#ffffff
+    style I fill:#1e293b,stroke:#f59e0b,stroke-width:1.5px,color:#ffffff
+    style J fill:#450a0a,stroke:#ef4444,stroke-width:1.5px,color:#fca5a5
+    style K fill:#451a03,stroke:#f59e0b,stroke-width:1.5px,color:#fde68a
+    style L fill:#064e3b,stroke:#10b981,stroke-width:1.5px,color:#a7f3d0
+    style M fill:#1e293b,stroke:#06b6d4,stroke-width:1.5px,color:#ffffff
+    style N fill:#1e293b,stroke:#06b6d4,stroke-width:1.5px,color:#ffffff
+    style O fill:#1e293b,stroke:#06b6d4,stroke-width:1.5px,color:#ffffff
+    style P fill:#1e293b,stroke:#06b6d4,stroke-width:1.5px,color:#ffffff
 ```
 
 ---
@@ -69,6 +93,7 @@ Before any transaction can proceed to payment, the deal contract must pass 9 ato
 
 ### 4. Razorpay Secure Settlement Rail
 ```mermaid
+%%{init: {'theme': 'base', 'themeVariables': { 'actorBkg': '#1e293b', 'actorBorder': '#3b82f6', 'actorTextColor': '#ffffff', 'signalColor': '#93c5fd', 'signalTextColor': '#f8fafc', 'noteBkgColor': '#1e1b4b', 'noteTextColor': '#e0e7ff', 'noteBorderColor': '#6366f1', 'activationBorderColor': '#3b82f6', 'activationBkgColor': '#1e293b', 'sequenceNumberColor': '#ffffff' }}}%%
 sequenceDiagram
     autonumber
     participant UI as Deal Room (Stage 5)
