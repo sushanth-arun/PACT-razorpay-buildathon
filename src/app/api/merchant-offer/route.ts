@@ -332,8 +332,33 @@ export async function POST(req: NextRequest) {
           .doc(offerId)
           .set(validatedMerchantOffer);
 
-        // 3. Hierarchical Deal containment: deals/{dealId}/buyer_intents/{buyerIntentId}/merchant_offers/{offerId}
+        // 3. Hierarchical Deal containment & Deal Document Sync: deals/{dealId}
         if (buyerIntent.dealId) {
+          const offerItems = validatedMerchantOffer.selectedItems.length > 0
+            ? validatedMerchantOffer.selectedItems
+            : validatedMerchantOffer.alternativeItems;
+
+          // Update root deal document with latest active offer
+          await adminDb
+            .collection("deals")
+            .doc(buyerIntent.dealId)
+            .set(
+              {
+                merchantOfferId: offerId,
+                status: validatedMerchantOffer.status, // "OFFER_GENERATED" or "ALTERNATIVE_FOUND"
+                merchantId: requestedMerchantId,
+                merchantName: merchant.name,
+                items: offerItems,
+                subtotal: validatedMerchantOffer.subtotal,
+                discount: validatedMerchantOffer.proposedDiscount,
+                finalAmount: validatedMerchantOffer.estimatedFinalAmount,
+                deliveryDays: validatedMerchantOffer.deliveryDays,
+                merchantOffer: validatedMerchantOffer,
+                updatedAt: new Date().toISOString(),
+              },
+              { merge: true }
+            );
+
           // deals -> buyer_intents -> merchant_offers
           await adminDb
             .collection("deals")

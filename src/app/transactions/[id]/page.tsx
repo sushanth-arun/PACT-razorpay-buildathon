@@ -258,7 +258,40 @@ export default function TransactionDetailPage({
               </div>
             </div>
 
-            <div className="pt-2">
+            {/* Merchant Reasoning Breakdown if in Offer / Proposal Stage */}
+            {(deal as any)?.merchantOffer && (
+              <div className="space-y-3 pt-2 border-t border-slate-800">
+                {(deal as any).merchantOffer.buyerFitExplanation && (
+                  <div className="p-3 rounded-xl bg-blue-950/20 border border-blue-800/40 space-y-1">
+                    <span className="text-blue-400 text-[10px] uppercase font-bold tracking-wider">AI BUYER FIT</span>
+                    <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                      {(deal as any).merchantOffer.buyerFitExplanation}
+                    </p>
+                  </div>
+                )}
+                {(deal as any).merchantOffer.merchantOpportunityExplanation && (
+                  <div className="p-3 rounded-xl bg-purple-950/20 border border-purple-800/40 space-y-1">
+                    <span className="text-purple-400 text-[10px] uppercase font-bold tracking-wider">MERCHANT STRATEGY</span>
+                    <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                      {(deal as any).merchantOffer.merchantOpportunityExplanation}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="pt-2 space-y-2">
+              {transaction.status !== "PAID" && (
+                <Magnet strength={6} className="w-full">
+                  <Link
+                    href={`/deal-room?dealId=${transaction.dealId}`}
+                    className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-bold transition-all shadow-lg shadow-purple-950/50 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>RESUME IN DEAL ROOM →</span>
+                  </Link>
+                </Magnet>
+              )}
+
               <Magnet strength={8} className="w-full">
                 <Link
                   href={`/audit?dealId=${transaction.dealId}`}

@@ -31,6 +31,7 @@ export async function GET(
       if (directDealSnap.exists) {
         const directDeal = directDealSnap.data()!;
         
+        // Fetch policy evaluation if exists
         let directEval = null;
         const evalSnap = await adminDb
           .collection("policy_evaluations")
@@ -40,9 +41,59 @@ export async function GET(
           directEval = evalSnap.data();
         }
 
+        // Fetch latest merchant offer if not embedded
+        let merchantOffer = directDeal.merchantOffer || null;
+        if (!merchantOffer && directDeal.merchantOfferId) {
+          const offerSnap = await adminDb.collection("merchant_offers").doc(directDeal.merchantOfferId).get();
+          if (offerSnap.exists) {
+            merchantOffer = offerSnap.data();
+          }
+        }
+        if (!merchantOffer) {
+          const subOffers = await adminDb.collection("deals").doc(directDeal.dealId).collection("merchant_offers").limit(1).get();
+          if (!subOffers.empty) {
+            merchantOffer = subOffers.docs[0].data();
+          }
+        }
+
+        // Fetch Buyer Intent if exists
+        let buyerIntent = null;
+        if (directDeal.buyerIntentId) {
+          const intentSnap = await adminDb.collection("buyer_intents").doc(directDeal.buyerIntentId).get();
+          if (intentSnap.exists) {
+            buyerIntent = intentSnap.data();
+          }
+        }
+
+        // Fetch audit events count
+        let auditEventsCount = 0;
+        try {
+          const auditSnap = await adminDb.collection("audit_events").where("dealId", "==", directDeal.dealId).get();
+          auditEventsCount = auditSnap.size;
+        } catch {
+          // ignore
+        }
+
+        const enrichedDeal = {
+          ...directDeal,
+          merchantOffer,
+          buyerIntent,
+          items: directDeal.items && directDeal.items.length > 0
+            ? directDeal.items
+            : merchantOffer?.selectedItems && merchantOffer.selectedItems.length > 0
+            ? merchantOffer.selectedItems
+            : merchantOffer?.alternativeItems && merchantOffer.alternativeItems.length > 0
+            ? merchantOffer.alternativeItems
+            : [],
+          subtotal: directDeal.subtotal || merchantOffer?.subtotal || 0,
+          discount: directDeal.discount || merchantOffer?.proposedDiscount || { amount: 0, percentage: 0 },
+          finalAmount: directDeal.finalAmount || merchantOffer?.estimatedFinalAmount || 0,
+          deliveryDays: directDeal.deliveryDays || merchantOffer?.deliveryDays || 5,
+        };
+
         return NextResponse.json({
           success: true,
-          deal: directDeal,
+          deal: enrichedDeal,
           evaluation: directEval,
           transaction: {
             id: directDeal.dealId,
@@ -50,13 +101,13 @@ export async function GET(
             dealId: directDeal.dealId,
             merchantId: directDeal.merchantId,
             merchantName: formatMerchantName(directDeal.merchantName || directDeal.merchantId),
-            status: directDeal.status || "DRAFT",
-            amount: directDeal.finalAmount || 0,
+            status: directDeal.status || (merchantOffer ? merchantOffer.status : "DRAFT"),
+            amount: enrichedDeal.finalAmount || 0,
             currency: "INR",
-            deal: directDeal,
+            deal: enrichedDeal,
             evaluation: directEval,
             payments: [],
-            auditEventsCount: 0,
+            auditEventsCount,
           },
         });
       }

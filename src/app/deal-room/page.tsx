@@ -498,7 +498,29 @@ function DealRoomContent() {
     }
   }, [searchParams]);
 
-  const handleStartNewDeal = () => {
+  const handleStartNewDeal = async () => {
+    // If there is an active uncommitted/unpaid deal, delete it from Firestore so it doesn't clutter deal history
+    const activeDealId = dealContractResult?.dealId || intentResult?.dealId;
+    const activeIntentId = intentResult?.id;
+    const activeOfferId = offerResult?.id;
+    const isSettled = paymentResult?.status === "PAID" || dealContractResult?.status === "PAID";
+
+    if (!isSettled && (activeDealId || activeIntentId || activeOfferId)) {
+      try {
+        fetch("/api/deal/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            dealId: activeDealId,
+            buyerIntentId: activeIntentId,
+            offerId: activeOfferId,
+          }),
+        }).catch(() => {});
+      } catch {
+        // ignore
+      }
+    }
+
     try {
       sessionStorage.removeItem("pact_intent_result");
       sessionStorage.removeItem("pact_offer_result");
