@@ -1612,20 +1612,26 @@ function DealRoomContent() {
                 {/* Selected Products Table */}
                 <div className="space-y-2.5">
                   <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">SELECTED PRODUCTS</span>
-                  <div className="divide-y divide-slate-800 rounded-xl bg-slate-900/60 border border-slate-800/80 overflow-hidden">
-                    {offerResult.selectedItems.map((item, idx) => (
-                      <div key={idx} className="p-3.5 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold text-slate-100">{item.productName}</span>
-                          <span className="text-sm font-bold text-emerald-400">₹{item.lineTotal.toLocaleString("en-IN")}</span>
+                  {offerResult.selectedItems.length > 0 ? (
+                    <div className="divide-y divide-slate-800 rounded-xl bg-slate-900/60 border border-slate-800/80 overflow-hidden">
+                      {offerResult.selectedItems.map((item, idx) => (
+                        <div key={idx} className="p-3.5 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-bold text-slate-100">{item.productName}</span>
+                            <span className="text-sm font-bold text-emerald-400">₹{item.lineTotal.toLocaleString("en-IN")}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-slate-400">
+                            <span>{item.quantity} units @ ₹{item.unitPrice.toLocaleString("en-IN")}</span>
+                            <span className="text-[11px] text-emerald-400 font-bold font-mono">IN STOCK</span>
+                          </div>
                         </div>
-                        <div className="flex items-center justify-between text-xs text-slate-400">
-                          <span>{item.quantity} units @ ₹{item.unitPrice.toLocaleString("en-IN")}</span>
-                          <span className="text-[11px] text-emerald-400 font-bold font-mono">IN STOCK</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-800/60 text-xs text-amber-300 flex items-center justify-between gap-2">
+                      <span>No exact match pre-selected. Please adopt a recommended alternative below to proceed.</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Totals Breakdown */}
@@ -1652,7 +1658,7 @@ function DealRoomContent() {
                   </div>
                 ) : (
                   <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800/80 text-xs font-mono text-center text-slate-400">
-                    No items available to total
+                    Awaiting alternative selection to calculate final deal totals
                   </div>
                 )}
 
@@ -1694,18 +1700,24 @@ function DealRoomContent() {
                           <button
                             type="button"
                             onClick={() => {
-                              // Adopt alternative item as the primary selected item
+                              // Adopt alternative item as the primary selected item and remove it from remaining alternatives
+                              const remainingAlternatives = (offerResult.alternativeItems || []).filter(
+                                (a) => a.productId !== alt.productId
+                              );
+                              const discountPercent = offerResult.proposedDiscount?.percentage || 0;
+                              const discountAmount = Math.round(alt.lineTotal * (discountPercent / 100));
                               const updatedOffer: MerchantOffer = {
                                 ...offerResult,
                                 status: "OFFER_GENERATED",
                                 selectedItems: [alt],
+                                alternativeItems: remainingAlternatives,
                                 subtotal: alt.lineTotal,
                                 proposedDiscount: {
-                                  percentage: 10,
-                                  amount: Math.round(alt.lineTotal * 0.1),
-                                  reasoning: "Adopted catalog alternative discount",
+                                  percentage: discountPercent,
+                                  amount: discountAmount,
+                                  reasoning: offerResult.proposedDiscount?.reasoning || "Adopted catalog alternative discount",
                                 },
-                                estimatedFinalAmount: Math.round(alt.lineTotal * 0.9),
+                                estimatedFinalAmount: alt.lineTotal - discountAmount,
                               };
                               setOfferResult(updatedOffer);
                               try {

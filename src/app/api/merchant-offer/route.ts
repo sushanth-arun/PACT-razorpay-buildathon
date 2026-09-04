@@ -285,13 +285,19 @@ export async function POST(req: NextRequest) {
 
     // 9. Construct & Validate Final Merchant Offer
     const offerId = `offer_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    
+    // Ensure alternative items never duplicate what is already in selectedItems
+    const deduplicatedAlternatives = alternativeItems.filter(
+      (alt) => !selectedItems.some((s) => s.productId === alt.productId)
+    );
+
     const rawMerchantOffer = {
       id: offerId,
       buyerIntentId,
       merchantId: requestedMerchantId,
       status: offerStatus,
-      selectedItems: totals.items,
-      alternativeItems,
+      selectedItems: selectedItems, // Strictly only selected items (empty if ALTERNATIVE_FOUND awaiting adoption)
+      alternativeItems: deduplicatedAlternatives,
       bundleItems,
       subtotal: totals.subtotal,
       proposedDiscount: {
