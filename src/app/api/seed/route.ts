@@ -58,11 +58,16 @@ export async function POST() {
           let userRecord;
           try {
             userRecord = await adminAuth.getUserByEmail(acc.email);
+            // Ensure existing user password is updated to PACT123456
+            await adminAuth.updateUser(userRecord.uid, {
+              password: "PACT123456",
+              displayName: acc.name,
+            });
           } catch {
             // Create user if not exists
             userRecord = await adminAuth.createUser({
               email: acc.email,
-              password: "pact123456",
+              password: "PACT123456",
               displayName: acc.name,
             });
           }

@@ -149,7 +149,7 @@ export default function AuthPage() {
 
   const handleSelectDemoAccount = (acc: DemoAccount) => {
     setEmail(acc.email);
-    setPassword("pact123456");
+    setPassword("PACT123456");
     setIsLogin(true);
     setIsForgotPassword(false);
     setError(null);
@@ -466,7 +466,7 @@ export default function AuthPage() {
                       <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
                       <span>DEMO ACCOUNTS (CLICK TO FILL)</span>
                     </div>
-                    <span className="text-slate-400 font-bold font-mono text-[10px] demo-accounts-pw">PW: pact123456</span>
+                    <span className="text-slate-400 font-bold font-mono text-[10px] demo-accounts-pw">PW: PACT123456</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
