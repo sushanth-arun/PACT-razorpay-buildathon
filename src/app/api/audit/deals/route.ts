@@ -23,17 +23,14 @@ export async function GET(req: NextRequest) {
 
     const targetMerchantId = (authUser?.role === "MERCHANT_ADMIN" && authUser.merchantId)
       ? authUser.merchantId.toLowerCase()
-      : merchantIdParam
+      : (merchantIdParam && merchantIdParam !== "all")
       ? merchantIdParam.toLowerCase()
       : null;
 
-    if (targetMerchantId && targetMerchantId !== "all") {
+    if (targetMerchantId) {
       deals = deals.filter((d) => {
         const dMerchant = (d.merchantId || "").toLowerCase();
-        // Allow matching if exact match, or if either is demo/ergospace
-        if (dMerchant === targetMerchantId) return true;
-        if ((targetMerchantId === "ergospace" || targetMerchantId.includes("ergospace")) && (dMerchant === "ergospace" || dMerchant.includes("ergospace"))) return true;
-        return false;
+        return dMerchant === targetMerchantId;
       });
     }
 

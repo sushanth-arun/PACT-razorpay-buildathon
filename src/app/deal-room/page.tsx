@@ -95,45 +95,77 @@ declare global {
 }
 
 
-const MERCHANT_PROMPT_RECOMMENDATIONS: Record<string, string[]> = {
+const MERCHANT_PROMPT_RECOMMENDATIONS: Record<string, Array<{ prompt: string; merchantId: string; merchantName: string }>> = {
+  all: [
+    { prompt: "5 ergonomic chairs for engineering team under ₹15,000", merchantId: "ergospace", merchantName: "ErgoSpace" },
+    { prompt: "4 dual-motor motorized standing desks under ₹14,000", merchantId: "deskforge", merchantName: "DeskForge" },
+    { prompt: "3 Thunderbolt 4 enterprise docking stations with 4K output", merchantId: "cybertech", merchantName: "CyberTech" },
+    { prompt: "4K enterprise video bar conference setup under ₹9,000", merchantId: "officepro", merchantName: "OfficePro" },
+    { prompt: "4 minimalist birch natural wood desks under ₹9,000", merchantId: "nordicliving", merchantName: "NordicLiving" },
+    { prompt: "Ergonomic lumbar support cushions for 15 developers", merchantId: "ergospace", merchantName: "ErgoSpace" },
+    { prompt: "5 split ergonomic mechanical keyboards with OLED displays", merchantId: "cybertech", merchantName: "CyberTech" },
+    { prompt: "Scandinavian modular breakroom conference table for 6 seats", merchantId: "nordicliving", merchantName: "NordicLiving" },
+  ],
   ergospace: [
-    "5 ergonomic chairs for engineering team under ₹60,000",
-    "3 executive leather chairs with dynamic lumbar within 5 days",
-    "10 ErgoChair Lite setups with 10% discount",
-    "Ergonomic lumbar support cushions for 15 developers",
+    { prompt: "5 ergonomic chairs for engineering team under ₹15,000", merchantId: "ergospace", merchantName: "ErgoSpace" },
+    { prompt: "3 executive leather chairs with dynamic lumbar within 5 days", merchantId: "ergospace", merchantName: "ErgoSpace" },
+    { prompt: "10 ErgoChair Lite setups with 10% discount", merchantId: "ergospace", merchantName: "ErgoSpace" },
+    { prompt: "Ergonomic lumbar support cushions for 15 developers", merchantId: "ergospace", merchantName: "ErgoSpace" },
   ],
   deskforge: [
-    "4 dual-motor motorized standing desks under ₹1,40,000",
-    "Solid walnut height-adjustable workstation with cable tray",
-    "8 sit-stand motorized desks for developer squad within 5 days",
-    "Ergonomic steel monitor arm and desk setup under ₹20,000",
+    { prompt: "4 dual-motor motorized standing desks under ₹14,000", merchantId: "deskforge", merchantName: "DeskForge" },
+    { prompt: "Solid walnut height-adjustable workstation with cable tray", merchantId: "deskforge", merchantName: "DeskForge" },
+    { prompt: "8 sit-stand motorized desks for developer squad within 5 days", merchantId: "deskforge", merchantName: "DeskForge" },
+    { prompt: "Anti-fatigue active standing mat with acupressure", merchantId: "deskforge", merchantName: "DeskForge" },
   ],
   cybertech: [
-    "3 Thunderbolt 4 enterprise docking stations with 4K output",
-    "5 split ergonomic mechanical keyboards with OLED displays",
-    "Developer battlestation bundle under ₹80,000 with 8% discount",
-    "Apex code executive recliner chair with carbon skeleton",
+    { prompt: "3 Thunderbolt 4 enterprise docking stations with 4K output", merchantId: "cybertech", merchantName: "CyberTech" },
+    { prompt: "5 split ergonomic mechanical keyboards with OLED displays", merchantId: "cybertech", merchantName: "CyberTech" },
+    { prompt: "Developer battlestation bundle under ₹15,000 with 8% discount", merchantId: "cybertech", merchantName: "CyberTech" },
+    { prompt: "Apex code executive recliner chair with carbon skeleton", merchantId: "cybertech", merchantName: "CyberTech" },
   ],
   officepro: [
-    "Acoustic single privacy phone booth for open office under ₹2,00,000",
-    "4K enterprise video bar conference setup under ₹90,000",
-    "Sound-dampening executive workspace kit with fast delivery",
-    "Conference room AV equipment bundle for board room",
+    { prompt: "4K AI Conference Soundbar & Auto-Framing Cam under ₹10,000", merchantId: "officepro", merchantName: "OfficePro" },
+    { prompt: "Acoustic desktop privacy divider set of 4 under ₹4,000", merchantId: "officepro", merchantName: "OfficePro" },
+    { prompt: "Magnetic glass whiteboard mobile easel with locking wheels", merchantId: "officepro", merchantName: "OfficePro" },
+    { prompt: "Conference room AV equipment bundle for board room", merchantId: "officepro", merchantName: "OfficePro" },
   ],
   nordicliving: [
-    "4 minimalist birch natural wood desks under ₹90,000",
-    "Scandinavian modular breakroom conference table for 8 seats",
-    "Natural circadian daylight task lamps for 10 workstations",
-    "Sustainable solid wood office furniture setup within 7 days",
+    { prompt: "4 minimalist birch natural wood desks under ₹9,000", merchantId: "nordicliving", merchantName: "NordicLiving" },
+    { prompt: "Scandinavian modular breakroom conference table for 6 seats", merchantId: "nordicliving", merchantName: "NordicLiving" },
+    { prompt: "Natural circadian daylight task lamps for 10 workstations", merchantId: "nordicliving", merchantName: "NordicLiving" },
+    { prompt: "Sustainable solid wood office furniture setup within 7 days", merchantId: "nordicliving", merchantName: "NordicLiving" },
   ],
 };
 
-const DEFAULT_PROMPT_CHIPS = [
-  "5 ergonomic setups for developers under ₹60,000",
-  "10 standing desks under ₹1,50,000 with 15% discount",
-  "Ergonomic setup with fast 5-day delivery",
-  "Commercial workspace package for startup team",
-];
+// Known keyword to best merchant mapper to auto-detect cross-merchant queries and advise the buyer
+const MERCHANT_CATALOG_KEYWORDS: Record<string, { merchantId: string; merchantName: string; keywords: string[] }> = {
+  ergospace: {
+    merchantId: "ergospace",
+    merchantName: "ErgoSpace",
+    keywords: ["chair", "seating", "lumbar", "mesh", "executive chair", "ergochair", "cushion"],
+  },
+  deskforge: {
+    merchantId: "deskforge",
+    merchantName: "DeskForge",
+    keywords: ["desk", "standing desk", "motorized", "sit-stand", "workstation", "cable spine", "standing mat", "oak"],
+  },
+  cybertech: {
+    merchantId: "cybertech",
+    merchantName: "CyberTech",
+    keywords: ["dock", "docking", "thunderbolt", "keyboard", "mechanical keyboard", "oled", "gaming chair", "electronics"],
+  },
+  officepro: {
+    merchantId: "officepro",
+    merchantName: "OfficePro",
+    keywords: ["soundbar", "conference", "camera", "video bar", "privacy divider", "acoustic", "whiteboard", "easel", "av"],
+  },
+  nordicliving: {
+    merchantId: "nordicliving",
+    merchantName: "NordicLiving Commercial",
+    keywords: ["birch", "scandinavian", "nordic", "breakroom", "daylight", "lamp", "sustainable", "natural wood"],
+  },
+};
 
 const PROCESSING_STEPS = [
   "UNDERSTANDING REQUEST",
@@ -185,6 +217,7 @@ function DealRoomContent() {
   const [activeTargetMerchantId, setActiveTargetMerchantId] = useState<string>(queryMerchantId || "ergospace");
   const [targetMerchant, setTargetMerchant] = useState<Merchant | null>(null);
   const [availableMerchants, setAvailableMerchants] = useState<Array<{ id: string; name: string }>>([]);
+  const [promptCategory, setPromptCategory] = useState<string>("all");
 
   const [requestText, setRequestText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -194,6 +227,32 @@ function DealRoomContent() {
   const [isGeminiConnected, setIsGeminiConnected] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
+
+  // Real-time cross-merchant product mismatch detector
+  const detectedCrossMerchant = React.useMemo(() => {
+    if (!requestText.trim()) return null;
+    const lower = requestText.toLowerCase();
+
+    // Check if the current request matches keywords of another merchant better
+    for (const [mId, meta] of Object.entries(MERCHANT_CATALOG_KEYWORDS)) {
+      if (mId !== activeTargetMerchantId) {
+        const matches = meta.keywords.filter((kw) => lower.includes(kw));
+        if (matches.length > 0) {
+          // Check if current merchant also matches this keyword
+          const currentMeta = MERCHANT_CATALOG_KEYWORDS[activeTargetMerchantId];
+          const currentMatches = currentMeta ? currentMeta.keywords.filter((kw) => lower.includes(kw)) : [];
+          if (currentMatches.length === 0) {
+            return {
+              suggestedMerchantId: meta.merchantId,
+              suggestedMerchantName: meta.merchantName,
+              matchedKeyword: matches[0],
+            };
+          }
+        }
+      }
+    }
+    return null;
+  }, [requestText, activeTargetMerchantId]);
 
   // Merchant Offer state
   const [offerLoading, setOfferLoading] = useState(false);
@@ -269,6 +328,11 @@ function DealRoomContent() {
   const [selectedStage, setSelectedStage] = useState<number>(1);
 
   // Single derived authoritative Deal Room lifecycle state
+  const isDealPaid =
+    paymentResult?.status === "PAID" ||
+    dealContractResult?.status === "PAID" ||
+    (dealContractResult as any)?.validationStatus?.status === "PAID";
+
   const lifecycle = useDealLifecycle({
     intentResult,
     intentLoading: loading,
@@ -1018,9 +1082,9 @@ function DealRoomContent() {
       return <StatusBadge status="rejected" label="REQUEST FAILED" />;
     }
     if (isGeminiConnected) {
-      return <StatusBadge status="active" label="GEMINI 3.1 FLASH-LITE ONLINE" />;
+      return <StatusBadge status="active" label="AI COMMERCE ENGINE ONLINE" />;
     }
-    return <StatusBadge status="neutral" label="CONFIGURATION REQUIRED" />;
+    return <StatusBadge status="neutral" label="STANDBY" />;
   };
 
   // Helper for confidence badge colors
@@ -1212,7 +1276,10 @@ function DealRoomContent() {
                 ACTIVE AGENT
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-sans truncate">
+            <p 
+              title={targetMerchant?.description || "Autonomous commercial seller on PACT"}
+              className="text-xs text-slate-400 font-sans truncate hover:whitespace-normal hover:overflow-visible transition-all duration-200 cursor-help"
+            >
               {targetMerchant?.description || "Autonomous commercial seller on PACT"}
             </p>
           </div>
@@ -1228,6 +1295,7 @@ function DealRoomContent() {
             onChange={(e) => {
               const newMerchantId = e.target.value;
               setActiveTargetMerchantId(newMerchantId);
+              setPromptCategory(newMerchantId);
               // Cleanly reset deal room state and return to Stage 1
               try {
                 sessionStorage.removeItem("pact_intent_result");
@@ -1298,43 +1366,153 @@ function DealRoomContent() {
               </div>
             </div>
 
-            {/* Prompt Chips */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-mono text-slate-400 font-semibold mr-1">RECOMMENDED PROMPTS:</span>
-              {(MERCHANT_PROMPT_RECOMMENDATIONS[activeTargetMerchantId] || DEFAULT_PROMPT_CHIPS).map((chip, i) => (
+            {/* Cross-Merchant Product Mismatch Warning Banner */}
+            {detectedCrossMerchant && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3.5 rounded-xl bg-amber-950/50 border border-amber-800/80 text-amber-200 text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg"
+              >
+                <div className="flex items-center gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+                  <div>
+                    <span className="font-bold text-amber-300">Catalog Notice: </span>
+                    <span>
+                      &quot;{detectedCrossMerchant.matchedKeyword}&quot; is supplied by{" "}
+                      <strong className="text-amber-100">{detectedCrossMerchant.suggestedMerchantName}</strong>. Your active seller is{" "}
+                      <strong className="text-slate-200">{targetMerchant?.name || activeTargetMerchantId}</strong>.
+                    </span>
+                  </div>
+                </div>
                 <button
-                  key={i}
                   type="button"
-                  onClick={() => setRequestText(chip)}
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 hover:text-slate-100 hover:border-blue-700/60 hover:bg-slate-800/80 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setActiveTargetMerchantId(detectedCrossMerchant.suggestedMerchantId);
+                    setPromptCategory(detectedCrossMerchant.suggestedMerchantId);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-md shadow-amber-950/40"
                 >
-                  &quot;{chip}&quot;
+                  <Store className="w-3.5 h-3.5" />
+                  <span>Switch to {detectedCrossMerchant.suggestedMerchantName}</span>
                 </button>
-              ))}
+              </motion.div>
+            )}
+
+            {/* Prompt Recommendation Filter & Chips */}
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/60 pb-2">
+                <span className="text-xs font-mono text-slate-400 font-semibold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                  <span>EXPLORE PROMPTS BY MERCHANT:</span>
+                </span>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPromptCategory("all")}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-colors cursor-pointer ${
+                      promptCategory === "all"
+                        ? "bg-blue-600 text-white font-bold"
+                        : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    All Stores
+                  </button>
+                  {availableMerchants.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setPromptCategory(m.id)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-colors cursor-pointer ${
+                        promptCategory === m.id
+                          ? "bg-blue-600 text-white font-bold"
+                          : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      {m.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                {(MERCHANT_PROMPT_RECOMMENDATIONS[promptCategory] || MERCHANT_PROMPT_RECOMMENDATIONS.all).map((item, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setRequestText(item.prompt);
+                      if (activeTargetMerchantId !== item.merchantId) {
+                        setActiveTargetMerchantId(item.merchantId);
+                      }
+                    }}
+                    className="group px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 hover:text-slate-100 hover:border-blue-700/60 hover:bg-slate-800/80 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  >
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-slate-400 group-hover:text-blue-300 group-hover:border-blue-900">
+                      {item.merchantName}
+                    </span>
+                    <span>&quot;{item.prompt}&quot;</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Active In-Progress Deal Control Bar */}
+            {/* Active In-Progress Deal / Settled Deal Control Bar */}
             {Boolean(intentResult || offerResult || dealContractResult) && (
-              <div className="p-3.5 rounded-xl bg-slate-900/80 border border-blue-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+              <div className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono ${
+                paymentResult?.status === "PAID" || dealContractResult?.status === "PAID"
+                  ? "bg-emerald-950/30 border-emerald-800/50"
+                  : "bg-slate-900/80 border-blue-900/40"
+              }`}>
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                  <span className="text-slate-300 font-bold">Active Deal in Progress:</span>
-                  <span className="text-blue-300 font-bold">
+                  <span className={`w-2 h-2 rounded-full ${
+                    paymentResult?.status === "PAID" || dealContractResult?.status === "PAID"
+                      ? "bg-emerald-400"
+                      : "bg-blue-400 animate-pulse"
+                  }`} />
+                  <span className={`${
+                    paymentResult?.status === "PAID" || dealContractResult?.status === "PAID"
+                      ? "text-emerald-300"
+                      : "text-slate-300"
+                  } font-bold`}>
+                    {paymentResult?.status === "PAID" || dealContractResult?.status === "PAID"
+                      ? "Completed Transaction:"
+                      : "Active Deal in Progress:"}
+                  </span>
+                  <span className={`${
+                    paymentResult?.status === "PAID" || dealContractResult?.status === "PAID"
+                      ? "text-slate-200"
+                      : "text-blue-300"
+                  } font-bold`}>
                     {dealContractResult?.dealId || "Negotiating with " + (targetMerchant?.name || activeTargetMerchantId)}
                   </span>
-                  <span className="text-slate-500 font-normal">
-                    (Stage {selectedStage} / 5)
+                  <span className={`${
+                    paymentResult?.status === "PAID" || dealContractResult?.status === "PAID"
+                      ? "text-emerald-400 font-bold"
+                      : "text-slate-500 font-normal"
+                  }`}>
+                    {paymentResult?.status === "PAID" || dealContractResult?.status === "PAID"
+                      ? "(PAID & SETTLED)"
+                      : `(Stage ${selectedStage} / 5)`}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleStartNewDeal}
-                    className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-rose-950 hover:border-rose-800 border border-slate-700 text-slate-300 hover:text-rose-300 text-xs font-mono transition-colors cursor-pointer"
-                  >
-                    Cancel / New Deal
-                  </button>
+                  {paymentResult?.status === "PAID" || dealContractResult?.status === "PAID" ? (
+                    <Link
+                      href={`/transactions/${dealContractResult?.dealId || ""}`}
+                      className="px-3 py-1 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 text-xs font-mono transition-colors font-bold"
+                    >
+                      View Receipt →
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleStartNewDeal}
+                      className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-rose-950 hover:border-rose-800 border border-slate-700 text-slate-300 hover:text-rose-300 text-xs font-mono transition-colors cursor-pointer"
+                    >
+                      Cancel / New Deal
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -1345,7 +1523,7 @@ function DealRoomContent() {
 
               <span className="text-xs text-slate-400 font-mono flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${isGeminiConnected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"}`} />
-                Google Gemini 3.1 Flash-Lite Server-Side Intent Parser
+                Autonomous AI Commerce Intent Engine
               </span>
               <Ripple className="rounded-xl">
                 <button
@@ -1384,7 +1562,7 @@ function DealRoomContent() {
                   onClick={(e) => handleSubmitRequest(e, false)}
                   className="px-3 py-1 rounded bg-rose-900/80 border border-rose-700 hover:bg-rose-800 transition-colors text-white font-mono text-[11px] flex items-center gap-1"
                 >
-                  <RefreshCw className="w-3 h-3" /> Retry Gemini
+                  <RefreshCw className="w-3 h-3" /> Retry Request
                 </button>
                 <button
                   type="button"
@@ -1760,7 +1938,20 @@ function DealRoomContent() {
                 )}
 
                 {/* Compile Deal Action Button (Phase 5) */}
-                {offerResult.selectedItems.length > 0 ? (
+                {isDealPaid ? (
+                  <div className="pt-2 p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/60 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-emerald-300 text-xs font-mono">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>This commercial offer has been compiled and settled.</span>
+                    </div>
+                    <Link
+                      href={`/transactions/${dealContractResult?.dealId || ""}`}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs font-mono transition-colors shrink-0"
+                    >
+                      View Receipt →
+                    </Link>
+                  </div>
+                ) : offerResult.selectedItems.length > 0 ? (
                   <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
                     <Ripple className="flex-1 rounded-xl w-full">
                       <button
@@ -2764,7 +2955,7 @@ Generated deterministically by PACT Firewall Security Layer.
                         <span>AI AGENT ISOLATION</span>
                       </div>
                       <p className="text-xs text-slate-400 font-sans">
-                        Gemini AI has 0 access to Razorpay credentials or payment creation pathways.
+                        AI agents have 0 access to Razorpay credentials or payment creation pathways.
                       </p>
                     </div>
                   </div>

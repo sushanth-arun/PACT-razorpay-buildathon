@@ -38,6 +38,14 @@ export async function POST(req: NextRequest) {
     }
 
     const merchantId = deal.merchantId || "ergospace";
+
+    // Tenant Isolation Check: Merchants cannot approve/reject deals from other merchants
+    if (authUser && authUser.role === "MERCHANT_ADMIN" && authUser.merchantId) {
+      if (merchantId.toLowerCase() !== authUser.merchantId.toLowerCase()) {
+        return NextResponse.json({ success: false, error: "Forbidden: You cannot approve or reject deals belonging to other merchants" }, { status: 403 });
+      }
+    }
+
     const nowStr = new Date().toISOString();
     const actorName = authUser?.email || "Merchant Admin";
 

@@ -142,10 +142,18 @@ export const AppSidebar: React.FC = () => {
                   {role === "MERCHANT_ADMIN" ? <Store className="w-3 h-3" /> : <User className="w-3 h-3" />}
                 </div>
                 <div className="truncate">
-                  <p className="font-bold text-slate-100 truncate text-[11px]">
+                  <p 
+                    title={role === "MERCHANT_ADMIN" ? (merchantData?.name || "Merchant Admin") : (profile?.displayName || user.email?.split("@")[0] || "AI Buyer")}
+                    className="font-bold text-slate-100 truncate text-[11px] hover:whitespace-normal cursor-help"
+                  >
                     {role === "MERCHANT_ADMIN" ? (merchantData?.name || "Merchant Admin") : (profile?.displayName || user.email?.split("@")[0] || "AI Buyer")}
                   </p>
-                  <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
+                  <p 
+                    title={user.email || ""} 
+                    className="text-[10px] text-slate-400 truncate hover:whitespace-normal cursor-help"
+                  >
+                    {user.email}
+                  </p>
                 </div>
               </div>
             </div>

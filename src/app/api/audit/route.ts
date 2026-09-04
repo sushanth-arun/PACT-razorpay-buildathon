@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuditTrail, getAuditDealIds } from "@/lib/audit/audit-service";
 import { AuditQueryFilterSchema } from "@/lib/audit/schema";
+import { getAuthenticatedUserFromRequest } from "@/lib/auth/auth-service";
 
 export async function GET(req: NextRequest) {
   try {
+    const authUser = await getAuthenticatedUserFromRequest(req);
     const { searchParams } = new URL(req.url);
 
     // If query is for deal list
@@ -15,9 +17,15 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Force merchantId if caller is MERCHANT_ADMIN
+    let queryMerchantId = searchParams.get("merchantId") || undefined;
+    if (authUser && authUser.role === "MERCHANT_ADMIN" && authUser.merchantId) {
+      queryMerchantId = authUser.merchantId;
+    }
+
     const rawParams = {
       dealId: searchParams.get("dealId") || undefined,
-      merchantId: searchParams.get("merchantId") || undefined,
+      merchantId: queryMerchantId,
       actor: searchParams.get("actor") || undefined,
       eventType: searchParams.get("eventType") || undefined,
       search: searchParams.get("search") || undefined,

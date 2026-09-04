@@ -232,13 +232,21 @@ export default function TransactionsPage() {
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
                             <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800">
                               <span className="text-slate-500 block">RAZORPAY ORDER ID</span>
-                              <span className="text-slate-200 font-bold truncate block">
+                              <span 
+                                title={tx.razorpayOrderId || "N/A"}
+                                className="text-slate-200 font-bold truncate block hover:whitespace-normal cursor-help"
+                              >
                                 {tx.razorpayOrderId || "N/A"}
                               </span>
                             </div>
                             <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800">
                               <span className="text-slate-500 block">INTERNAL TX ID</span>
-                              <span className="text-slate-200 font-bold truncate block">{tx.id}</span>
+                              <span 
+                                title={tx.id}
+                                className="text-slate-200 font-bold truncate block hover:whitespace-normal cursor-help"
+                              >
+                                {tx.id}
+                              </span>
                             </div>
                           </div>
 

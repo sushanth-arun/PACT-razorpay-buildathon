@@ -193,7 +193,10 @@ export default function MerchantsPage() {
                                   ONLINE
                                 </span>
                               </div>
-                              <p className="text-xs text-slate-400 font-sans line-clamp-1">
+                              <p 
+                                title={merchant.description}
+                                className="text-xs text-slate-400 font-sans line-clamp-1 hover:line-clamp-none transition-all duration-200 cursor-help"
+                              >
                                 {merchant.description}
                               </p>
                             </div>

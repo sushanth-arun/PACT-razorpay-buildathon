@@ -17,8 +17,11 @@ import {
   Truck, 
   CheckCircle2, 
   Boxes,
-  FileText
+  FileText,
+  User,
+  ExternalLink
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface TransactionDetail {
   id: string;
@@ -66,6 +69,7 @@ export default function TransactionDetailPage({
 }) {
   const resolvedParams = use(params);
   const transactionId = resolvedParams.id;
+  const { role } = useAuth();
 
   const [transaction, setTransaction] = useState<TransactionDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -107,7 +111,7 @@ export default function TransactionDetailPage({
         <div className="p-8 rounded-2xl bg-rose-950/40 border border-rose-800 text-rose-300 font-mono text-xs space-y-3">
           <p className="font-bold text-sm">Transaction Not Found</p>
           <p>{error || "This transaction record does not exist or you do not have permission to view it."}</p>
-          <Link href="/transactions" className="text-blue-400 underline block">
+          <Link href={role === "MERCHANT_ADMIN" ? "/merchant/transactions" : "/transactions"} className="text-blue-400 underline block">
             ← Return to Transactions
           </Link>
         </div>
@@ -116,21 +120,24 @@ export default function TransactionDetailPage({
   }
 
   const deal = transaction.deal;
+  const backHref = role === "MERCHANT_ADMIN" ? "/merchant/transactions" : "/transactions";
+  const backLabel = role === "MERCHANT_ADMIN" ? "Back to Merchant Transactions" : "Back to All Transactions";
+  const auditHref = role === "MERCHANT_ADMIN" ? `/merchant/audit?dealId=${transaction.dealId}` : `/audit?dealId=${transaction.dealId}`;
 
   return (
     <PageContainer>
       <div className="space-y-4">
         <Link
-          href="/transactions"
+          href={backHref}
           className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-slate-200 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to All Transactions</span>
+          <span>{backLabel}</span>
         </Link>
 
         <PageHeader
           title={`TRANSACTION #${transaction.id.toUpperCase()}`}
-          description={`Autonomous AI-negotiated deal recorded with ${transaction.merchantName || deal?.merchantName || "ErgoSpace"}.`}
+          description={`Autonomous AI-negotiated deal recorded with ${transaction.merchantName || deal?.merchantName || "Merchant"}.`}
           badge={
             <StatusBadge
               status={transaction.status === "PAID" ? "paid" : transaction.status === "VALIDATED" ? "validated" : "pending_approval"}
@@ -211,11 +218,26 @@ export default function TransactionDetailPage({
             </div>
 
             <div className="space-y-3 text-xs">
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
-                <span className="text-slate-500 text-[10px] uppercase font-bold">MERCHANT COUNTERPARTY</span>
-                <p className="font-bold text-slate-200 font-sans text-sm">{transaction.merchantName}</p>
-                <p className="text-[11px] text-slate-400">{transaction.merchantId}</p>
-              </div>
+              {role === "MERCHANT_ADMIN" ? (
+                <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                  <span className="text-slate-500 text-[10px] uppercase font-bold">BUYER CLIENT</span>
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <div className="w-5 h-5 rounded-full bg-blue-950 border border-blue-800 flex items-center justify-center text-blue-300 text-[10px] font-bold">
+                      <User className="w-3 h-3" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-200 font-sans text-xs">AI Buyer (PACT Network)</p>
+                      <p className="text-[10px] text-slate-400 font-mono">buyer@pact.ai</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+                  <span className="text-slate-500 text-[10px] uppercase font-bold">MERCHANT COUNTERPARTY</span>
+                  <p className="font-bold text-slate-200 font-sans text-sm">{transaction.merchantName}</p>
+                  <p className="text-[11px] text-slate-400">{transaction.merchantId}</p>
+                </div>
+              )}
 
               <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
                 <span className="text-slate-500 text-[10px] uppercase font-bold">RAZORPAY ORDER ID</span>
@@ -294,7 +316,7 @@ export default function TransactionDetailPage({
 
               <Magnet strength={8} className="w-full">
                 <Link
-                  href={`/audit?dealId=${transaction.dealId}`}
+                  href={auditHref}
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-mono text-xs font-bold transition-all shadow-xl shadow-blue-950/60 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <History className="w-4 h-4" />

@@ -155,21 +155,14 @@ function MerchantAuditContent() {
       const res = await fetch(url);
       const data = await res.json();
       if (data.success && Array.isArray(data.dealsWithAudit)) {
-        let loadedDeals = data.dealsWithAudit;
-        // If query returned 0 deals for this specific ID, fetch all deals across stores so merchant never misses active pending deals
-        if (loadedDeals.length === 0) {
-          const allRes = await fetch("/api/audit/deals");
-          const allData = await allRes.json();
-          if (allData.success && Array.isArray(allData.dealsWithAudit) && allData.dealsWithAudit.length > 0) {
-            loadedDeals = allData.dealsWithAudit;
-          }
-        }
-
+        const loadedDeals = data.dealsWithAudit;
         setDeals(loadedDeals);
         if (loadedDeals.length > 0) {
           if (!selectedDealId || !loadedDeals.some((d: DealWithAudit) => d.dealId === selectedDealId)) {
             setSelectedDealId(loadedDeals[0].dealId);
           }
+        } else {
+          setSelectedDealId(null);
         }
       }
     } catch (err) {

@@ -1,146 +1,182 @@
-# PACT — AI-to-AI Agentic Commerce Engine
+# PACT — Policy-Enforced Autonomous Commercial Transactions
+### Razorpay Buildathon — AI Growth & Agentic Commerce Track
 
-PACT (**Policy-Enforced Autonomous Commercial Transactions**) makes merchants transactable by AI buyers with deterministic backend policy enforcement.
+> **Core Principle**: *AI can reason and propose. PACT decides what becomes real.*
 
-Built for the **Razorpay Buildathon** under the **AI Growth and Agentic Commerce** track.
+PACT is an enterprise-grade autonomous AI-to-AI commerce pipeline that connects Buyer AI agents to Merchant AI agents with strict, deterministic policy enforcement, multi-merchant catalog discovery, and zero-trust Razorpay financial settlement.
 
 ---
 
-## 💡 Core Principle
+## 🏗️ System Architecture & Deal Flow
 
-> **AI can reason and propose. PACT decides what becomes real.**
+```mermaid
+flowchart TD
+    subgraph Buyer_Layer["1. BUYER INTENT STAGE"]
+        A[Buyer Natural Language Prompt] --> B[Autonomous Intent Engine]
+        B --> C[Structured Buyer Constraints\nQty, Budget, Max Delivery SLA]
+    end
 
-AI agents negotiate commercial deals using real merchant catalog data, but all financial arithmetic, stock availability, discount caps, budget limits, and contract compilation are deterministically validated by server-side code (**PACT Firewall**).
+    subgraph Merchant_Layer["2. MERCHANT REASONING STAGE"]
+        C --> D[Active Merchant AI Agent]
+        D <--> E[(Authoritative Firestore Catalog\nStock, Baseline Unit Prices, Margin Caps)]
+        D --> F[Deterministic Offer Proposal\nSelected SKUs, Validated Margin Discount]
+    end
 
+    subgraph Compiler_Layer["3. DETERMINISTIC DEAL COMPILER"]
+        F --> G[PACT Deal Compiler Engine\nZero LLM Arithmetic]
+        G --> H[Compiled Deal Contract Spec\nSubtotal, Discount, Authoritative Payable]
+    end
+
+    subgraph Firewall_Layer["4. PACT FIREWALL POLICY GATE"]
+        H --> I{PACT Firewall Engine\n9 Zero-Trust Server Rules}
+        I -->|Fails Stock, Price Drift, Discount, Budget| J[REJECTED\nAudit Logged]
+        I -->|Exceeds Limit / Threshold| K[PENDING_APPROVAL\nMerchant Admin Gate]
+        I -->|All 9 Policy Gates Passed| L[VALIDATED & SIGNED]
+    end
+
+    subgraph Settlement_Layer["5. RAZORPAY SETTLEMENT RAIL"]
+        L --> M[Razorpay Isolated Order Service\nDirect Firestore Amount in Integer Paise]
+        M --> N[Razorpay Standard Checkout Checkout.js]
+        N --> O[Server-Side HMAC-SHA256 Signature Verification]
+        O --> P[(Immutable Transaction Settlement & Audit Trail)]
+    end
 ```
-BUYER AI ──> BUYER INTENT ──> MERCHANT AGENT ──> MERCHANT OFFER ──> DEAL COMPILER ──> DEAL CONTRACT
-                                                                                            │
-                                                                                            ▼
-                                                                                   🔥 PACT FIREWALL
-                                                                                  (9 Server Rules)
-                                                                                            │
-                                                      ┌─────────────────────────────────────┴─────────────────────────────────────┐
-                                                      ▼                                     ▼                                     ▼
-                                                  VALIDATED                         PENDING_APPROVAL                           REJECTED
-                                             (All rules PASS,                     (Exceeds merchant                        (Failed stock, price,
-                                              ≤ ₹50k threshold)                   approval threshold)                      discount, or budget)
+
+---
+
+## ⚡ Key Architectural Pillars
+
+### 1. Zero-Trust Autonomous Commerce Pipeline
+- **Buyer AI**: Natural language intent parsing into normalized commercial constraints.
+- **Merchant AI**: Reads active inventory and margin policies to formulate real-time counterproposals and bundled discounts.
+- **Multi-Merchant Discovery**: Real-time cross-catalog discovery and routing across verified merchants (`ErgoSpace`, `DeskForge`, `CyberTech`, `OfficePro`, `NordicLiving`).
+
+### 2. PACT Deterministic Deal Compiler
+- Pure TypeScript compiler executing on the server with **Zero LLM math**.
+- Recalculates all pricing, taxes, line-item totals, and discounts deterministically against live warehouse catalogs.
+
+### 3. PACT Policy Firewall (9 Server-Side Security Gates)
+Before any transaction can proceed to payment, the deal contract must pass 9 atomic verification checks:
+1. `PRODUCT_VALIDITY`: Verifies items exist, belong to the merchant, and are actively published.
+2. `INVENTORY_CHECK`: Real-time stock verification against requested quantity.
+3. `PRICE_VERIFICATION`: Stale contract drift protection against live catalog prices.
+4. `DISCOUNT_LIMIT`: Validates negotiated discounts do not exceed merchant maximum policy caps.
+5. `BUDGET_CONSTRAINT`: Ensures final contract amount satisfies the buyer budget ceiling.
+6. `DELIVERY_CONSTRAINT`: Enforces delivery lead time SLA against merchant warehouse capabilities.
+7. `TRANSACTION_LIMIT`: Enforces platform-level auto-settlement caps.
+8. `HUMAN_APPROVAL_GATE`: Routes high-value transactions exceeding threshold (`> ₹50,000`) to store manager approval.
+9. `DUPLICATE_PROTECTION`: Guarantees transaction idempotency.
+
+### 4. Razorpay Secure Settlement Rail
+```mermaid
+sequenceDiagram
+    autonumber
+    participant UI as Deal Room (Stage 5)
+    participant Server as PACT Settlement API
+    participant DB as Firestore (Authoritative)
+    participant RZP as Razorpay API
+    participant SDK as Razorpay Checkout.js
+
+    UI->>Server: POST /api/payments/create-order { dealId }
+    Server->>DB: Fetch Validated Deal Contract
+    Note over Server,DB: Amount derived ONLY from Firestore finalAmount (Paise)
+    Server->>RZP: orders.create({ amount, currency: "INR", receipt: dealId })
+    RZP-->>Server: Return razorpay_order_id
+    Server-->>UI: Return Order Credentials (Key ID, Order ID, Amount)
+    UI->>SDK: Open Razorpay Modal
+    SDK-->>UI: Return payment_id, order_id, signature
+    UI->>Server: POST /api/payments/verify { dealId, razorpay_payment_id, signature }
+    Server->>Server: HMAC-SHA256 Verification with RAZORPAY_KEY_SECRET
+    Server->>DB: Update Deal to PAID & Write Immutable Audit Record
+    Server-->>UI: Settlement Verified (200 OK)
 ```
 
----
+- **Zero AI Access to Credentials**: AI agents have zero access to Razorpay API keys or payment creation pathways.
+- **Backend-Driven Amounts**: Client-side amounts are completely ignored. Payment amounts are calculated strictly from Firestore verified deal contracts.
+- **HMAC-SHA256 Cryptographic Verification**: Server-side signature validation prevents client tampering.
+- **Webhook & State Idempotency**: Atomic checks prevent duplicate orders or multiple charges.
 
-## 🏛️ Architecture & Implemented Phases
-
-### Phase 0: Design System & Reactive Shell
-- Modern dark-mode UI with **React Bits** components (`BorderGlow`, `Magnet`, `Ripple`, `SpotlightCard`).
-- Standardized typography, responsive layouts, and full status lifecycle badges.
-
-### Phase 1: Firestore Schema & Seed Data
-- Collections: `merchants`, `products`, `buyer_intents`, `merchant_offers`, `deals`, `policy_evaluations`, and `audit_events`.
-- Pre-seeded **ErgoSpace** merchant with realistic product catalogs, stocks, prices, and governance policies.
-
-### Phase 2: Audit Trail & Real-time Telemetry
-- Immutable, tamper-evident audit logging capturing every lifecycle event (`INTENT_PARSED`, `OFFER_GENERATED`, `DEAL_COMPILED`, `POLICY_CHECK_PASSED`, `POLICY_CHECK_FAILED`, `DEAL_VALIDATED`, `DEAL_REJECTED`, `HUMAN_APPROVAL_REQUIRED`).
-
-### Phase 3: Buyer AI (Natural Language Intent Extraction)
-- Powered by **Google Gemini 3.1 Flash-Lite** structured JSON outputs.
-- Extracts structured intent (`productIntent`, `quantity`, `budget`, `deliveryMaxDays`, `discountRequestedPercent`, `urgency`).
-- Deterministic fallback modes for offline/testing resilience.
-
-### Phase 4: Merchant Agent (Autonomous Offer Generation)
-- Autonomous reasoning agent discovering matching active products from live Firestore catalogs.
-- Calculates optimal bundle quantities, safe margin-preserving discounts, and delivery SLAs.
-
-### Phase 5: PACT Deal Compiler
-- Pure TypeScript server-side compiler (**Zero Gemini AI calls for math**).
-- Validates products against live catalog, rechecks unit pricing, deterministically calculates subtotals, discounts, and final amounts.
-- Exports structured deal contracts in JSON or text summary formats.
-
-### Phase 6: PACT Firewall (Policy Governance Gate)
-- Server-side deterministic policy gate executing **9 security rules** against live Firestore data (**Zero Gemini AI calls**):
-  1. `PRODUCT_VALIDITY`: Verifies items exist, belong to merchant, and are active.
-  2. `INVENTORY_CHECK`: Real-time stock verification against requested quantity.
-  3. `PRICE_VERIFICATION`: Stale contract drift protection against live catalog prices.
-  4. `DISCOUNT_LIMIT`: Validates discount does not exceed `merchant.maxDiscountPercent`.
-  5. `BUDGET_CONSTRAINT`: Ensures `finalAmount <= buyerBudget`.
-  6. `DELIVERY_CONSTRAINT`: Ensures `deliveryDays <= buyerDeliveryMaxDays`.
-  7. `TRANSACTION_LIMIT`: Warnings for amounts above auto-settlement caps.
-  8. `HUMAN_APPROVAL_GATE`: Routes high-value transactions (`> ₹50,000`) to `PENDING_APPROVAL`.
-  9. `DUPLICATE_PROTECTION`: Idempotent state verification.
-
-### Phase 7: Razorpay Test Mode Payment & Settlement Gate
-- **Zero AI Access**: AI agents are strictly isolated from Razorpay credentials and order generation.
-- **Authoritative Amounts**: The backend reads contract amounts directly from Firestore (`finalAmount` converted to integer paise). Frontend amounts are ignored.
-- **HMAC-SHA256 Verification**: Server-side cryptographic signature verification (`POST /api/payments/verify`) using `RAZORPAY_KEY_SECRET`.
-- **Duplicate Order & Webhook Idempotency**: Atomic checks prevent duplicate order creation, while raw-body verified webhooks (`POST /api/payments/webhook`) ensure safe idempotent state transitions to `PAID`.
-- **5-Gate Deal Room Navigation**: Stage 5 settlement panel with interactive React Bits.
-
-### Phase 8: Complete Audit Trail & Deal Lifecycle Reconstruction
-- **Immutable Append-Only Audit Telemetry**: Centralized server-side audit service (`audit_events` collection) recording real, immutable decision telemetry across all system actors (`USER`, `BUYER_AGENT`, `MERCHANT_AGENT`, `DEAL_COMPILER`, `PACT_FIREWALL`, `RAZORPAY`, `SYSTEM`).
-- **Comprehensive Lifecycle Reconstruction**: Real-time lifecycle state machine (`BUYER REQUEST` → `BUYER AGENT` → `MERCHANT AGENT` → `DEAL COMPILER` → `PACT FIREWALL` → `RAZORPAY GATE` → `SETTLEMENT`) derived purely from verified audit records.
-- **Dynamic Search & Filtering**: Multi-dimensional filtering by Deal ID, Actor, Event Type, and free-text search with chronological (`Oldest → Newest` / `Newest → Oldest`) toggles.
-- **Expandable Structured Metadata Viewer**: Deep inspection of raw telemetry (confidence metrics, rule checks, order IDs) with automated sanitization of sensitive keys (API secrets, CVVs).
-- **Deal Room Deep Linking**: Quick direct link from any active deal contract in Deal Room directly to its filtered Audit Trail.
+### 5. Multi-Tenant Merchant Isolation & Audit Telemetry
+- Complete tenant data isolation: Merchants only see transactions, audit logs, and analytics belonging directly to their store.
+- Comprehensive decision telemetry recording all events across `BUYER_AGENT`, `MERCHANT_AGENT`, `DEAL_COMPILER`, `PACT_FIREWALL`, and `RAZORPAY`.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Technology Stack
 
-- **Framework**: Next.js 16 (Turbopack, App Router), React 19
-- **Language & Types**: TypeScript (Strict), Zod validation schemas
-- **Styling**: Tailwind CSS, Vanilla CSS animations, Framer Motion
-- **UI & Micro-interactions**: React Bits (`BorderGlow`, `Magnet`, `Ripple`, `SpotlightCard`)
-- **Database & Server**: Firebase Firestore, Firebase Admin SDK
-- **AI Intent Parsing**: Google Gemini 3.1 Flash-Lite API
-- **Icons**: Lucide React
-
----
-
-## 🚀 Local Development Setup
-
-1. **Clone the repository & install dependencies**:
-   ```bash
-   npm install
-   ```
-
-2. **Configure Environment Variables**:
-   Create `.env.local` based on `.env.example`:
-   ```bash
-   GEMINI_API_KEY=your_gemini_api_key
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
-   NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
-   FIREBASE_ADMIN_PROJECT_ID=your_firebase_project_id
-   FIREBASE_ADMIN_CLIENT_EMAIL=your_service_account_email
-   FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
-   ```
-
-3. **Seed Database**:
-   Visit [http://localhost:3000/api/seed](http://localhost:3000/api/seed) to populate initial merchant catalog and policies.
-
-4. **Run Development Server**:
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+| Layer | Technologies |
+| :--- | :--- |
+| **Framework & Core** | Next.js 16 (App Router, Turbopack), React 19, TypeScript (Strict Mode) |
+| **Styling & Design** | Tailwind CSS, React Bits (`SpotlightCard`, `Magnet`, `BorderGlow`, `Ripple`), Framer Motion |
+| **Database & Auth** | Google Firebase Firestore, Firebase Admin SDK, Firebase Auth |
+| **Payment Gateway** | Razorpay Test Mode API, Razorpay Checkout SDK, HMAC-SHA256 Webhooks |
+| **AI Intent Engine** | Google Gemini API (Structured Output Parsing & Merchant Counterproposal Engine) |
+| **Validation** | Zod Schemas for all API routes and contract compilation |
 
 ---
 
-## 🧪 Verification Commands
+## 🚀 Getting Started
+
+### 1. Clone and Install Dependencies
+```bash
+git clone https://github.com/sushanth-arun/PACT-razorpay-buildathon.git
+cd PACT-razorpay-buildathon
+npm install
+```
+
+### 2. Configure Environment Variables
+Create a `.env.local` file in the root directory:
+```env
+# Gemini AI Configuration
+GEMINI_API_KEY=your_gemini_api_key
+
+# Razorpay Test Mode Keys
+RAZORPAY_KEY_ID=rzp_test_your_key_id
+RAZORPAY_KEY_SECRET=your_key_secret
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_your_key_id
+
+# Firebase Admin SDK (Server-Side)
+FIREBASE_ADMIN_PROJECT_ID=your_firebase_project_id
+FIREBASE_ADMIN_CLIENT_EMAIL=your_service_account_email
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+
+# Firebase Client SDK
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_client_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+```
+
+### 3. Initialize Database Seed
+Seed the multi-merchant catalog, inventory, and default governance policies by visiting:
+```
+http://localhost:3000/api/seed
+```
+
+### 4. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) to access the PACT platform.
+
+---
+
+## 🧪 Verification & Build
 
 ```bash
-# Type checking
+# Typecheck
 npx tsc --noEmit
 
-# Linting
+# Lint Check
 npm run lint
 
-# Production build
+# Production Build
 npm run build
 ```
 
 ---
 
-## 🔒 Security & Determinism Guarantee
-
-- **Zero LLM Arithmetic**: All calculations (subtotals, discounts, delivery SLAs, final contract amounts) execute strictly via deterministic TypeScript code.
-- **Server Authority**: The frontend cannot alter prices, approve deals, or bypass the PACT Firewall.
-- **Payment Decoupling**: Payment processing (Razorpay) is decoupled and only triggered after deterministic Firewall validation.
+## 📜 License
+MIT License. Built for the Razorpay Buildathon 2026.

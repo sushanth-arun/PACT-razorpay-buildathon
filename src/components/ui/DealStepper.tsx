@@ -139,7 +139,10 @@ export function DealStepper({
                     >
                       {iconElement}
                     </div>
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider truncate text-slate-100">
+                    <span 
+                      title={step.label}
+                      className="text-[11px] font-extrabold uppercase tracking-wider truncate text-slate-100"
+                    >
                       {step.label}
                     </span>
                   </div>
@@ -147,7 +150,10 @@ export function DealStepper({
                 </div>
 
                 {/* Subtitle */}
-                <p className="text-[10px] text-slate-400 font-sans truncate mb-1">
+                <p 
+                  title={step.sublabel}
+                  className="text-[10px] text-slate-400 font-sans truncate mb-1"
+                >
                   {step.sublabel}
                 </p>
 

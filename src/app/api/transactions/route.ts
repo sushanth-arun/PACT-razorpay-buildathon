@@ -36,9 +36,35 @@ export async function GET(req: NextRequest) {
     const ordersSnap = await query.limit(50).get();
     const orders = ordersSnap.docs.map((d) => d.data());
 
-    // Fetch all deals so in-progress / draft deals appear immediately in History
-    const allDealsSnap = await adminDb.collection("deals").orderBy("createdAt", "desc").limit(50).get();
-    const allDeals = allDealsSnap.docs.map((d) => d.data());
+    // Fetch deals from Firestore
+    let dealsQuery: FirebaseFirestore.Query = adminDb.collection("deals").orderBy("createdAt", "desc");
+
+    // Determine target merchant ID for tenant isolation
+    const targetMerchantId = (authUser?.role === "MERCHANT_ADMIN" && authUser.merchantId)
+      ? authUser.merchantId
+      : (scope === "merchant" && merchantIdParam)
+      ? merchantIdParam
+      : merchantIdParam || null;
+
+    if (targetMerchantId && targetMerchantId !== "all") {
+      dealsQuery = dealsQuery.where("merchantId", "==", targetMerchantId);
+    }
+
+    if (dealIdParam) {
+      dealsQuery = dealsQuery.where("dealId", "==", dealIdParam);
+    }
+
+    const allDealsSnap = await dealsQuery.limit(50).get();
+    let allDeals = allDealsSnap.docs.map((d) => d.data());
+
+    // Additional in-memory check for merchant isolation to guarantee zero leakage
+    if (targetMerchantId && targetMerchantId !== "all") {
+      const lowerTarget = targetMerchantId.toLowerCase();
+      allDeals = allDeals.filter((d) => {
+        const dMerchant = (d.merchantId || "").toLowerCase();
+        return dMerchant === lowerTarget;
+      });
+    }
 
     // Map deals into transactions list
     const transactions = allDeals.map((deal) => {

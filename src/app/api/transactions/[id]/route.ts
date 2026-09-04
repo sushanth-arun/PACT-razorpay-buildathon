@@ -30,6 +30,13 @@ export async function GET(
       const directDealSnap = await adminDb.collection("deals").doc(id).get();
       if (directDealSnap.exists) {
         const directDeal = directDealSnap.data()!;
+
+        // Tenant Isolation Check for direct deals
+        if (authUser && authUser.role === "MERCHANT_ADMIN" && authUser.merchantId) {
+          if (directDeal.merchantId && directDeal.merchantId.toLowerCase() !== authUser.merchantId.toLowerCase()) {
+            return NextResponse.json({ success: false, error: "Forbidden: Access denied to other merchant deal details" }, { status: 403 });
+          }
+        }
         
         // Fetch policy evaluation if exists
         let directEval = null;
@@ -118,8 +125,8 @@ export async function GET(
 
     // 2. Tenant Isolation Check
     if (authUser && authUser.role === "MERCHANT_ADMIN" && authUser.merchantId) {
-      if (orderData.merchantId !== authUser.merchantId) {
-        return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+      if ((orderData.merchantId || "").toLowerCase() !== authUser.merchantId.toLowerCase()) {
+        return NextResponse.json({ success: false, error: "Forbidden: Access denied to other merchant transactions" }, { status: 403 });
       }
     }
 
