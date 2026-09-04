@@ -110,7 +110,7 @@ Before any transaction can proceed to payment, the deal contract must pass 9 ato
 
 ### 4. Razorpay Secure Settlement Rail
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'actorBkg': '#090d16', 'actorBorder': '#3b82f6', 'actorTextColor': '#ffffff', 'signalColor': '#60a5fa', 'signalTextColor': '#f8fafc', 'noteBkgColor': '#000000', 'noteTextColor': '#ffffff', 'noteBorderColor': '#38bdf8', 'activationBorderColor': '#3b82f6', 'activationBkgColor': '#1e293b', 'sequenceNumberColor': '#ffffff' }}}%%
+%%{init: {'theme': 'dark', 'themeVariables': { 'actorBkg': '#0f172a', 'actorBorder': '#3b82f6', 'actorTextColor': '#ffffff', 'signalColor': '#60a5fa', 'signalTextColor': '#ffffff', 'noteBkgColor': '#020617', 'noteTextColor': '#ffffff', 'noteBorderColor': '#38bdf8', 'activationBorderColor': '#3b82f6', 'activationBkgColor': '#1e293b', 'sequenceNumberColor': '#ffffff' }}}%%
 sequenceDiagram
     autonumber
     participant UI as Deal Room (Stage 5)
@@ -121,7 +121,7 @@ sequenceDiagram
 
     UI->>Server: POST /api/payments/create-order { dealId }
     Server->>DB: Fetch Validated Deal Contract
-    Note over Server,DB: Amount derived ONLY from Firestore finalAmount (Paise)
+    Note over Server,DB: <b style="color:#ffffff;">Amount derived ONLY from Firestore finalAmount (Paise)</b>
     Server->>RZP: orders.create({ amount, currency: "INR", receipt: dealId })
     RZP-->>Server: Return razorpay_order_id
     Server-->>UI: Return Order Credentials (Key ID, Order ID, Amount)
