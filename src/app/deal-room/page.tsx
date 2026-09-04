@@ -228,29 +228,53 @@ function DealRoomContent() {
   const [error, setError] = useState<string | null>(null);
   const [showRawJson, setShowRawJson] = useState(false);
 
-  // Real-time cross-merchant product mismatch detector
-  const detectedCrossMerchant = React.useMemo(() => {
+  // Real-time multi-merchant detector and cross-catalog conflict analyzer
+  const detectedMerchantAnalysis = React.useMemo(() => {
     if (!requestText.trim()) return null;
     const lower = requestText.toLowerCase();
 
-    // Check if the current request matches keywords of another merchant better
+    // Map matches across all stores
+    const matchedStores: Array<{
+      merchantId: string;
+      merchantName: string;
+      matchedKeywords: string[];
+    }> = [];
+
     for (const [mId, meta] of Object.entries(MERCHANT_CATALOG_KEYWORDS)) {
-      if (mId !== activeTargetMerchantId) {
-        const matches = meta.keywords.filter((kw) => lower.includes(kw));
-        if (matches.length > 0) {
-          // Check if current merchant also matches this keyword
-          const currentMeta = MERCHANT_CATALOG_KEYWORDS[activeTargetMerchantId];
-          const currentMatches = currentMeta ? currentMeta.keywords.filter((kw) => lower.includes(kw)) : [];
-          if (currentMatches.length === 0) {
-            return {
-              suggestedMerchantId: meta.merchantId,
-              suggestedMerchantName: meta.merchantName,
-              matchedKeyword: matches[0],
-            };
-          }
-        }
+      const matches = meta.keywords.filter((kw) => lower.includes(kw));
+      if (matches.length > 0) {
+        matchedStores.push({
+          merchantId: meta.merchantId,
+          merchantName: meta.merchantName,
+          matchedKeywords: matches,
+        });
       }
     }
+
+    if (matchedStores.length === 0) return null;
+
+    // Multi-merchant conflict detected: user is requesting products from 2+ different merchants in one prompt
+    if (matchedStores.length > 1) {
+      return {
+        type: "MULTI_MERCHANT_CONFLICT" as const,
+        stores: matchedStores,
+        primaryStore: matchedStores[0],
+        message: `Your request contains items from multiple stores (${matchedStores.map((s) => s.merchantName).join(" & ")}). PACT settles single-merchant contracts per transaction.`,
+      };
+    }
+
+    // Single merchant detected, check if it's different from the currently selected merchant
+    const singleMatch = matchedStores[0];
+    if (singleMatch.merchantId !== activeTargetMerchantId) {
+      return {
+        type: "SWITCH_RECOMMENDED" as const,
+        suggestedMerchantId: singleMatch.merchantId,
+        suggestedMerchantName: singleMatch.merchantName,
+        matchedKeyword: singleMatch.matchedKeywords[0],
+        message: `"${singleMatch.matchedKeywords[0]}" is supplied by ${singleMatch.merchantName}.`,
+      };
+    }
+
     return null;
   }, [requestText, activeTargetMerchantId]);
 
@@ -1270,10 +1294,9 @@ function DealRoomContent() {
           </div>
           <div className="space-y-0.5 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-slate-400 font-bold uppercase text-[11px] tracking-wider">BUYING FROM:</span>
               <span className="font-extrabold text-sm text-slate-100">{targetMerchant?.name || activeTargetMerchantId}</span>
               <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold tracking-wide">
-                ACTIVE AGENT
+                ACTIVE SELLER
               </span>
             </div>
             <p 
@@ -1287,7 +1310,7 @@ function DealRoomContent() {
 
         <div className="flex items-center gap-2.5 shrink-0 self-start md:self-center">
           <label htmlFor="merchant-selector" className="text-slate-400 text-xs font-mono whitespace-nowrap">
-            Switch Merchant:
+            Switch Merchant Store:
           </label>
           <select
             id="merchant-selector"
@@ -1366,35 +1389,67 @@ function DealRoomContent() {
               </div>
             </div>
 
-            {/* Cross-Merchant Product Mismatch Warning Banner */}
-            {detectedCrossMerchant && (
+            {/* Cross-Merchant Product & Multi-Merchant Conflict Warning Banner */}
+            {detectedMerchantAnalysis && (
               <motion.div
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-3.5 rounded-xl bg-amber-950/50 border border-amber-800/80 text-amber-200 text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg"
+                className="p-3.5 rounded-xl bg-amber-950/60 border border-amber-800/90 text-amber-200 text-xs font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg"
               >
                 <div className="flex items-center gap-2.5">
                   <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
                   <div>
-                    <span className="font-bold text-amber-300">Catalog Notice: </span>
-                    <span>
-                      &quot;{detectedCrossMerchant.matchedKeyword}&quot; is supplied by{" "}
-                      <strong className="text-amber-100">{detectedCrossMerchant.suggestedMerchantName}</strong>. Your active seller is{" "}
-                      <strong className="text-slate-200">{targetMerchant?.name || activeTargetMerchantId}</strong>.
-                    </span>
+                    {detectedMerchantAnalysis.type === "MULTI_MERCHANT_CONFLICT" ? (
+                      <div>
+                        <span className="font-bold text-amber-300">Multi-Store Notice: </span>
+                        <span>{detectedMerchantAnalysis.message}</span>
+                        <div className="text-[11px] text-amber-300/80 mt-1">
+                          Select one store to proceed with autonomous negotiation:
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <span className="font-bold text-amber-300">Catalog Notice: </span>
+                        <span>
+                          &quot;{detectedMerchantAnalysis.matchedKeyword}&quot; is supplied by{" "}
+                          <strong className="text-amber-100">{detectedMerchantAnalysis.suggestedMerchantName}</strong>. Your active store is{" "}
+                          <strong className="text-slate-200">{targetMerchant?.name || activeTargetMerchantId}</strong>.
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveTargetMerchantId(detectedCrossMerchant.suggestedMerchantId);
-                    setPromptCategory(detectedCrossMerchant.suggestedMerchantId);
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-md shadow-amber-950/40"
-                >
-                  <Store className="w-3.5 h-3.5" />
-                  <span>Switch to {detectedCrossMerchant.suggestedMerchantName}</span>
-                </button>
+
+                {detectedMerchantAnalysis.type === "MULTI_MERCHANT_CONFLICT" ? (
+                  <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                    {detectedMerchantAnalysis.stores.map((s) => (
+                      <button
+                        key={s.merchantId}
+                        type="button"
+                        onClick={() => {
+                          setActiveTargetMerchantId(s.merchantId);
+                          setPromptCategory(s.merchantId);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer shadow-md shadow-amber-950/40"
+                      >
+                        <Store className="w-3 h-3" />
+                        <span>Use {s.merchantName}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTargetMerchantId(detectedMerchantAnalysis.suggestedMerchantId);
+                      setPromptCategory(detectedMerchantAnalysis.suggestedMerchantId);
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-md shadow-amber-950/40"
+                  >
+                    <Store className="w-3.5 h-3.5" />
+                    <span>Switch to {detectedMerchantAnalysis.suggestedMerchantName}</span>
+                  </button>
+                )}
               </motion.div>
             )}
 
