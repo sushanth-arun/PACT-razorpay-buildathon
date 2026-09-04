@@ -45,7 +45,8 @@ export default function AuthPage() {
 
   const [isLogin, setIsLogin] = useState<boolean>(true);
   const [role, setRole] = useState<UserRole>("BUYER");
-  
+  const [isDark, setIsDark] = useState<boolean>(true);
+
   // Form fields
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -59,6 +60,17 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isForgotPassword, setIsForgotPassword] = useState<boolean>(false);
+
+  // Listen for dark/light class changes on document.documentElement
+  React.useEffect(() => {
+    const updateTheme = () => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    };
+    updateTheme();
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,7 +160,11 @@ export default function AuthPage() {
     <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex items-center justify-center p-4 sm:p-6 lg:p-8 relative overflow-hidden font-sans">
       {/* React Bits Aurora Ambient Background (Only on Auth Page) */}
       <Aurora
-        colorStops={["rgba(37, 99, 235, 0.4)", "rgba(147, 51, 234, 0.35)", "rgba(6, 182, 212, 0.35)", "rgba(236, 72, 153, 0.25)"]}
+        colorStops={
+          isDark
+            ? ["rgba(37, 99, 235, 0.4)", "rgba(147, 51, 234, 0.35)", "rgba(6, 182, 212, 0.35)", "rgba(236, 72, 153, 0.25)"]
+            : ["rgba(147, 197, 253, 0.5)", "rgba(216, 180, 254, 0.45)", "rgba(165, 243, 252, 0.45)", "rgba(251, 207, 232, 0.4)"]
+        }
         speed={0.8}
       />
 
@@ -160,8 +176,8 @@ export default function AuthPage() {
               text="PACT"
               layers={38}
               depth={3.2}
-              faceColor="#f8fafc"
-              depthColor="#7c3aed"
+              faceColor={isDark ? "#ffffff" : "#0f172a"}
+              depthColor={isDark ? "#7c3aed" : "#4f46e5"}
               tilt={9}
               pointerTracking
               smoothing={0.14}
@@ -178,12 +194,12 @@ export default function AuthPage() {
         {/* Right Half: Auth Card */}
         <div className="lg:col-span-6 w-full max-w-md mx-auto">
           <SpotlightCard
-            spotlightColor="rgba(124, 58, 237, 0.22)"
+            spotlightColor={isDark ? "rgba(124, 58, 237, 0.22)" : "rgba(99, 102, 241, 0.15)"}
             className="bg-slate-950/95 border border-slate-800/90 p-0 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-xl"
           >
             <div className="p-6 sm:p-7 space-y-4">
               {/* Tab Switcher Slider: SIGN IN / CREATE ACCOUNT */}
-              <div className="flex items-center p-1 rounded-xl bg-slate-900/90 border border-slate-800 font-sans text-xs font-semibold">
+              <div className="flex items-center p-1 rounded-xl bg-slate-900/90 border border-slate-800 font-sans text-xs font-semibold auth-tab-container">
                 <button
                   type="button"
                   onClick={() => {
@@ -192,10 +208,10 @@ export default function AuthPage() {
                     setError(null);
                     setSuccessMsg(null);
                   }}
-                  className={`flex-1 py-2 rounded-lg transition-all cursor-pointer ${
+                  className={`flex-1 py-2.5 rounded-lg transition-all cursor-pointer font-bold ${
                     isLogin && !isForgotPassword
-                      ? "bg-purple-600 text-white font-bold shadow-md shadow-purple-950/40"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-purple-600 text-white shadow-md shadow-purple-950/40"
+                      : "text-slate-400 hover:text-slate-200 auth-unselected-tab"
                   }`}
                 >
                   Sign In
@@ -208,10 +224,10 @@ export default function AuthPage() {
                     setError(null);
                     setSuccessMsg(null);
                   }}
-                  className={`flex-1 py-2 rounded-lg transition-all cursor-pointer ${
+                  className={`flex-1 py-2.5 rounded-lg transition-all cursor-pointer font-bold ${
                     !isLogin && !isForgotPassword
-                      ? "bg-purple-600 text-white font-bold shadow-md shadow-purple-950/40"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-purple-600 text-white shadow-md shadow-purple-950/40"
+                      : "text-slate-400 hover:text-slate-200 auth-unselected-tab"
                   }`}
                 >
                   Create Account
@@ -223,7 +239,7 @@ export default function AuthPage() {
                 {/* Role Selector on Signup */}
                 {!isLogin && !isForgotPassword && (
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-semibold text-slate-200 uppercase tracking-wider block">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider block">
                       Select Your Role
                     </label>
                     <div className="grid grid-cols-2 gap-2.5">
@@ -269,7 +285,7 @@ export default function AuthPage() {
                 {/* Display Name on Signup */}
                 {!isLogin && !isForgotPassword && (
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-200 uppercase tracking-wide">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">
                       Your Name
                     </label>
                     <div className="relative">
@@ -322,7 +338,7 @@ export default function AuthPage() {
 
                 {/* Email Address */}
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-200 uppercase tracking-wide">
+                  <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">
                     Email Address *
                   </label>
                   <div className="relative">
@@ -341,7 +357,7 @@ export default function AuthPage() {
                 {/* Password */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-semibold text-slate-200 uppercase tracking-wide">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">
                       Password *
                     </label>
                     {isLogin && (
@@ -352,7 +368,7 @@ export default function AuthPage() {
                           setError(null);
                           setSuccessMsg(null);
                         }}
-                        className="text-[11px] font-medium text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
+                        className="text-[11px] font-bold text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
                       >
                         {isForgotPassword ? "← Back to Sign In" : "Forgot Password?"}
                       </button>
@@ -376,7 +392,7 @@ export default function AuthPage() {
                 {/* Confirm Password on Signup */}
                 {!isLogin && !isForgotPassword && (
                   <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-slate-200 uppercase tracking-wide">
+                    <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wide">
                       Confirm Password *
                     </label>
                     <div className="relative">
@@ -397,14 +413,14 @@ export default function AuthPage() {
                 {error && (
                   <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-700/80 text-rose-200 text-xs flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                    <span>{error}</span>
+                    <span className="font-medium">{error}</span>
                   </div>
                 )}
 
                 {successMsg && (
                   <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-700/80 text-emerald-200 text-xs flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                    <span>{successMsg}</span>
+                    <span className="font-medium">{successMsg}</span>
                   </div>
                 )}
 
@@ -418,23 +434,23 @@ export default function AuthPage() {
                     >
                       {loading ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Processing...</span>
+                          <Loader2 className="w-4 h-4 animate-spin text-white" />
+                          <span className="text-white">Processing...</span>
                         </>
                       ) : isForgotPassword ? (
                         <>
-                          <span>Send Reset Link</span>
-                          <ArrowRight className="w-4 h-4" />
+                          <span className="text-white">Send Reset Link</span>
+                          <ArrowRight className="w-4 h-4 text-white" />
                         </>
                       ) : isLogin ? (
                         <>
-                          <span>Sign In to PACT</span>
-                          <ArrowRight className="w-4 h-4" />
+                          <span className="text-white">Sign In to PACT</span>
+                          <ArrowRight className="w-4 h-4 text-white" />
                         </>
                       ) : (
                         <>
-                          <span>Create {role === "BUYER" ? "AI Buyer" : "Merchant"} Account</span>
-                          <ArrowRight className="w-4 h-4" />
+                          <span className="text-white">Create {role === "BUYER" ? "AI Buyer" : "Merchant"} Account</span>
+                          <ArrowRight className="w-4 h-4 text-white" />
                         </>
                       )}
                     </button>
@@ -444,13 +460,13 @@ export default function AuthPage() {
 
               {/* Pre-Seeded Demo Accounts: Compact 2-Column Grid */}
               {isLogin && !isForgotPassword && (
-                <div className="pt-3.5 border-t border-slate-800/80 space-y-2">
+                <div className="pt-3.5 border-t border-slate-800/80 space-y-2.5">
                   <div className="flex items-center justify-between gap-2 text-[11px] uppercase tracking-wider">
-                    <div className="flex items-center gap-1.5 text-blue-400 font-bold">
+                    <div className="flex items-center gap-1.5 text-blue-400 font-bold demo-accounts-header">
                       <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
                       <span>DEMO ACCOUNTS (CLICK TO FILL)</span>
                     </div>
-                    <span className="text-slate-300 font-semibold font-mono text-[10px]">PW: pact123456</span>
+                    <span className="text-slate-400 font-bold font-mono text-[10px] demo-accounts-pw">PW: pact123456</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -461,23 +477,23 @@ export default function AuthPage() {
                           key={acc.id}
                           type="button"
                           onClick={() => handleSelectDemoAccount(acc)}
-                          className={`p-2 rounded-xl border text-left transition-all cursor-pointer group flex flex-col justify-between gap-1 ${
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer group flex flex-col justify-between gap-1.5 demo-account-btn ${
                             isBuyer
-                              ? "bg-slate-900/80 hover:bg-cyan-950/40 border-slate-800 hover:border-cyan-500/70"
-                              : "bg-slate-900/80 hover:bg-emerald-950/40 border-slate-800 hover:border-emerald-500/70"
+                              ? "bg-slate-900/80 hover:bg-cyan-950/40 border-slate-700/80 hover:border-cyan-500/70"
+                              : "bg-slate-900/80 hover:bg-emerald-950/40 border-slate-700/80 hover:border-emerald-500/70"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-1">
-                            <span className={`text-xs font-bold truncate ${
-                              isBuyer ? "text-cyan-300 group-hover:text-cyan-200" : "text-emerald-300 group-hover:text-emerald-200"
+                            <span className={`text-xs font-bold truncate demo-account-name ${
+                              isBuyer ? "text-cyan-400 group-hover:text-cyan-300" : "text-emerald-400 group-hover:text-emerald-300"
                             }`}>
                               {acc.name}
                             </span>
-                            <span className="text-[10px] text-slate-300 font-medium shrink-0 bg-slate-800/90 px-1.5 py-0.5 rounded border border-slate-700/60">
+                            <span className="text-[10px] font-semibold shrink-0 px-2 py-0.5 rounded-md demo-account-pill">
                               {acc.category}
                             </span>
                           </div>
-                          <span className="text-[10px] text-slate-300 group-hover:text-slate-100 truncate font-mono">
+                          <span className="text-[11px] text-slate-400 group-hover:text-slate-200 truncate font-mono demo-account-email">
                             {acc.email}
                           </span>
                         </button>

@@ -161,7 +161,8 @@ html:not(.dark) aside > div:first-child {
 }
 
 html:not(.dark) aside nav a {
-  color: #475569 !important;
+  color: #334155 !important;
+  font-weight: 600 !important;
 }
 
 html:not(.dark) aside nav a:hover {
@@ -181,7 +182,9 @@ html:not(.dark) aside nav a[class*="bg-slate-800"] svg {
 }
 
 html:not(.dark) aside .bg-slate-950,
-html:not(.dark) aside .bg-slate-900 {
+html:not(.dark) aside .bg-slate-900,
+html:not(.dark) aside [class*="bg-slate-950"],
+html:not(.dark) aside [class*="bg-slate-900"] {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
 }
@@ -197,7 +200,9 @@ html:not(.dark) main {
 
 html:not(.dark) .card-spotlight,
 html:not(.dark) [class*="bg-slate-950"],
-html:not(.dark) [class*="bg-slate-900"] {
+html:not(.dark) [class*="bg-slate-900"],
+html:not(.dark) [class*="bg-slate-900/"],
+html:not(.dark) [class*="bg-slate-950/"] {
   background-color: #ffffff !important;
   border-color: #e2e8f0 !important;
   color: #0f172a !important;
@@ -214,8 +219,11 @@ html:not(.dark) [class*="text-zinc-50"],
 html:not(.dark) [class*="text-zinc-100"],
 html:not(.dark) [class*="text-zinc-200"],
 html:not(.dark) [class*="text-neutral-50"],
-html:not(.dark) [class*="text-neutral-100"],
-html:not(.dark) [class*="text-white"]:not(button *):not(button):not(.badge-white):not([class*="bg-"]):not([class*="from-"]) {
+html:not(.dark) [class*="text-neutral-100"] {
+  color: #0f172a !important;
+}
+
+html:not(.dark) [class*="text-white"]:not(button *):not(button):not(.badge-white):not([class*="bg-gradient"]):not([class*="bg-purple-600"]):not([class*="bg-blue-600"]):not([class*="bg-emerald-600"]):not([class*="bg-rose-600"]):not([class*="bg-indigo-600"]) {
   color: #0f172a !important;
 }
 
@@ -229,54 +237,55 @@ html:not(.dark) [class*="text-zinc-300"],
 html:not(.dark) [class*="text-zinc-400"],
 html:not(.dark) [class*="text-neutral-300"],
 html:not(.dark) [class*="text-neutral-400"] {
-  color: #1e293b !important;
+  color: #334155 !important;
 }
 
 html:not(.dark) [class*="text-slate-600"],
 html:not(.dark) [class*="text-gray-600"] {
-  color: #334155 !important;
+  color: #475569 !important;
 }
 
 html:not(.dark) p,
-html:not(.dark) span:not([class*="bg-"]):not([class*="badge"]),
 html:not(.dark) h1,
 html:not(.dark) h2,
 html:not(.dark) h3,
 html:not(.dark) h4,
 html:not(.dark) h5,
 html:not(.dark) h6,
-html:not(.dark) label,
-html:not(.dark) div:not([class*="bg-"]):not([class*="badge"]) {
-  color: inherit;
+html:not(.dark) label {
+  color: #0f172a !important;
 }
 
 html:not(.dark) textarea,
 html:not(.dark) input {
   background-color: #ffffff !important;
   color: #0f172a !important;
-  border-color: #94a3b8 !important;
+  border-color: #cbd5e1 !important;
 }
 
 html:not(.dark) textarea::placeholder,
 html:not(.dark) input::placeholder {
-  color: #475569 !important;
+  color: #94a3b8 !important;
 }
 
 /* Light Theme Badges - Rich High Contrast Colors for Color Blind Accessibility */
 html:not(.dark) [class*="bg-emerald-950"],
-html:not(.dark) [class*="bg-emerald-900"] {
+html:not(.dark) [class*="bg-emerald-900"],
+html:not(.dark) [class*="bg-emerald-950/"] {
   background-color: #ecfdf5 !important;
   border-color: #10b981 !important;
   color: #047857 !important;
 }
 
 html:not(.dark) .text-emerald-400,
+html:not(.dark) .text-emerald-300,
 html:not(.dark) .text-emerald-500 {
   color: #047857 !important;
 }
 
 html:not(.dark) [class*="bg-blue-950"],
-html:not(.dark) [class*="bg-blue-900"] {
+html:not(.dark) [class*="bg-blue-900"],
+html:not(.dark) [class*="bg-blue-950/"] {
   background-color: #eff6ff !important;
   border-color: #3b82f6 !important;
   color: #1d4ed8 !important;
@@ -287,14 +296,27 @@ html:not(.dark) .text-blue-300 {
   color: #1d4ed8 !important;
 }
 
+html:not(.dark) [class*="bg-cyan-950"],
+html:not(.dark) [class*="bg-cyan-900"],
+html:not(.dark) [class*="bg-cyan-950/"] {
+  background-color: #ecfeff !important;
+  border-color: #06b6d4 !important;
+  color: #0e7490 !important;
+}
+
+html:not(.dark) .text-cyan-400,
+html:not(.dark) .text-cyan-300 {
+  color: #0e7490 !important;
+}
+
 html:not(.dark) [class*="bg-purple-950"],
-html:not(.dark) [class*="bg-purple-900"] {
+html:not(.dark) [class*="bg-purple-900"],
+html:not(.dark) [class*="bg-purple-950/"] {
   background-color: #faf5ff !important;
   border-color: #a855f7 !important;
   color: #6b21a8 !important;
 }
 
-html:not(.dark) .text-purple-400,
 html:not(.dark) .text-purple-400,
 html:not(.dark) .text-purple-300,
 html:not(.dark) .text-purple-200,
@@ -303,7 +325,8 @@ html:not(.dark) .text-purple-100 {
 }
 
 html:not(.dark) [class*="bg-amber-950"],
-html:not(.dark) [class*="bg-amber-900"] {
+html:not(.dark) [class*="bg-amber-900"],
+html:not(.dark) [class*="bg-amber-950/"] {
   background-color: #fffbeb !important;
   border-color: #f59e0b !important;
   color: #78350f !important;
@@ -318,10 +341,7 @@ html:not(.dark) .text-amber-100 {
 
 html:not(.dark) [class*="bg-rose-950"],
 html:not(.dark) [class*="bg-rose-900"],
-html:not(.dark) [class*="bg-rose-900\/60"],
-html:not(.dark) [class*="bg-rose-950\/70"],
-html:not(.dark) [class*="bg-rose-950\/80"],
-html:not(.dark) [class*="bg-rose-950\/40"] {
+html:not(.dark) [class*="bg-rose-950/"] {
   background-color: #fff1f2 !important;
   border-color: #f43f5e !important;
   color: #881337 !important;
@@ -333,22 +353,6 @@ html:not(.dark) .text-rose-200,
 html:not(.dark) .text-rose-100,
 html:not(.dark) .text-rose-500 {
   color: #881337 !important;
-}
-
-html:not(.dark) [class*="bg-emerald-950"],
-html:not(.dark) [class*="bg-emerald-900"],
-html:not(.dark) [class*="bg-emerald-950\/60"] {
-  background-color: #ecfdf5 !important;
-  border-color: #10b981 !important;
-  color: #064e3b !important;
-}
-
-html:not(.dark) .text-emerald-400,
-html:not(.dark) .text-emerald-300,
-html:not(.dark) .text-emerald-200,
-html:not(.dark) .text-emerald-100,
-html:not(.dark) .text-emerald-500 {
-  color: #064e3b !important;
 }
 
 /* Light Mode Action Buttons Contrast */
@@ -372,10 +376,81 @@ html:not(.dark) .bg-amber-600 {
   color: #ffffff !important;
 }
 
-html:not(.dark) .bg-slate-800 {
+html:not(.dark) .bg-purple-600 {
+  background-color: #7c3aed !important;
+  color: #ffffff !important;
+}
+
+html:not(.dark) [class*="bg-slate-800"],
+html:not(.dark) [class*="bg-slate-800/"] {
   background-color: #f1f5f9 !important;
   border-color: #cbd5e1 !important;
   color: #0f172a !important;
+}
+
+/* Auth Page Elements Specific Contrast */
+.auth-tab-container {
+  background-color: rgba(15, 23, 42, 0.9);
+  border: 1px solid #334155;
+}
+
+html:not(.dark) .auth-tab-container {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html:not(.dark) .auth-unselected-tab {
+  color: #475569 !important;
+}
+
+.demo-account-btn {
+  background-color: rgba(15, 23, 42, 0.85);
+  border: 1px solid #334155;
+}
+
+html:not(.dark) .demo-account-btn {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .demo-account-btn:hover {
+  background-color: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+
+.demo-account-pill {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+}
+
+html:not(.dark) .demo-account-pill {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1 !important;
+  font-weight: 700 !important;
+}
+
+.demo-account-email {
+  color: #94a3b8;
+}
+
+html:not(.dark) .demo-account-email {
+  color: #475569 !important;
+}
+
+html:not(.dark) .demo-account-name {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+}
+
+html:not(.dark) .demo-accounts-header {
+  color: #2563eb !important;
+}
+
+html:not(.dark) .demo-accounts-pw {
+  color: #475569 !important;
 }
 
 

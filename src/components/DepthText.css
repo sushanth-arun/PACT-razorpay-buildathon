@@ -3,6 +3,7 @@
   perspective: var(--depth-text-perspective);
   perspective-origin: 50% 48%;
   isolation: isolate;
+  font-family: var(--font-geist-sans), var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
 }
 
 .depth-text__stage {
@@ -13,12 +14,14 @@
   transform: rotateX(-2.4deg) rotateY(3.15deg);
   transform-origin: 50% 50%;
   will-change: transform;
+  font-family: inherit !important;
 }
 
 .depth-text__layer,
 .depth-text__face {
   grid-area: 1 / 1;
   display: inline-block;
+  font-family: inherit !important;
   font-size: var(--depth-text-font-size);
   font-weight: var(--depth-text-font-weight);
   line-height: 0.86;
