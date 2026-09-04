@@ -108,31 +108,7 @@ Before any transaction can proceed to payment, the deal contract must pass 9 ato
 8. `HUMAN_APPROVAL_GATE`: Routes high-value transactions exceeding threshold (`> ₹50,000`) to store manager approval.
 9. `DUPLICATE_PROTECTION`: Guarantees transaction idempotency.
 
-### 4. Razorpay Secure Settlement Rail
-```mermaid
-%%{init: {'theme': 'dark', 'themeVariables': { 'actorBkg': '#0f172a', 'actorBorder': '#3b82f6', 'actorTextColor': '#ffffff', 'signalColor': '#60a5fa', 'signalTextColor': '#ffffff', 'noteBkgColor': '#020617', 'noteTextColor': '#ffffff', 'noteBorderColor': '#38bdf8', 'activationBorderColor': '#3b82f6', 'activationBkgColor': '#1e293b', 'sequenceNumberColor': '#ffffff' }}}%%
-sequenceDiagram
-    autonumber
-    participant UI as Deal Room (Stage 5)
-    participant Server as PACT Settlement API
-    participant DB as Firestore (Authoritative)
-    participant RZP as Razorpay API
-    participant SDK as Razorpay Checkout.js
-
-    UI->>Server: POST /api/payments/create-order { dealId }
-    Server->>DB: Fetch Validated Deal Contract
-    Note over Server,DB: <b style="color:#ffffff;">Amount derived ONLY from Firestore finalAmount (Paise)</b>
-    Server->>RZP: orders.create({ amount, currency: "INR", receipt: dealId })
-    RZP-->>Server: Return razorpay_order_id
-    Server-->>UI: Return Order Credentials (Key ID, Order ID, Amount)
-    UI->>SDK: Open Razorpay Modal
-    SDK-->>UI: Return payment_id, order_id, signature
-    UI->>Server: POST /api/payments/verify { dealId, razorpay_payment_id, signature }
-    Server->>Server: HMAC-SHA256 Verification with RAZORPAY_KEY_SECRET
-    Server->>DB: Update Deal to PAID & Write Immutable Audit Record
-    Server-->>UI: Settlement Verified (200 OK)
-```
-
+### 4. Razorpay Secure Settlement
 - **Zero AI Access to Credentials**: AI agents have zero access to Razorpay API keys or payment creation pathways.
 - **Backend-Driven Amounts**: Client-side amounts are completely ignored. Payment amounts are calculated strictly from Firestore verified deal contracts.
 - **HMAC-SHA256 Cryptographic Verification**: Server-side signature validation prevents client tampering.
