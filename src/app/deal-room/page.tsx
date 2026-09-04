@@ -620,6 +620,8 @@ function DealRoomContent() {
       // ignore
     }
     setRequestText("");
+    setActiveTargetMerchantId("all");
+    setTargetMerchant(null);
     setIntentResult(null);
     setOfferResult(null);
     setDealContractResult(null);
