@@ -112,32 +112,34 @@ export async function createPaymentOrder(
   // Authoritative amount from Deal Contract in paise (integer arithmetic)
   const amountInPaise = Math.round(deal.finalAmount * 100);
 
-  // If active order exists, return existing order to avoid creating duplicates
+  // If active order exists AND matches the exact current deal amount, return existing order
   if (!existingOrdersSnap.empty) {
     const existingOrder = existingOrdersSnap.docs[0].data() as PACTOrder;
-    await recordAuditEvent(
-      "DUPLICATE_PAYMENT_PREVENTED",
-      "PACT_PAYMENT_SERVICE",
-      `Returning existing active Razorpay order ${existingOrder.razorpayOrderId} for Deal ${dealId}.`,
-      { dealId, orderId: existingOrder.id, razorpayOrderId: existingOrder.razorpayOrderId }
-    );
+    if (existingOrder.amount === amountInPaise) {
+      await recordAuditEvent(
+        "DUPLICATE_PAYMENT_PREVENTED",
+        "PACT_PAYMENT_SERVICE",
+        `Returning existing active Razorpay order ${existingOrder.razorpayOrderId} for Deal ${dealId} (Amount: ₹${(amountInPaise / 100).toLocaleString("en-IN")}).`,
+        { dealId, orderId: existingOrder.id, razorpayOrderId: existingOrder.razorpayOrderId, amount: existingOrder.amount }
+      );
 
-    const productSummary = deal.items.map((i) => `${i.productName} (x${i.quantity})`).join(", ");
+      const productSummary = deal.items.map((i) => `${i.productName} (x${i.quantity})`).join(", ");
 
-    return {
-      success: true,
-      data: {
+      return {
         success: true,
-        orderId: existingOrder.id,
-        razorpayOrderId: existingOrder.razorpayOrderId,
-        amount: existingOrder.amount,
-        currency: "INR",
-        keyId,
-        merchantName: "ErgoSpace",
-        dealId,
-        productSummary,
-      },
-    };
+        data: {
+          success: true,
+          orderId: existingOrder.id,
+          razorpayOrderId: existingOrder.razorpayOrderId,
+          amount: existingOrder.amount,
+          currency: "INR",
+          keyId,
+          merchantName: deal.merchantId || "PACT Merchant",
+          dealId,
+          productSummary,
+        },
+      };
+    }
   }
 
   if (!razorpay || !keyId) {

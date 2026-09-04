@@ -78,7 +78,7 @@ export default function TransactionsPage() {
       />
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 font-mono">
         <SpotlightCard
           spotlightColor="rgba(59, 130, 246, 0.2)"
           className="bg-slate-950/80 border border-slate-800 p-5 rounded-2xl"
@@ -100,16 +100,6 @@ export default function TransactionsPage() {
             <p className="text-2xl font-black text-slate-100">
               {transactions.filter((t) => t.status === "PAID").length} / {transactions.length}
             </p>
-          </div>
-        </SpotlightCard>
-
-        <SpotlightCard
-          spotlightColor="rgba(59, 130, 246, 0.2)"
-          className="bg-slate-950/80 border border-slate-800 p-5 rounded-2xl"
-        >
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-400 uppercase">FIREWALL COMPLIANCE</span>
-            <p className="text-2xl font-black text-blue-400">100% PASS</p>
           </div>
         </SpotlightCard>
       </div>

@@ -851,11 +851,14 @@ function DealRoomContent() {
 
       // 2. Open Razorpay Standard Checkout in Test Mode
       if (typeof window !== "undefined" && window.Razorpay) {
+        const merchantMatch = availableMerchants.find((m) => m.id === (dealContractResult.merchantId || activeTargetMerchantId));
+        const activeMerchantTitle = targetMerchant?.name || merchantMatch?.name || "ErgoSpace";
+
         const options: RazorpayOptions = {
           key: orderData.keyId,
           amount: orderData.amount,
           currency: orderData.currency || "INR",
-          name: "PACT — ErgoSpace Commerce",
+          name: `PACT — ${activeMerchantTitle}`,
           description: `Contract #${dealContractResult.dealId}: ${orderData.productSummary}`,
           order_id: orderData.razorpayOrderId,
           handler: async (response: RazorpaySuccessResponse) => {

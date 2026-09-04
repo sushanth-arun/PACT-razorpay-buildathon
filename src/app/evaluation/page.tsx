@@ -133,7 +133,7 @@ export default function RealTimeEvaluationDashboard() {
       </div>
 
       {/* KPI Metrics directly from Firestore Policy Evaluations */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 font-mono">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
         <SpotlightCard spotlightColor="rgba(168, 85, 247, 0.15)" className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-slate-400 uppercase">EVALUATED DEALS</span>
@@ -152,13 +152,6 @@ export default function RealTimeEvaluationDashboard() {
           <div className="space-y-1">
             <span className="text-[10px] font-bold text-rose-400 uppercase">POLICY BLOCKED</span>
             <p className="text-2xl font-black text-rose-400">{metrics.blocked}</p>
-          </div>
-        </SpotlightCard>
-
-        <SpotlightCard spotlightColor="rgba(59, 130, 246, 0.15)" className="bg-slate-950/80 border border-slate-800 p-4 rounded-2xl">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold text-blue-400 uppercase">COMPLIANCE RATE</span>
-            <p className="text-2xl font-black text-blue-400">{metrics.complianceRate}%</p>
           </div>
         </SpotlightCard>
 
